@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: api-gateway3
+  cloud:
+    kubernetes:
+      config:
+        enabled: true
+        sources:
+          - namespace: default
+            name: api-gateway3
+      reload:
+        enabled: true
+        mode: event
+        strategy: polling
+        period: 5000
+      discovery:
+        enabled: true
+        all-namespaces: true
+        primary-port-name: "default-http"
+        discovery-server-url: "http://192.168.49.2:30321"
+        include-not-ready-addresses: true

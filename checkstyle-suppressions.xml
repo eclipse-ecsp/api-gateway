@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.RegistryApplication"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.ApiGatewayApplication"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.registry.utils.RegistryUtils"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.registry.utils.RegistryConstants"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.utils.Constants"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.JarUtils"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.GatewayUtils"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.GatewayConstants"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.service.RouteUtils"/>
+    <suppress checks="OneTopLevelClass" files="org.eclipse.ecsp.gateway.plugins.RequestBodyValidator"/>
+    <suppress checks="MethodLength" files="org.eclipse.ecsp.gateway.plugins.JwtAuthValidatorTest"/>
+    <suppress checks="LineLength" files="org.eclipse.ecsp.gateway.plugins.JwtAuthValidatorTest"/>
+</suppressions>

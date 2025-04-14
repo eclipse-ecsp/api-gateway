@@ -1,0 +1,202 @@
+server:
+  port: 8080
+  http2:
+    enabled: true
+spring:
+  application:
+    name: api-gateway3
+  main:
+    web-application-type: reactive
+  data:
+    redis:
+      cluster:
+        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+  http:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
+  cloud:
+    discovery:
+      client:
+        health-indicator:
+          enabled: false
+    kubernetes:
+      discovery:
+        enabled: true
+        discovery-server-url: http://api-registry-int-svc:7000
+    gateway:
+      metrics:
+        enabled: ${api.gateway.metrics.gateway-requests.enabled}
+        prefix: ${api.gateway.metrics.gateway-requests.prefix}
+      filter:
+        local-response-cache:
+          enabled: false
+          timeToLive: ${api.caching.ttl:5}
+        redis.cache.enabled: false
+      globalcors:
+        corsConfigurations:
+          config:
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            maxAge: "3600"
+            allowedOriginPatterns: "https://*.example.com"
+      httpclient:
+        wiretap: true
+        pool.metrics: ${api.gateway.metrics.enabled}
+      httpserver:
+        wiretap: true
+      default-filters:
+        - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
+        - name: RequestRateLimiter
+          args:
+            key-resolver: "#{@requestKeyResolver}"
+            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
+            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
+            redis-rate-limiter.requestedTokens: 1
+        - name: RequestHeaderFilter
+          args:
+            remove-unknown-headers: ${api_gateway_request-header-filter_remove_unknown_headers:true}
+            skip-validation-for-apis: ${api_gateway_request-header-filter_skip_validation_for_apis:/api-docs/**,/v3/api-docs/**}
+            allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName}
+            append-headers-if-missing: ${api_gateway_request-header-filter_append_headers_if_missing:correlationId}
+            global-headers:
+              - name: sessionId
+                required: true # first level
+                regex: "^[a-zA-Z0-9_]{5,10}$" # second level
+
+jwt:
+  publicKeyFileBasePath: /opt/api-gateway3/pem_files/
+  publicKeyFiles: test-certificate.pem
+requestBody:
+  validation: true
+
+# Schedular to refresh the api-routes for every 30 sec
+api:
+  registry:
+    enabled: ${api_registry_enabled:true}
+    uri: ${api_registry_uri:http://api-registry-int-svc:7000}
+    route-path: /api/v1/routes
+  isFilterOverrideEnabled: false
+  overrideFilterConfig:
+    JwtAuthValidator:
+      filterName: CustomValidator
+      #requestHeaderValidationConfig:
+      #correlationId:
+    #required: "true"
+    #regexPattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+  caching:
+    type: "redis"
+    enabled: true
+    cacheName: "DefaultCache"
+    ttl: 5
+  routes:
+    refreshCronJob: "*/30 * * * * *"
+  dynamic:
+    routes:
+      enabled: true
+  registered:
+    services: "test-dmap"
+  userId:
+    field: "sub"
+  gateway:
+    metrics:
+      enabled: true
+      port: 9100
+      base-path: /gateway
+      prometheus:
+        enabled: true
+        path: /metrics
+      health:
+        enabled: true
+        path: /health
+      security-metrics:
+        enabled: true
+        prefix: api.gateway
+        ignoreTags: [ "exception" ]
+        security-filter-name: JwtAuthFilter
+      gateway-requests:
+        enabled: true
+        prefix: api.gateway
+        ignoreTags: [ "exception" ]
+        distribution:
+          enabled: false # if enabled meter registry publishes 276 predetermined histogram buckets
+          buckets: 100ms, 500ms, 1000ms, 3000ms, 5000ms, 8000ms, 10000ms, 15000ms  # slo thresholds in milliseconds
+          expiry: 5m
+          bufferLength: 10
+      backend-requests:
+        prefix: http.backend.requests
+        enabled: true
+        ignoreTags: [ "exception" ]
+        distribution:
+          enabled: false
+          buckets: 100ms, 500ms, 1000ms, 3000ms, 5000ms, 8000ms, 10000ms, 15000ms  # slo thresholds in milliseconds
+          expiry: 5m
+          bufferLength: 10
+      server-requests:
+        prefix: http.server.requests
+        enabled: true
+        ignoreTags: [ "exception" ]
+        distribution:
+          enabled: false
+          buckets: 100ms, 500ms, 1s, 3s, 5s, 8s, 10s, 15s  # slo thresholds in milliseconds
+          expiry: 5m
+          bufferLength: 10
+      http-client-requests:
+        prefix: http.client.requests
+        enabled: true
+        ignoreTags: [ "exception" ]
+        distribution:
+          enabled: false
+          buckets: 100ms, 500ms, 1000ms, 3000ms, 5000ms, 8000ms, 10000ms, 15000ms  # slo thresholds in milliseconds
+          expiry: 5m
+          bufferLength: 10
+springdoc:
+  version: '@springdoc.version@'
+  swagger-ui:
+    use-root-path: true
+logging:
+  level:
+    org.springframework.cloud.gateway: ERROR
+    org.springframework.boot.context.config: ERROR
+    org.springframework.boot.loader: ERROR
+plugin:
+  enabled: ${plugin_enabled:false}
+  path: ${plugin_path:/external-libs}
+  classes: ${plugin_classes:}
+
+api-gateway:
+  uri: ${api_gateway_uri:http://api-gateway3-int-svc:7000/}
+
+# spring actuator configurations
+management:
+  server:
+    port: ${api.gateway.metrics.port}
+  endpoint:
+    prometheus:
+      enabled: ${api.gateway.metrics.prometheus.enabled}
+    health:
+      enabled: ${api.gateway.metrics.health.enabled}
+      show-components: ALWAYS
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: health, prometheus
+      base-path: ${api.gateway.metrics.base-path}
+      path-mapping:
+        prometheus: ${api.gateway.metrics.prometheus.path}
+        health: ${api.gateway.metrics.health.path}
+    jmx:
+      exposure:
+        exclude: "*" # Disable all JMX endpoints
+  metrics:
+    enabled: ${api.gateway.metrics.enabled}
+    tags:
+      application: ${spring.application.name:api-gateway3}
+    export:
+      prometheus:
+        enabled: ${api.gateway.metrics.prometheus.enabled}
+  health:
+    probes:
+      enabled: ${api.gateway.metrics.health.enabled}

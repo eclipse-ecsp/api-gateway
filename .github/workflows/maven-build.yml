@@ -1,0 +1,37 @@
+name: Maven Build & Sonar Analysis
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  maven_build:
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
+    name: Maven Build
+    with:
+      maven_args: 'clean package --file pom.xml'
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+  sonar_analysis:
+    needs: maven_build
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
+    secrets:
+      token: ${{ secrets.SONAR_TOKEN }}
+  dependencies_update:
+    needs: sonar_analysis
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
+    secrets: inherit
+    permissions:
+      pull-requests: write
+      contents: read
+
+  docker_push:
+    needs: sonar_analysis
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    secrets: inherit
+    with:
+      #image_tag: '0.0.1'
+      maven_args: 'clean package --file pom.xml'

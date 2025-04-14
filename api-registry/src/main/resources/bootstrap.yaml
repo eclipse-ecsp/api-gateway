@@ -1,0 +1,9 @@
+spring.application.name: api-registry
+spring.profiles: default,development,kubernetes
+spring.cloud.kubernetes.enabled: true
+spring.cloud.kubernetes.config.enabled: true
+spring.cloud.kubernetes.reload.enabled: true
+spring.cloud.kubernetes.reload.mode: event
+spring.cloud.kubernetes.reload.strategy: refresh
+kubernetes.trust.certificates: true
+management.endpoint.restart.enabled: true

@@ -48,10 +48,20 @@ jobs:
     with:
       release_version: ${{ needs.extract_version.outputs.release_version }}
 
-  docker_push:
+  docker_push_api_registry:
     needs: extract_version
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
+      context_path: ./api-registry
+      image_tag: ${{ needs.extract_version.outputs.release_version }}
+      maven_args: 'clean package -P release'
+
+  docker_push_api_gateway:
+    needs: extract_version
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    secrets: inherit
+    with:
+      context_path: ./api-gateway3
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'

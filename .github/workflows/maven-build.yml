@@ -28,10 +28,18 @@ jobs:
       pull-requests: write
       contents: read
 
-  docker_push:
+  docker_push_api_registry:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
-      #image_tag: '0.0.1'
+      context_path: ./api-registry
+      maven_args: 'clean package --file pom.xml'
+
+  docker_push_api-gateway:
+    needs: sonar_analysis
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    secrets: inherit
+    with:
+      context_path: ./api-gateway3
       maven_args: 'clean package --file pom.xml'

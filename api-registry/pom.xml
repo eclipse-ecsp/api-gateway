@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.eclipse.ecsp</groupId>
         <artifactId>api-gateway3-parent</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>api-registry</artifactId>

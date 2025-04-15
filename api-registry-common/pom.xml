@@ -12,6 +12,10 @@
     <artifactId>api-registry-common</artifactId>
     <packaging>jar</packaging>
 
+    <name>api-registry-common</name>
+    <description>api-registry-common is library which help to register the api route details to api-registry</description>
+    <url>https://github.com/eclipse-ecsp/api-gateway</url>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>

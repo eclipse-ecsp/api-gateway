@@ -12,6 +12,11 @@
     <artifactId>api-gateway3</artifactId>
     <packaging>jar</packaging>
 
+    <name>api-gateway3</name>
+    <description>A Spring cloud gateway based API Gateway that serves as a single entry point for microservices</description>
+    <url>https://github.com/eclipse-ecsp/api-gateway</url>
+
+
     <properties>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco-ut/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>

@@ -12,6 +12,10 @@
     <artifactId>api-registry</artifactId>
     <packaging>jar</packaging>
 
+    <name>api-registry</name>
+    <description>api-registry will maintain the api routes and serves to api-gateway</description>
+    <url>https://github.com/eclipse-ecsp/api-gateway</url>
+
     <properties>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco-ut/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>

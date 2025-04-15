@@ -67,7 +67,7 @@ class ApiRouteServiceTest {
         try {
             apiRouteService.createOrUpdate(rd);
             Assertions.fail("Expected IllegalArgumentException");
-        }catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             Assertions.assertTrue(true);
         }
     }

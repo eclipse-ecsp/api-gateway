@@ -20,9 +20,11 @@
 package org.eclipse.ecsp.gateway.plugins.filters;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
-import org.eclipse.ecsp.gateway.plugins.RequestBodyValidator;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -54,7 +56,7 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
      *
      * @param config RequestBodyValidator.Config
      */
-    public RequestBodyFilter(RequestBodyValidator.Config config) {
+    public RequestBodyFilter(Config config) {
     }
 
     /**
@@ -125,5 +127,14 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
     @Override
     public int getOrder() {
         return GatewayConstants.REQUEST_BODY_VALIDATOR_FILTER_ORDER;
+    }
+
+    /**
+     * Confing class to pass configurations to filter.
+     */
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    public static class Config {
     }
 }

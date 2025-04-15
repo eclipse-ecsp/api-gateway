@@ -19,10 +19,9 @@
 package org.eclipse.ecsp.gateway.plugins;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter.Config;
 import org.eclipse.ecsp.gateway.utils.JwtPublicKeyLoader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -36,7 +35,7 @@ import java.util.Map;
  */
 @Component
 @ConfigurationProperties(prefix = "jwt")
-public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthValidator.Config> {
+public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthFilter.Config> {
 
     @Getter
     @Setter
@@ -62,18 +61,6 @@ public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthValida
         return new JwtAuthFilter(config, jwtPublicKeyLoader.getJwtParsers(), tokenHeaderValidationConfig, userIdField);
     }
 
-    /**
-     * Config class to add configuration to pass to filter.
-     */
-    @Setter
-    @Getter
-    @NoArgsConstructor
-    @ToString
-    public static class Config {
-        /**
-         * The scope.
-         */
-        protected String scope;
-    }
+
 }
 

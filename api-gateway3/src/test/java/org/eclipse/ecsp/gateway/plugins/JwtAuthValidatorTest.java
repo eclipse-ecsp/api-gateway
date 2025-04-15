@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.JwtPublicKeyLoader;
 import org.junit.jupiter.api.Assertions;
@@ -156,13 +157,13 @@ class JwtAuthValidatorTest {
         audHeaderValidationConfig.put("required", "false");
         audHeaderValidationConfig.put("regex", "^[a-zA-Z0-9]+$");
         this.tokenHeaderValidatorConfig.put("aud", audHeaderValidationConfig);
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, userIdField);
 
         // Invalid scope config
-        JwtAuthValidator.Config invalidConfig = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config invalidConfig = new JwtAuthFilter.Config();
         invalidConfig.setScope("InvalidScope");
         jwtAuthValidator.apply(invalidConfig);
         jwtAuthFilterWithInvalidScope =
@@ -206,7 +207,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenVerificationFailed() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         this.jwtParsers.clear();
@@ -218,7 +219,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testInvalidToken() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         ServerWebExchangeImpl mockedExchange = Mockito.spy(serverWebExchangeImpl);
@@ -235,7 +236,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testPrivateMethodValidateScope() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, this.userIdField);
@@ -272,12 +273,12 @@ class JwtAuthValidatorTest {
         nullHeaderValidatorConfig.put("required", "true");
         nullHeaderValidatorConfig.put("regex",
                 "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, userIdField);
         // Invalid scope config
-        JwtAuthValidator.Config invalidConfig = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config invalidConfig = new JwtAuthFilter.Config();
         invalidConfig.setScope("InvalidScope");
         jwtAuthValidator.apply(invalidConfig);
         jwtAuthFilterWithInvalidScope =
@@ -366,7 +367,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testRequestBodyFilter() {
-        requestBodyValidator.apply(new RequestBodyValidator.Config());
+        requestBodyValidator.apply(new Config());
         accessLog = new AccessLog();
         when(route.getMetadata()).thenReturn(null);
         GatewayFilterChain mockedGatewayFilterChain = Mockito.mock(GatewayFilterChain.class);
@@ -743,7 +744,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public void addUrlTransformer(Function<String, String> transformer) {
-
+            // No implementation needed
         }
 
         @Override
@@ -969,7 +970,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public void addUrlTransformer(Function<String, String> transformer) {
-
+            // No implementation needed
         }
 
         @Override

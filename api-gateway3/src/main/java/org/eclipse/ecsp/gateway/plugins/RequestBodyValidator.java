@@ -18,10 +18,8 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
@@ -30,7 +28,7 @@ import org.springframework.stereotype.Component;
  * RequestBodyValidator Filter Validates the Request body.
  */
 @Component
-public class RequestBodyValidator extends AbstractGatewayFilterFactory<RequestBodyValidator.Config> {
+public class RequestBodyValidator extends AbstractGatewayFilterFactory<RequestBodyFilter.Config> {
     /**
      * Constructor to initialize RequestBodyValidator.
      */
@@ -43,13 +41,6 @@ public class RequestBodyValidator extends AbstractGatewayFilterFactory<RequestBo
         return new RequestBodyFilter(config);
     }
 
-    /**
-     * Confing class to pass configurations to filter.
-     */
-    @Setter
-    @Getter
-    @NoArgsConstructor
-    public static class Config {
-    }
+
 }
 

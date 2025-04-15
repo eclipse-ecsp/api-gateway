@@ -255,7 +255,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
-
+            // No implementation needed
         }
 
         @Override

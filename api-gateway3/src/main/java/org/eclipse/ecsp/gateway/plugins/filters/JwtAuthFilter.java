@@ -23,8 +23,11 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
-import org.eclipse.ecsp.gateway.plugins.JwtAuthValidator;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -73,7 +76,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
      * @param tokenHeaderValidationConfig  the map of token header validation configurations
      * @param userIdField                 the user ID field in the JWT claims
      */
-    public JwtAuthFilter(JwtAuthValidator.Config config, Map<String, JwtParser> jwtParsers,
+    public JwtAuthFilter(JwtAuthFilter.Config config, Map<String, JwtParser> jwtParsers,
                          Map<String, Map<String, String>> tokenHeaderValidationConfig, String userIdField) {
         this.tokenHeaderValidationConfig = tokenHeaderValidationConfig;
         this.jwtParsers = jwtParsers;
@@ -271,5 +274,19 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     @Override
     public int getOrder() {
         return GatewayConstants.JWT_AUTH_FILTER_ORDER;
+    }
+
+    /**
+     * Config class to add configuration to pass to filter.
+     */
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    @ToString
+    public static class Config {
+        /**
+         * The scope.
+         */
+        protected String scope;
     }
 }

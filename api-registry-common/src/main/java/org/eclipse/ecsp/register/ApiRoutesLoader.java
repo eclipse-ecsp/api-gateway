@@ -179,17 +179,7 @@ public class ApiRoutesLoader extends OpenApiResource {
         // Load from configuration
         LOGGER.debug("Scopes Map config: " + scopesMap);
         LOGGER.debug("Routes List: " + apiRoutesConfig.getRoutes());
-        if (apiRoutesConfig.getRoutes() != null && !apiRoutesConfig.getRoutes().isEmpty()) {
-            LOGGER.info("Read API Routes from OpenApi Configurations...");
-            for (RouteDefinition route : apiRoutesConfig.getRoutes()) {
-                validate(route);
-                // set service to current micro-service name
-                route.setService(appName);
-                route.setContextPath(this.contextPath);
-                apiRoutes.add(route);
-                LOGGER.info("Route: {} is valid and added to register", route.getId());
-            }
-        }
+        prepareStaticRoutes();
         // Load from Swagger Annotations
         LOGGER.info("Read API Routes from OpenApi (Swagger) Annotations...");
         this.serviceUrl = new URI("http://" + serviceName + ":" + port + Constants.PATH_DELIMITER);
@@ -203,33 +193,49 @@ public class ApiRoutesLoader extends OpenApiResource {
             return;
         }
         components = api.getComponents();
-        paths.keySet().forEach(k -> {
-            PathItem pi = paths.get(k);
-            if (pi != null) {
-                try {
-                    if (pi.getPost() != null) {
-                        setOperation(HttpMethod.POST, k, pi.getPost());
-                    }
-                    if (pi.getGet() != null) {
-                        setOperation(HttpMethod.GET, k, pi.getGet());
-                    }
-                    if (pi.getPut() != null) {
-                        setOperation(HttpMethod.PUT, k, pi.getPut());
-                    }
-                    if (pi.getDelete() != null) {
-                        setOperation(HttpMethod.DELETE, k, pi.getDelete());
-                    }
-                    if (pi.getPatch() != null) {
-                        setOperation(HttpMethod.PATCH, k, pi.getPatch());
-                    }
-                    if (pi.getOptions() != null) {
-                        setOperation(HttpMethod.OPTIONS, k, pi.getOptions());
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("Exception occurred: " + e);
-                }
+        paths.keySet().forEach(k -> setOperationMethod(k, paths));
+    }
+
+    private void prepareStaticRoutes() {
+        if (apiRoutesConfig.getRoutes() != null && !apiRoutesConfig.getRoutes().isEmpty()) {
+            LOGGER.info("Read API Routes from OpenApi Configurations...");
+            for (RouteDefinition route : apiRoutesConfig.getRoutes()) {
+                validate(route);
+                // set service to current micro-service name
+                route.setService(appName);
+                route.setContextPath(this.contextPath);
+                apiRoutes.add(route);
+                LOGGER.info("Route: {} is valid and added to register", route.getId());
             }
-        });
+        }
+    }
+
+    private void setOperationMethod(String k, Paths paths) {
+        PathItem pi = paths.get(k);
+        if (pi != null) {
+            try {
+                if (pi.getPost() != null) {
+                    setOperation(HttpMethod.POST, k, pi.getPost());
+                }
+                if (pi.getGet() != null) {
+                    setOperation(HttpMethod.GET, k, pi.getGet());
+                }
+                if (pi.getPut() != null) {
+                    setOperation(HttpMethod.PUT, k, pi.getPut());
+                }
+                if (pi.getDelete() != null) {
+                    setOperation(HttpMethod.DELETE, k, pi.getDelete());
+                }
+                if (pi.getPatch() != null) {
+                    setOperation(HttpMethod.PATCH, k, pi.getPatch());
+                }
+                if (pi.getOptions() != null) {
+                    setOperation(HttpMethod.OPTIONS, k, pi.getOptions());
+                }
+            } catch (Exception e) {
+                LOGGER.error("Exception occurred: " + e);
+            }
+        }
     }
 
     /**

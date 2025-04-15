@@ -111,7 +111,7 @@ class RestTemplateLogInterceptorTest {
 
         @Override
         public void close() {
-
+            // No implementation needed
         }
 
         @Override

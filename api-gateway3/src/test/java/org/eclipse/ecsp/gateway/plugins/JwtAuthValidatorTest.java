@@ -27,13 +27,15 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.JwtPublicKeyLoader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
 import org.reactivestreams.Publisher;
@@ -503,10 +505,12 @@ class JwtAuthValidatorTest {
 
         @Override
         public void putAll(Map<? extends String, ?> m) {
+            // No implementation needed
         }
 
         @Override
         public void clear() {
+            // No implementation needed
         }
 
         @Override
@@ -628,7 +632,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void beforeCommit(Supplier<? extends Mono<Void>> action) {
-
+                    // No implementation needed
                 }
 
                 @Override
@@ -668,7 +672,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void addCookie(ResponseCookie cookie) {
-
+                    // No implementation needed
                 }
             };
             return response;
@@ -749,6 +753,7 @@ class JwtAuthValidatorTest {
 
         @SuppressWarnings("checkstyle:OverloadMethodsDeclarationOrder")
         public void getAttributes(String gatewayRouteAttr) {
+            // No implementation needed
         }
     }
 
@@ -853,7 +858,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void beforeCommit(Supplier<? extends Mono<Void>> action) {
-
+                    // No implementation needed
                 }
 
                 @Override
@@ -893,7 +898,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void addCookie(ResponseCookie cookie) {
-
+                    // No implementation needed
                 }
             };
             return response;
@@ -974,6 +979,7 @@ class JwtAuthValidatorTest {
 
         @SuppressWarnings("checkstyle:OverloadMethodsDeclarationOrder")
         public void getAttributes(String gatewayRouteAttr) {
+            // No implementation needed
         }
     }
 }

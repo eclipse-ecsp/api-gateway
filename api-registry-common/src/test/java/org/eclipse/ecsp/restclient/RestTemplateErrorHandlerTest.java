@@ -97,6 +97,7 @@ class RestTemplateErrorHandlerTest {
 
             @Override
             public void close() {
+                // No implementation needed
             }
 
             @Override

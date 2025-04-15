@@ -30,18 +30,20 @@ public class TestValidator {
 
     @SecurityRequirement(name = "ValidScope", scopes = {Scopes.Fields.SelfManage})
     public void validScope() {
-
+        // Valid scope
     }
 
     @SecurityRequirement(name = "EmptyScope")
     public void emptyScope() {
-
+        // Empty scope
     }
 
     @SecurityRequirement(name = "InvalidScope", scopes = {"Invalid-Scope"})
     public void invalidScope() {
+        // Invalid scope
     }
 
     public void emptyAnnotation() {
+        // Empty annotation
     }
 }

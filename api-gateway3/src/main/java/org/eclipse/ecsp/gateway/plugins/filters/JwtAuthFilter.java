@@ -63,7 +63,13 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     private static final String INVALID_TOKEN_CODE = "api.gateway.error.token.invalid";
     private static final String INVALID_TOKEN = "Invalid Token";
     private static final String TOKEN_VERIFICATION_FAILED = "Token verification failed";
+    /**
+     * JWT Parser map.
+     */
     protected final Map<String, JwtParser> jwtParsers;
+    /**
+     * Set of route scopes.
+     */
     protected final Set<String> routeScopes = new HashSet<>();
     private final Map<String, Map<String, String>> tokenHeaderValidationConfig;
     private String userIdField;

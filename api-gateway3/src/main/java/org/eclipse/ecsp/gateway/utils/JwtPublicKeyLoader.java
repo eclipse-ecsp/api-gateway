@@ -48,6 +48,10 @@ import java.util.Map;
 @Component
 public class JwtPublicKeyLoader {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(JwtPublicKeyLoader.class);
+
+    /**
+     * Map to hold JWT parsers for each public key file.
+     */
     @Getter
     protected final Map<String, JwtParser> jwtParsers = new LinkedHashMap<>();
     @Value("${jwt.publicKeyFiles}")

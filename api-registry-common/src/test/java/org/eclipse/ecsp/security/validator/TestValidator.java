@@ -19,7 +19,6 @@
 package org.eclipse.ecsp.security.validator;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.eclipse.ecsp.security.Scopes;
 import org.eclipse.ecsp.security.Scopes.Fields;
 import org.springframework.stereotype.Component;
 

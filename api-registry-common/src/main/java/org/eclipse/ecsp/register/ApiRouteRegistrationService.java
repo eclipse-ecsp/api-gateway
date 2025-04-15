@@ -59,6 +59,7 @@ public class ApiRouteRegistrationService {
      * Constructor to initialize the ApiRouteRegistrationService.
      *
      * @param apiRoutesLoader the ApiRoutesLoader
+     * @param restTemplate  the RestTemplate
      */
     public ApiRouteRegistrationService(ApiRoutesLoader apiRoutesLoader, RestTemplate restTemplate) {
         this.apiRoutesLoader = apiRoutesLoader;

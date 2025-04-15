@@ -48,6 +48,10 @@ import java.util.stream.Collectors;
  */
 public class RequestBodyFilter implements GatewayFilter, Ordered {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RequestBodyFilter.class);
+
+    /**
+     * Request body validation flag.
+     */
     @Value("${requestBody.validation}")
     public boolean requestBodyValidation;
 

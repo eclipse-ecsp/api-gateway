@@ -20,7 +20,6 @@ package org.eclipse.ecsp.gateway.service;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -38,8 +37,16 @@ import org.springframework.stereotype.Service;
 public class ApiRoutesRefreshScheduler {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesRefreshScheduler.class);
 
-    @Autowired
-    private IgniteRouteLocator igniteRouteLocator;
+    private final IgniteRouteLocator igniteRouteLocator;
+
+    /**
+     * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.
+     *
+     * @param igniteRouteLocator the IgniteRouteLocator
+     */
+    public ApiRoutesRefreshScheduler(IgniteRouteLocator igniteRouteLocator) {
+        this.igniteRouteLocator = igniteRouteLocator;
+    }
 
     /**
      * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.

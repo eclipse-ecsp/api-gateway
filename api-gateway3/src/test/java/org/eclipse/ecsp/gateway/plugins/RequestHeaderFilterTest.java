@@ -24,6 +24,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.Config;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.GlobalHeaderConfig;
+import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import java.util.List;
@@ -54,6 +56,9 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
 class RequestHeaderFilterTest {
+
+    @MockitoBean
+    ApiGatewayController apiGatewayController;
 
     @Autowired
     WebTestClient webTestClient;

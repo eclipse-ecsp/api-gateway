@@ -61,18 +61,21 @@ class HeaderInterceptorTest {
     private HeaderInterceptor headerInterceptor;
 
     @Test
-    void testPreHandle() throws Exception {
+    void testPreHandle() {
         Assertions.assertTrue(headerInterceptor.preHandle(new Request(), new Response(), new Handler() {
             @Override
-            public void publish(LogRecord record) {
+            public void publish(LogRecord logRecord) {
+                // No implementation needed
             }
 
             @Override
             public void flush() {
+                // No implementation needed
             }
 
             @Override
             public void close() throws SecurityException {
+                // No implementation needed
             }
         }));
     }
@@ -211,12 +214,12 @@ class HeaderInterceptorTest {
 
         @Override
         public void login(String username, String password) throws ServletException {
-
+            // No implementation needed
         }
 
         @Override
         public void logout() throws ServletException {
-
+            // No implementation needed
         }
 
         @Override
@@ -252,7 +255,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
-
+            // No implementation needed
         }
 
         @Override
@@ -332,12 +335,12 @@ class HeaderInterceptorTest {
 
         @Override
         public void setAttribute(String name, Object o) {
-
+            // No implementation needed
         }
 
         @Override
         public void removeAttribute(String name) {
-
+            // No implementation needed
         }
 
         @Override
@@ -436,7 +439,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void addCookie(Cookie cookie) {
-
+            // No implementation needed
         }
 
         @Override
@@ -456,47 +459,47 @@ class HeaderInterceptorTest {
 
         @Override
         public void sendError(int sc, String msg) throws IOException {
-
+            // No implementation needed
         }
 
         @Override
         public void sendError(int sc) throws IOException {
-
+            // No implementation needed
         }
 
         @Override
         public void sendRedirect(String location) throws IOException {
-
+            // No implementation needed
         }
 
         @Override
         public void setDateHeader(String name, long date) {
-
+            // No implementation needed
         }
 
         @Override
         public void addDateHeader(String name, long date) {
-
+            // No implementation needed
         }
 
         @Override
         public void setHeader(String name, String value) {
-
+            // No implementation needed
         }
 
         @Override
         public void addHeader(String name, String value) {
-
+            // No implementation needed
         }
 
         @Override
         public void setIntHeader(String name, int value) {
-
+            // No implementation needed
         }
 
         @Override
         public void addIntHeader(String name, int value) {
-
+            // No implementation needed
         }
 
         @Override
@@ -506,7 +509,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setStatus(int sc) {
-
+            // No implementation needed
         }
 
         @Override
@@ -531,7 +534,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setCharacterEncoding(String charset) {
-
+            // No implementation needed
         }
 
         @Override
@@ -541,7 +544,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setContentType(String type) {
-
+            // No implementation needed
         }
 
         @Override
@@ -556,12 +559,12 @@ class HeaderInterceptorTest {
 
         @Override
         public void setContentLength(int len) {
-
+            // No implementation needed
         }
 
         @Override
         public void setContentLengthLong(long length) {
-
+            // No implementation needed
         }
 
         @Override
@@ -571,17 +574,17 @@ class HeaderInterceptorTest {
 
         @Override
         public void setBufferSize(int size) {
-
+            // No implementation needed
         }
 
         @Override
         public void flushBuffer() throws IOException {
-
+            // No implementation needed
         }
 
         @Override
         public void resetBuffer() {
-
+            // No implementation needed
         }
 
         @Override
@@ -591,7 +594,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void reset() {
-
+            // No implementation needed
         }
 
         @Override
@@ -601,7 +604,7 @@ class HeaderInterceptorTest {
 
         @Override
         public void setLocale(Locale loc) {
-
+            // No implementation needed
         }
     }
 }

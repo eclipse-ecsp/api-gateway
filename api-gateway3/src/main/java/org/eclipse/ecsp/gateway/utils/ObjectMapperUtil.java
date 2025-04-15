@@ -47,8 +47,8 @@ public class ObjectMapperUtil {
     /**
      * Default constructor.
      */
-    public ObjectMapperUtil() {
-
+    private ObjectMapperUtil() {
+        // Default constructor
     }
 
     /**

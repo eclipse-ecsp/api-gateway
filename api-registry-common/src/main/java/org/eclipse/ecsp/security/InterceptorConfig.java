@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.security;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -29,8 +28,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class InterceptorConfig implements WebMvcConfigurer {
 
-    @Autowired
-    HeaderInterceptor headerInterceptor;
+    private final HeaderInterceptor headerInterceptor;
+
+    /**
+     * Constructor to initialize the InterceptorConfig.
+     *
+     * @param headerInterceptor the HeaderInterceptor
+     */
+    public InterceptorConfig(HeaderInterceptor headerInterceptor) {
+        this.headerInterceptor = headerInterceptor;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

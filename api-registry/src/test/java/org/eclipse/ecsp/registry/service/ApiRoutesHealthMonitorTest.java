@@ -24,16 +24,15 @@ import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * Test class for ApiRoutesHealthMonitor.
@@ -41,7 +40,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiRoutesHealthMonitorTest {
 
-    @InjectMocks
     private ApiRoutesHealthMonitor apiRoutesHealthMonitor;
 
     @Mock
@@ -55,21 +53,32 @@ class ApiRoutesHealthMonitorTest {
 
     @BeforeEach
     void beforeEach() {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
+        apiRoutesHealthMonitor = new ApiRoutesHealthMonitor(apiRouteRepo, restTemplate, eventPublisher);
     }
 
     @Test
     void healthCheckTest() {
+        // Scenario 1: No API routes found
+        Mockito.when(apiRouteRepo.findAll()).thenReturn(new ArrayList<>());
         apiRoutesHealthMonitor.healthCheck();
+        Mockito.verify(restTemplate, Mockito.never()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
+
+        // Scenario 2: API routes found, health check succeeds
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         ArrayList<ApiRouteEntity> apiRouteEntities = new ArrayList<>();
         apiRouteEntities.add(apiRouteEntity);
         Mockito.when(apiRouteRepo.findAll()).thenReturn(apiRouteEntities);
-        apiRoutesHealthMonitor.healthCheck();
         Mockito.when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
                 .thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
         apiRoutesHealthMonitor.healthCheck();
-        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.any());
+        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
+
+        // Scenario 3: API routes found, health check fails
+        Mockito.when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
+                .thenThrow(new RuntimeException("Health check failed"));
+        apiRoutesHealthMonitor.healthCheck();
+        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
     }
 
 }

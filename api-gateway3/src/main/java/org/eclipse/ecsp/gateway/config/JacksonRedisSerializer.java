@@ -20,8 +20,8 @@ package org.eclipse.ecsp.gateway.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
@@ -36,8 +36,8 @@ public class JacksonRedisSerializer<T> implements RedisSerializer<T> {
     /**
      * Creating LOGGER instacne.
      */
-    private static final Logger LOGGER
-            = LoggerFactory.getLogger(JacksonRedisSerializer.class);
+    private static final IgniteLogger LOGGER
+            = IgniteLoggerFactory.getLogger(JacksonRedisSerializer.class);
 
     /**
      * Created an ObjectMapper instance to read data from object.
@@ -56,7 +56,7 @@ public class JacksonRedisSerializer<T> implements RedisSerializer<T> {
         try {
             return objectMapper.writeValueAsBytes(t);
         } catch (Exception e) {
-            LOGGER.error("Error serializing to JSON {} / Error Cause :{}", t, e);
+            LOGGER.error("Error serializing to JSON: {} ", t, e);
             throw new SerializationException("Error serializing object" + t, e);
         }
     }
@@ -78,8 +78,7 @@ public class JacksonRedisSerializer<T> implements RedisSerializer<T> {
             return objectMapper.readValue(bytes, new TypeReference<T>() {
             });
         } catch (Exception e) {
-            LOGGER.error("Error deserializing JSON {}/ Error Cause :{}",
-                    new String(bytes), e);
+            LOGGER.error("Error deserializing JSON {}", new String(bytes), e);
             throw new SerializationException("Error deserializing JSON: "
                     + new String(bytes), e);
         }

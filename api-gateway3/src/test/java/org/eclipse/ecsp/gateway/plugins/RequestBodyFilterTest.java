@@ -21,6 +21,8 @@ package org.eclipse.ecsp.gateway.plugins;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.junit.jupiter.api.Assertions;
@@ -49,14 +51,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 class RequestBodyFilterTest {
 
-    RequestBodyValidator.Config requestBodyValidatorConfig;
+    RequestBodyFilter.Config requestBodyValidatorConfig;
     private RequestBodyFilter requestBodyFilter;
     private ServerWebExchange request;
     private GatewayFilterChain gatewayFilterChain;
 
     @BeforeEach
     void setUp() {
-        requestBodyValidatorConfig = new RequestBodyValidator.Config();
+        requestBodyValidatorConfig = new Config();
         requestBodyFilter = new RequestBodyFilter(requestBodyValidatorConfig);
         ReflectionTestUtils.setField(requestBodyFilter, "requestBodyValidation", true);
         gatewayFilterChain = Mockito.mock(GatewayFilterChain.class);

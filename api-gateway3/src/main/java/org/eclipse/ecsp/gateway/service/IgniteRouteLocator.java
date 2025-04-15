@@ -93,15 +93,15 @@ public class IgniteRouteLocator implements RouteLocator {
     private boolean redisCachingEnabled;
     @Value("${spring.cloud.gateway.filter.local-response-cache.enabled}")
     private boolean localCachingEnabled;
-    @Autowired
-    private RegistryRouteLoader registryRouteLoader;
-    @Autowired
-    private RouteLocatorBuilder routeLocatorBuilder;
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
-    @Autowired
-    private SpringCloudGatewayConfig springCloudGatewayConfig;
-    private Flux<Route> routes;
+
+    private final RegistryRouteLoader registryRouteLoader;
+
+    private final RouteLocatorBuilder routeLocatorBuilder;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
+
+    private final SpringCloudGatewayConfig springCloudGatewayConfig;
+
     @Value("${api.isFilterOverrideEnabled}")
     private boolean isFilterOverrideEnabled;
 
@@ -113,14 +113,25 @@ public class IgniteRouteLocator implements RouteLocator {
      * @param gatewayProperties      the gateway properties
      * @param pluginEnabled          flag to enable custom plugins
      * @param pluginLoader           the plugin loader
-     * @throws Exception if any error occurred during initialization.
+     * @param registryRouteLoader    the registry route loader
+     * @param routeLocatorBuilder    the route locator builder
+     * @param applicationEventPublisher the application event publisher
+     * @param springCloudGatewayConfig  the Spring Cloud Gateway configuration
      */
     public IgniteRouteLocator(ConfigurationService configurationService,
                               List<GatewayFilterFactory> gatewayFilterFactories,
                               GatewayProperties gatewayProperties,
                               @Value("${plugin.enabled}") boolean pluginEnabled,
-                              PluginLoader pluginLoader) throws Exception {
+                              PluginLoader pluginLoader,
+                              RegistryRouteLoader registryRouteLoader,
+                              RouteLocatorBuilder routeLocatorBuilder,
+                              ApplicationEventPublisher applicationEventPublisher,
+                              SpringCloudGatewayConfig springCloudGatewayConfig) {
         this.configurationService = configurationService;
+        this.registryRouteLoader = registryRouteLoader;
+        this.routeLocatorBuilder = routeLocatorBuilder;
+        this.applicationEventPublisher = applicationEventPublisher;
+        this.springCloudGatewayConfig = springCloudGatewayConfig;
         gatewayFilterFactories.forEach(factory -> this.gatewayFilterFactories.put(factory.name(), factory));
         if (pluginEnabled) {
             LOGGER.debug("Loading custom plugins...");
@@ -132,9 +143,9 @@ public class IgniteRouteLocator implements RouteLocator {
             });
             LOGGER.debug("Loaded custom plugins...");
         }
-        this.gatewayFilterFactories.keySet().forEach(factory -> {
-            LOGGER.info("Registered filter name : {}", factory);
-        });
+        this.gatewayFilterFactories.keySet().forEach(factory ->
+            LOGGER.info("Registered filter name : {}", factory)
+        );
         this.gatewayProperties = gatewayProperties;
     }
 
@@ -167,7 +178,7 @@ public class IgniteRouteLocator implements RouteLocator {
         RouteLocatorBuilder.Builder routesBuilder = routeLocatorBuilder.routes();
         Flux<IgniteRouteDefinition> apiRoutes = registryRouteLoader.getRoutes();
         // Build api-gateway routes on the ApiRoutes received from api-registry
-        routes = apiRoutes
+        Flux<Route> routes = apiRoutes
                 .map(apiRoute -> routesBuilder.route(apiRoute.getId(),
                         predicateSpec -> setPredicateSpec(apiRoute, predicateSpec)))
                 .collectList().flatMapMany(builders -> routesBuilder.build().getRoutes());
@@ -207,24 +218,7 @@ public class IgniteRouteLocator implements RouteLocator {
         Buildable<Route> route = booleanSpec.uri(apiRoute.getUri());
         LOGGER.info("route---{}", route);
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
-            FilterDefinition fd = new FilterDefinition();
-            LOGGER.info("Enabled Cache Type {}", cacheType);
-            LOGGER.info("local cache enabled {}", cacheType.equalsIgnoreCase(LOCAL_CACHE));
-            if (apiRoute.getCacheKey() != null && (redisCachingEnabled || localCachingEnabled)) {
-                if (cacheType.equalsIgnoreCase(REDIS_CACHE)) {
-                    LOGGER.info("cache Key---- {}", apiRoute.getCacheKey());
-                    fd.setName(CACHE_FILTER);
-                    String cacheKey = apiRoute.getCacheKey();
-                    fd.addArg("cacheKey", cacheKey);
-                } else if (cacheType.equalsIgnoreCase(LOCAL_CACHE)) {
-                    LOGGER.info("cache filter---- {}", LOCAL_RESPONSE_FILTER);
-                    fd.setName(LOCAL_RESPONSE_FILTER);
-                    fd.addArg(CACHE_SIZE, apiRoute.getCacheSize());
-                    fd.addArg(TIME_TO_LIVE, apiRoute.getCacheTtl());
-                }
-                apiRoute.getFilters().add(fd);
-                LOGGER.info("added the caching filter {}", fd.toString());
-            }
+            setCacheFilter(apiRoute);
 
             filters.addAll(getFilters(apiRoute));
             LOGGER.info("Gateway Filters: " + filters);
@@ -252,8 +246,29 @@ public class IgniteRouteLocator implements RouteLocator {
         return route;
     }
 
+    private void setCacheFilter(IgniteRouteDefinition apiRoute) {
+        FilterDefinition fd = new FilterDefinition();
+        LOGGER.info("Enabled Cache Type {}", cacheType);
+        LOGGER.info("local cache enabled {}", cacheType.equalsIgnoreCase(LOCAL_CACHE));
+        if (apiRoute.getCacheKey() != null && (redisCachingEnabled || localCachingEnabled)) {
+            if (cacheType.equalsIgnoreCase(REDIS_CACHE)) {
+                LOGGER.info("cache Key---- {}", apiRoute.getCacheKey());
+                fd.setName(CACHE_FILTER);
+                String cacheKey = apiRoute.getCacheKey();
+                fd.addArg("cacheKey", cacheKey);
+            } else if (cacheType.equalsIgnoreCase(LOCAL_CACHE)) {
+                LOGGER.info("cache filter---- {}", LOCAL_RESPONSE_FILTER);
+                fd.setName(LOCAL_RESPONSE_FILTER);
+                fd.addArg(CACHE_SIZE, apiRoute.getCacheSize());
+                fd.addArg(TIME_TO_LIVE, apiRoute.getCacheTtl());
+            }
+            apiRoute.getFilters().add(fd);
+            LOGGER.info("added the caching filter {}", fd.toString());
+        }
+    }
+
     private void setApiDocRoute(IgniteRouteDefinition apiRoute) {
-        if (apiRoute.getApiDocs()) {
+        if (Boolean.TRUE.equals(apiRoute.getApiDocs())) {
             String serviceName = apiRoute.getService();
             String path = "/v3/api-docs/" + apiRoute.getService();
             ApiService service = new ApiService(apiRoute.getService(), path, "Api-Docs of " + serviceName);

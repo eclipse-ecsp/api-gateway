@@ -46,10 +46,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
-import java.util.zip.GZIPOutputStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -97,8 +94,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
 
         String cachedRequestKey = "http://example.com";
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        when(exchange.getRequest()).thenReturn(request);
+        ServerWebExchange serverWebExchange = mock(ServerWebExchange.class);
+        when(serverWebExchange.getRequest()).thenReturn(request);
         when(request.getURI()).thenReturn(uri);
         when(uri.toString()).thenReturn(cachedRequestKey);
 
@@ -109,27 +106,26 @@ class CacheFilterTest {
         when(httpHeaders.getFirst(GatewayConstants.TENANT_ID)).thenReturn("tenantId");
         when(httpHeaders.getFirst(GatewayConstants.USER_ID)).thenReturn("userId");
 
-        // ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(exchange.getResponse()).thenReturn(mutatedHttpResponse);
+        when(serverWebExchange.getResponse()).thenReturn(mutatedHttpResponse);
         when(mutatedHttpResponse.getStatusCode()).thenReturn(HttpStatus.OK);
 
-        when(exchange.mutate()).thenReturn(builder);
+        when(serverWebExchange.mutate()).thenReturn(builder);
 
         when(builder.response(any())).thenReturn(builder);
-        when(builder.build()).thenReturn(exchange);
+        when(builder.build()).thenReturn(serverWebExchange);
 
         try (MockedConstruction<GlobalFilterUtils> mockPaymentService =
                      Mockito.mockConstruction(GlobalFilterUtils.class,
                              (mock, context) -> {
                                  when(
-                                         mock.getServerHttpResponse(exchange, cache, cachedRequestKey))
+                                         mock.getServerHttpResponse(serverWebExchange, cache, cachedRequestKey))
                                          .thenReturn(mutatedHttpResponse);
                              })) {
             CacheFilter.Config config = new CacheFilter.Config();
             config.setCacheKey("{routeId}-{tenantId}-searchRequest");
             GatewayFilterChain chain = mock(GatewayFilterChain.class);
-            GatewayFilter result = (GatewayFilter) cacheFilter.apply(config).filter(exchange, chain);
+            cacheFilter.apply(config).filter(serverWebExchange, chain);
         }
         Mockito.verify(cache, atLeastOnce()).get(Mockito.any());
 
@@ -140,8 +136,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
 
         String cachedRequestKey = "http://example.com";
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        when(exchange.getRequest()).thenReturn(request);
+        ServerWebExchange serverWebExchange = mock(ServerWebExchange.class);
+        when(serverWebExchange.getRequest()).thenReturn(request);
         when(request.getURI()).thenReturn(uri);
         when(uri.toString()).thenReturn(cachedRequestKey);
 
@@ -153,27 +149,26 @@ class CacheFilterTest {
         when(httpHeaders.getFirst(GatewayConstants.TENANT_ID)).thenReturn("tenantId");
         when(httpHeaders.getFirst(GatewayConstants.USER_ID)).thenReturn("userId");
 
-        // ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(exchange.getResponse()).thenReturn(mutatedHttpResponse);
+        when(serverWebExchange.getResponse()).thenReturn(mutatedHttpResponse);
         when(mutatedHttpResponse.getStatusCode()).thenReturn(HttpStatus.OK);
 
-        when(exchange.mutate()).thenReturn(builder);
+        when(serverWebExchange.mutate()).thenReturn(builder);
 
         when(builder.response(any())).thenReturn(builder);
-        when(builder.build()).thenReturn(exchange);
+        when(builder.build()).thenReturn(serverWebExchange);
 
         try (MockedConstruction<GlobalFilterUtils> mockPaymentService =
                      Mockito.mockConstruction(GlobalFilterUtils.class,
                              (mock, context) -> {
-                                 when(mock.getServerHttpResponse(exchange, cache, cachedRequestKey))
+                                 when(mock.getServerHttpResponse(serverWebExchange, cache, cachedRequestKey))
                                          .thenReturn(mutatedHttpResponse);
                              })) {
             CacheFilter.Config config = new CacheFilter.Config();
             config.setCacheKey("{routeId}-{tenantId}-searchRequest");
             GatewayFilterChain chain = mock(GatewayFilterChain.class);
-            GatewayFilter result = (GatewayFilter) cacheFilter.apply(config).filter(exchange, chain);
-            assertEquals("POST", exchange.getRequest().getMethod().name());
+            cacheFilter.apply(config).filter(serverWebExchange, chain);
+            assertEquals("POST", serverWebExchange.getRequest().getMethod().name());
         }
     }
 
@@ -182,9 +177,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
 
         String cachedRequestKey = "http://example.com";
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        Cache.ValueWrapper valueWrapper = mock(Cache.ValueWrapper.class);
-        when(exchange.getRequest()).thenReturn(request);
+        ServerWebExchange serverWebExchange = mock(ServerWebExchange.class);
+        when(serverWebExchange.getRequest()).thenReturn(request);
         when(request.getURI()).thenReturn(uri);
         when(uri.toString()).thenReturn(cachedRequestKey);
 
@@ -194,7 +188,6 @@ class CacheFilterTest {
         when(httpHeaders.getFirst(GatewayConstants.ACCOUNT_ID)).thenReturn("accountId");
         when(httpHeaders.getFirst(GatewayConstants.TENANT_ID)).thenReturn("tenantId");
         when(httpHeaders.getFirst(GatewayConstants.USER_ID)).thenReturn("userId");
-        // ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         Mockito.when(cache.getName()).thenReturn("Default");
         when(cache.get(any())).thenReturn(
                 () -> "[{httpStatus=OK, headers={transfer-encoding=[chunked], "
@@ -215,25 +208,24 @@ class CacheFilterTest {
                         + "nAE8yQeIk6dJ1AAzNtMs8Ezdrm+/lJefXtwVXMMjJj6/tvzxAHL763w+HcTBtfpvj47n3H5c9Mzv6pWVVtfva7c"
                         + "j9uP5bJelI72YF84l7E92jXrLaKpWY5gkXm/8s0EzPo7u5gbWBDhSITZaSz4OQ/GANmBuTEBve38HzA7Apj7vkV"
                         + "vLHLzMeXkzSjS3vX5eMsbpqgAiHT7+RcAAAD//wMASe2AevoZAAA=}]");
-        // ReflectionTestUtils.setField(cacheFilter,"cacheResponse","");
-        when(exchange.getResponse()).thenReturn(mutatedHttpResponse);
+        when(serverWebExchange.getResponse()).thenReturn(mutatedHttpResponse);
         when(mutatedHttpResponse.getStatusCode()).thenReturn(HttpStatus.OK);
 
-        when(exchange.mutate()).thenReturn(builder);
+        when(serverWebExchange.mutate()).thenReturn(builder);
 
         when(builder.response(any())).thenReturn(builder);
-        when(builder.build()).thenReturn(exchange);
+        when(builder.build()).thenReturn(serverWebExchange);
 
         try (MockedConstruction<GlobalFilterUtils> mockPaymentService =
                      Mockito.mockConstruction(GlobalFilterUtils.class,
                              (mock, context) -> {
-                                 when(mock.getServerHttpResponse(exchange, cache, cachedRequestKey))
+                                 when(mock.getServerHttpResponse(serverWebExchange, cache, cachedRequestKey))
                                          .thenReturn(mutatedHttpResponse);
                              })) {
             CacheFilter.Config config = new CacheFilter.Config();
             config.setCacheKey("{routeId}-{tenantId}-searchRequest");
             GatewayFilterChain chain = mock(GatewayFilterChain.class);
-            GatewayFilter result = (GatewayFilter) cacheFilter.apply(config).filter(exchange, chain);
+            cacheFilter.apply(config).filter(serverWebExchange, chain);
         }
         Mockito.verify(cache, atLeastOnce()).get(Mockito.any());
     }
@@ -243,18 +235,14 @@ class CacheFilterTest {
 
         when(cacheManager.getCache(any())).thenReturn(cache);
         String cachedRequestKey = "http://example.com";
-
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.PUT);
-        ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mutatedHttpResponse);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);
 
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
         CacheFilter.Config config = new CacheFilter.Config();
-        GatewayFilter result = cacheFilter.apply(config);
+        cacheFilter.apply(config);
         Mockito.verifyNoInteractions(cache);
 
     }
@@ -265,11 +253,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
         String cachedRequestKey = "http://example.com";
 
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.POST);
-        ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
 
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
         CacheFilter.Config config = new CacheFilter.Config();
         GatewayFilter result = cacheFilter.apply(config);
         assertNotNull(result);
@@ -280,15 +265,11 @@ class CacheFilterTest {
 
         when(cacheManager.getCache(any())).thenReturn(cache);
         String cachedRequestKey = "http://example.com";
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.DELETE);
-        ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mutatedHttpResponse);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);
-
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
         CacheFilter.Config config = new CacheFilter.Config();
         GatewayFilter result = cacheFilter.apply(config);
         assertNotNull(result);
@@ -300,15 +281,12 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(null);
         String cachedRequestKey = "http://example.com";
 
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.GET);
-        ServerHttpResponse mutatedHttpResponse = mock(ServerHttpResponse.class);
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mutatedHttpResponse);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);
 
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
         CacheFilter.Config config = new CacheFilter.Config();
         GatewayFilter result = cacheFilter.apply(config);
         assertNotNull(result);
@@ -319,99 +297,85 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
 
         String cachedRequestKey = "http://example.com";
-        Cache.ValueWrapper value = mock(Cache.ValueWrapper.class);
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.GET);
-        when(cache.get(cachedRequestKey)).thenReturn(value);
+        Cache.ValueWrapper mockedValue = mock(Cache.ValueWrapper.class);
+        when(cache.get(cachedRequestKey)).thenReturn(mockedValue);
         String mockString = "StringValueFromCache";
-        when(globalFilterUtils.getResponseInString(any())).thenReturn(mockString.toString());
-
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+        when(globalFilterUtils.getResponseInString(any())).thenReturn(mockString);
         CacheFilter.Config config = new CacheFilter.Config();
         GatewayFilter result = cacheFilter.apply(config);
         assertNotNull(result);
     }
 
     @Test
-    void getCallTest() throws IOException {
+    void getCallTest() {
         when(cacheManager.getCache(any())).thenReturn(cache);
 
         String cachedRequestKey = "http://example.com";
 
         HttpHeaders header = new HttpHeaders();
         header.setContentType(MediaType.APPLICATION_JSON);
-        ServerWebExchange exchange = mockExchange(cachedRequestKey, GatewayConstants.GET);
+        ServerWebExchange mockedExchange = mockExchange(cachedRequestKey, GatewayConstants.GET);
         ServerHttpResponse response = mock(ServerHttpResponse.class);
         DataBufferFactory factory = mock(DataBufferFactory.class);
         DataBuffer buffer = mock(DataBuffer.class);
-        when(exchange.getResponse()).thenReturn(response);
-        when(exchange.getResponse().getHeaders()).thenReturn(header);
-        when(exchange.getResponse().bufferFactory()).thenReturn(factory);
+        when(mockedExchange.getResponse()).thenReturn(response);
+        when(mockedExchange.getResponse().getHeaders()).thenReturn(header);
+        when(mockedExchange.getResponse().bufferFactory()).thenReturn(factory);
 
 
         String mockString = "StringValueFromCache";
-        when(exchange.getResponse().bufferFactory().wrap(mockString.getBytes())).thenReturn(buffer);
+        when(mockedExchange.getResponse().bufferFactory().wrap(mockString.getBytes())).thenReturn(buffer);
 
         CachedResponse cacheResponse = new CachedResponse(HttpStatus.OK, header, mockString.getBytes());
-        Cache.ValueWrapper value = new ValueWrapper() {
+        Cache.ValueWrapper mockedValue = new ValueWrapper() {
 
             @Override
             public Object get() {
                 return cacheResponse;
             }
         };
-        when(cache.get(cachedRequestKey)).thenReturn(value);
+        when(cache.get(cachedRequestKey)).thenReturn(mockedValue);
 
-        when(globalFilterUtils.getResponseInString(any())).thenReturn(mockString.toString());
+        when(globalFilterUtils.getResponseInString(any())).thenReturn(mockString);
 
-        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+        mock(GatewayFilterChain.class);
         CacheFilter.Config config = new CacheFilter.Config();
-        GatewayFilter result = cacheFilter.apply(config);
+        cacheFilter.apply(config);
         Mockito.verifyNoInteractions(cache);
     }
 
 
     private ServerWebExchange mockExchange(String cachedRequestKey, String methodName) {
 
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        ServerHttpRequest request = mock(ServerHttpRequest.class);
-        when(exchange.getRequest()).thenReturn(request);
-        when(request.getURI()).thenReturn(URI.create(cachedRequestKey));
+        ServerWebExchange mockedExchange = mock(ServerWebExchange.class);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
+        when(mockedExchange.getRequest()).thenReturn(mockedRequest);
+        when(mockedRequest.getURI()).thenReturn(URI.create(cachedRequestKey));
         if (methodName.equalsIgnoreCase("GET")) {
-            when(request.getMethod()).thenReturn(HttpMethod.GET);
+            when(mockedRequest.getMethod()).thenReturn(HttpMethod.GET);
         } else if (methodName.equalsIgnoreCase("PUT")) {
-            when(request.getMethod()).thenReturn(HttpMethod.PUT);
+            when(mockedRequest.getMethod()).thenReturn(HttpMethod.PUT);
         } else if (methodName.equalsIgnoreCase("DELETE")) {
-            when(request.getMethod()).thenReturn(HttpMethod.DELETE);
+            when(mockedRequest.getMethod()).thenReturn(HttpMethod.DELETE);
         } else if (methodName.equalsIgnoreCase("POST")) {
-            when(request.getMethod()).thenReturn(HttpMethod.POST);
+            when(mockedRequest.getMethod()).thenReturn(HttpMethod.POST);
         }
 
         ServerHttpResponse response = mock(ServerHttpResponse.class);
-        ServerWebExchange.Builder builder = mock(ServerWebExchange.Builder.class);
-        when(exchange.mutate()).thenReturn(builder);
-        when(exchange.getResponse()).thenReturn(response);
+        ServerWebExchange.Builder mockedBuilder = mock(ServerWebExchange.Builder.class);
+        when(mockedExchange.mutate()).thenReturn(mockedBuilder);
+        when(mockedExchange.getResponse()).thenReturn(response);
         when(response.getHeaders()).thenReturn(new HttpHeaders());
         when(response.writeWith(Mockito.any())).thenReturn(Mono.empty().then());
         DataBufferFactory mockedBufferFacory = Mockito.mock(DataBufferFactory.class);
         when(response.bufferFactory()).thenReturn(mockedBufferFacory);
         doReturn(Mockito.mock(DataBuffer.class)).when(mockedBufferFacory).wrap(Mockito.any(byte[].class));
 
-        return exchange;
-    }
-
-    private byte[] gzip(String str) throws IOException {
-        if (str == null || str.length() == 0) {
-            return str.getBytes();
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        GZIPOutputStream gzip = new GZIPOutputStream(out);
-        gzip.write(str.getBytes()); //consider to use str.getBytes("UTF-8")
-        gzip.close();
-        return out.toByteArray();
+        return mockedExchange;
     }
 
     @Test
-    void testGetCacheResponse() throws IOException {
+    void testGetCacheResponse() {
         GlobalFilterUtils globalFilterUtilMock = mock(GlobalFilterUtils.class);
         ReflectionTestUtils.setField(cacheFilter, "globalFilterUtils", globalFilterUtilMock);
         when(globalFilterUtilMock.getResponseInString(Mockito.any())).thenReturn("Str123");
@@ -428,7 +392,7 @@ class CacheFilterTest {
     }
 
     @Test
-    void testGetCacheCompressionFailedResponse() throws IOException {
+    void testGetCacheCompressionFailedResponse() {
         GlobalFilterUtils globalFilterUtilMock = mock(GlobalFilterUtils.class);
         ReflectionTestUtils.setField(cacheFilter, "globalFilterUtils", globalFilterUtilMock);
         when(globalFilterUtilMock.getResponseInString(Mockito.any())).thenReturn("Str123");
@@ -446,7 +410,7 @@ class CacheFilterTest {
     }
 
     @Test
-    void testGetNullErrorResponse() throws IOException {
+    void testGetNullErrorResponse() {
         CachedResponse cachedResponse = new CachedResponse();
         cachedResponse.setHttpStatus(HttpStatus.OK);
         HttpHeaders headers = new HttpHeaders();
@@ -455,7 +419,7 @@ class CacheFilterTest {
         cachedResponse.setBody("hello".getBytes());
         ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
-        Assertions.assertThrows(NullPointerException.class,
+        Assertions.assertThrowsExactly(NullPointerException.class,
                 () -> ReflectionTestUtils.invokeMethod(cacheFilter,
                         "getCachedResponse",
                         mockExchange("key", "GET"),

@@ -54,7 +54,7 @@ class ScopeValidatorTest {
     @Test
     void testValidateScopeWithNullMethod() throws Throwable {
         quickSetup("validScope", new HashSet<>(List.of("SelfManage", "IgniteSystem")),
-                new HashSet<>(List.of("SelfManage")));
+                new HashSet<>(List.of("SELF_MANAGE")));
         Mockito.when(signature.getMethod()).thenReturn(null);
         scopeValidator.validate(joinPoint);
     }
@@ -64,13 +64,12 @@ class ScopeValidatorTest {
         Method method = TestValidator.class.getDeclaredMethod("emptyAnnotation");
         Mockito.when(joinPoint.getSignature()).thenReturn(signature);
         Mockito.when(signature.getMethod()).thenReturn(method);
-        //Mockito.when(method.getAnnotation(SecurityRequirement.class)).thenReturn(null);
         scopeValidator.validate(joinPoint);
     }
 
     @Test
     void testValidScope() throws Throwable {
-        quickSetup("validScope", new HashSet<>(List.of("SelfManage", "IgniteSystem")),
+        quickSetup("validScope", new HashSet<>(List.of("SELF_MANAGE", "IgniteSystem")),
                 new HashSet<>(List.of("SelfManage")));
         scopeValidator.validate(joinPoint);
     }

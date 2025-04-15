@@ -26,7 +26,6 @@ import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.security.Scopes;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
@@ -46,8 +45,16 @@ import java.util.List;
 public class ApiRouteController {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteController.class);
 
-    @Autowired
-    private ApiRouteService apiRouteService;
+    private final ApiRouteService apiRouteService;
+
+    /**
+     * Constructor to initialize the ApiRouteController.
+     *
+     * @param apiRouteService the ApiRouteService
+     */
+    public ApiRouteController(ApiRouteService apiRouteService) {
+        this.apiRouteService = apiRouteService;
+    }
 
     /**
      * register an api route.

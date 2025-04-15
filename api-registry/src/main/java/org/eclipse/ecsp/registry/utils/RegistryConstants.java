@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 /**
  * RegistryConstants is a constant class to define constants used in Registry application.
  */
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class RegistryConstants {
 
     /**

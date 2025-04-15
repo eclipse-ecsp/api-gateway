@@ -26,16 +26,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.Collections;
 import java.util.List;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * API GatewayController test class.
@@ -43,7 +42,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiGatewayControllerTest {
 
-    @InjectMocks
+
     private ApiGatewayController apiGatewayController;
 
     @Mock
@@ -54,7 +53,8 @@ class ApiGatewayControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
+        apiGatewayController = new ApiGatewayController(igniteRouteLocator);
     }
 
     @Test

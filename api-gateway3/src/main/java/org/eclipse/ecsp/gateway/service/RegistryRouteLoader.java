@@ -24,7 +24,6 @@ import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -44,17 +43,23 @@ public class RegistryRouteLoader {
     @Value("${api.registry.route-path:/api/v1/routes}")
     private String apiRegistryRoutePath;
 
-    @Autowired
-    private RouteUtils routeUtils;
+    private final RouteUtils routeUtils;
 
-    @Autowired
-    private WebClient.Builder builder;
+    private final WebClient.Builder builder;
 
     private WebClient client;
 
-    // Spring Boot auto-configures a `WebClient.Builder` instance with nice
-    // defaults and customizations.
-    // We can use it to create a dedicated `WebClient` for our component.
+    /**
+     * Constructor to initialize the RegistryRouteLoader.
+     *
+     * @param routeUtils the RouteUtils
+     * @param builder    the WebClient.Builder
+     */
+    public RegistryRouteLoader(RouteUtils routeUtils,
+                               WebClient.Builder builder) {
+        this.routeUtils = routeUtils;
+        this.builder = builder;
+    }
 
     /**
      * Prepare WebClient.

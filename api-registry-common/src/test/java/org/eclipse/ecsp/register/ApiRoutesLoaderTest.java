@@ -53,7 +53,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.lang.reflect.Method;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -97,7 +96,7 @@ class ApiRoutesLoaderTest {
      * before methos get executed before each test case.
      */
     @BeforeEach
-    public void before() {
+    void before() {
         SpringDocConfigProperties.ApiDocs apiDocs = new SpringDocConfigProperties.ApiDocs();
         apiDocs.setVersion(SpringDocConfigProperties.ApiDocs.OpenApiVersion.OPENAPI_3_0);
         Mockito.when(springDocConfigProperties.getApiDocs()).thenReturn(apiDocs);
@@ -105,9 +104,11 @@ class ApiRoutesLoaderTest {
         Mockito.when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         Mockito.when(openApiService.getContext()).thenReturn(Mockito.mock(ApplicationContext.class));
         Mockito.when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
+        ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
+        apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers);
+                springDocProviders, springDocCustomizers, apiRouteConfig);
     }
 
     @Test
@@ -221,7 +222,7 @@ class ApiRoutesLoaderTest {
     }
 
     @Test
-    void testExtension() throws URISyntaxException {
+    void testExtension() {
         Operation operation = getOperationObj();
         operation.setTags(List.of("GET"));
         operation.setOperationId("route123");
@@ -239,7 +240,7 @@ class ApiRoutesLoaderTest {
     }
 
     @Test
-    void testHeaderMetadata() throws URISyntaxException {
+    void testHeaderMetadata() {
         Operation operation = getOperationObj();
         operation.setTags(List.of("GET"));
         operation.setOperationId("testHeaderMetadata");
@@ -268,7 +269,7 @@ class ApiRoutesLoaderTest {
     }
 
     @Test
-    void testHeaderOptionalMetadata() throws URISyntaxException {
+    void testHeaderOptionalMetadata() {
         Operation operation = getOperationObj();
         operation.setTags(List.of("GET"));
         operation.setOperationId("testHeaderOptionalMetadata");
@@ -298,7 +299,7 @@ class ApiRoutesLoaderTest {
     }
 
     @Test
-    void testEmptyHeaders() throws URISyntaxException {
+    void testEmptyHeaders() {
         Operation operation = getOperationObj();
         operation.setTags(List.of("GET"));
         operation.setOperationId("testEmptyHeaders");

@@ -23,7 +23,6 @@ import org.eclipse.ecsp.gateway.model.Health;
 import org.eclipse.ecsp.gateway.service.IgniteRouteLocator;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -41,11 +40,20 @@ import java.util.TreeSet;
 @RestController
 public class ApiGatewayController {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiGatewayController.class);
+
     @Value("${api.registered.services}")
     private String registeredServices;
 
-    @Autowired(required = false)
-    private IgniteRouteLocator igniteRouteLocator;
+    private final IgniteRouteLocator igniteRouteLocator;
+
+    /**
+     * Constructor to initialize the ApiGatewayController.
+     *
+     * @param igniteRouteLocator the IgniteRouteLocator
+     */
+    public ApiGatewayController(IgniteRouteLocator igniteRouteLocator) {
+        this.igniteRouteLocator = igniteRouteLocator;
+    }
 
     /**
      * to get the health of the api-gateway.

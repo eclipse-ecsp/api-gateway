@@ -27,13 +27,16 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
+import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.JwtPublicKeyLoader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
 import org.reactivestreams.Publisher;
@@ -154,13 +157,13 @@ class JwtAuthValidatorTest {
         audHeaderValidationConfig.put("required", "false");
         audHeaderValidationConfig.put("regex", "^[a-zA-Z0-9]+$");
         this.tokenHeaderValidatorConfig.put("aud", audHeaderValidationConfig);
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, userIdField);
 
         // Invalid scope config
-        JwtAuthValidator.Config invalidConfig = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config invalidConfig = new JwtAuthFilter.Config();
         invalidConfig.setScope("InvalidScope");
         jwtAuthValidator.apply(invalidConfig);
         jwtAuthFilterWithInvalidScope =
@@ -203,8 +206,8 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenVerificationFailed() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+    void testTokenVerificationFailed() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         this.jwtParsers.clear();
@@ -215,8 +218,8 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testInvalidToken() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+    void testInvalidToken() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         ServerWebExchangeImpl mockedExchange = Mockito.spy(serverWebExchangeImpl);
@@ -233,7 +236,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testPrivateMethodValidateScope() throws Exception {
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, this.userIdField);
@@ -270,12 +273,12 @@ class JwtAuthValidatorTest {
         nullHeaderValidatorConfig.put("required", "true");
         nullHeaderValidatorConfig.put("regex",
                 "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-        JwtAuthValidator.Config config = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, this.jwtParsers, this.tokenHeaderValidatorConfig, userIdField);
         // Invalid scope config
-        JwtAuthValidator.Config invalidConfig = new JwtAuthValidator.Config();
+        JwtAuthFilter.Config invalidConfig = new JwtAuthFilter.Config();
         invalidConfig.setScope("InvalidScope");
         jwtAuthValidator.apply(invalidConfig);
         jwtAuthFilterWithInvalidScope =
@@ -364,7 +367,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testRequestBodyFilter() {
-        requestBodyValidator.apply(new RequestBodyValidator.Config());
+        requestBodyValidator.apply(new Config());
         accessLog = new AccessLog();
         when(route.getMetadata()).thenReturn(null);
         GatewayFilterChain mockedGatewayFilterChain = Mockito.mock(GatewayFilterChain.class);
@@ -401,6 +404,7 @@ class JwtAuthValidatorTest {
             return "http://localhost:443/oauth2/token";
         }
 
+        @SuppressWarnings("unused")
         public Claims setIssuer(String iss) {
             return null;
         }
@@ -410,6 +414,7 @@ class JwtAuthValidatorTest {
             return "admin";
         }
 
+        @SuppressWarnings("unused")
         public Claims setSubject(String sub) {
             return null;
         }
@@ -419,6 +424,7 @@ class JwtAuthValidatorTest {
             return Set.of("GO7ZgKKVxJgejMkb_NR0GCKAr3wa");
         }
 
+        @SuppressWarnings("unused")
         public Claims setAudience(String aud) {
             return null;
         }
@@ -428,6 +434,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setExpiration(Date exp) {
             return null;
         }
@@ -437,6 +444,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setNotBefore(Date nbf) {
             return null;
         }
@@ -446,6 +454,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setIssuedAt(Date iat) {
             return null;
         }
@@ -455,7 +464,7 @@ class JwtAuthValidatorTest {
             return "ea8cef5b-fd49-439e-b63f-bdb56e9f638d";
         }
 
-
+        @SuppressWarnings("unused")
         public Claims setId(String jti) {
             return null;
         }
@@ -503,10 +512,12 @@ class JwtAuthValidatorTest {
 
         @Override
         public void putAll(Map<? extends String, ?> m) {
+            // No implementation needed
         }
 
         @Override
         public void clear() {
+            // No implementation needed
         }
 
         @Override
@@ -586,7 +597,6 @@ class JwtAuthValidatorTest {
                 @Override
                 public URI getURI() {
                     try {
-                        URI uri = new URI("https://v1/vehicleType");
                         return URI.create("https://v1/vehicleType");
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -615,7 +625,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            ServerHttpResponse response = new ServerHttpResponse() {
+            return new ServerHttpResponse() {
                 @Override
                 public HttpHeaders getHeaders() {
                     return null;
@@ -628,7 +638,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void beforeCommit(Supplier<? extends Mono<Void>> action) {
-
+                    // No implementation needed
                 }
 
                 @Override
@@ -668,10 +678,9 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void addCookie(ResponseCookie cookie) {
-
+                    // No implementation needed
                 }
             };
-            return response;
         }
 
         @Override
@@ -739,7 +748,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public void addUrlTransformer(Function<String, String> transformer) {
-
+            // No implementation needed
         }
 
         @Override
@@ -749,6 +758,7 @@ class JwtAuthValidatorTest {
 
         @SuppressWarnings("checkstyle:OverloadMethodsDeclarationOrder")
         public void getAttributes(String gatewayRouteAttr) {
+            // No implementation needed
         }
     }
 
@@ -811,7 +821,6 @@ class JwtAuthValidatorTest {
                 @Override
                 public URI getURI() {
                     try {
-                        URI uri = new URI("https://v1/vehicleType");
                         return URI.create("https://v1/vehicleType");
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -840,7 +849,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            ServerHttpResponse response = new ServerHttpResponse() {
+            return new ServerHttpResponse() {
                 @Override
                 public HttpHeaders getHeaders() {
                     return null;
@@ -853,7 +862,7 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void beforeCommit(Supplier<? extends Mono<Void>> action) {
-
+                    // No implementation needed
                 }
 
                 @Override
@@ -893,10 +902,9 @@ class JwtAuthValidatorTest {
 
                 @Override
                 public void addCookie(ResponseCookie cookie) {
-
+                    // No implementation needed
                 }
             };
-            return response;
         }
 
         @Override
@@ -964,7 +972,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public void addUrlTransformer(Function<String, String> transformer) {
-
+            // No implementation needed
         }
 
         @Override
@@ -974,6 +982,7 @@ class JwtAuthValidatorTest {
 
         @SuppressWarnings("checkstyle:OverloadMethodsDeclarationOrder")
         public void getAttributes(String gatewayRouteAttr) {
+            // No implementation needed
         }
     }
 }

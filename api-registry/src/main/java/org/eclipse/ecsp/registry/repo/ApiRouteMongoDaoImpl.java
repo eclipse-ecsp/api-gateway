@@ -27,6 +27,6 @@ import org.springframework.stereotype.Repository;
  * ApiRouteRepo to update the route definitions to NoSQL DB.
  */
 @ConditionalOnNoSqlDatabase
-@Repository("ApiRouteMongoDaoImpl")
+@Repository("apiRouteMongoDaoImpl")
 public class ApiRouteMongoDaoImpl extends IgniteBaseDAOMongoImpl<String, ApiRouteEntity> {
 }

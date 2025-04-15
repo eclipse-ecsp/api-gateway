@@ -21,11 +21,10 @@ package org.eclipse.ecsp.gateway.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * Test class for ApiRouteRefreshScheduler.
@@ -33,7 +32,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiRouteRefreshSchedulerTest {
 
-    @InjectMocks
     private ApiRoutesRefreshScheduler apiRoutesRefreshScheduler;
 
     @Mock
@@ -41,7 +39,8 @@ class ApiRouteRefreshSchedulerTest {
 
     @BeforeEach
     void beforeEach() {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
+        apiRoutesRefreshScheduler = new ApiRoutesRefreshScheduler(igniteRouteLocator);
     }
 
     @Test

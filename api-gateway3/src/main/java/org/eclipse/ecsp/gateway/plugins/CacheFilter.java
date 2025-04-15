@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.cache.Cache;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.cache.LocalResponseCacheUtils;
@@ -128,38 +129,42 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
                         exchange.getRequest().getPath());
                 return chain.filter(exchange);
             }
-            ServerHttpRequest request = exchange.getRequest();
-            String cachedRequestKey = prepareCachedRequestKey(request, config.cacheKey);
-            LOGGER.debug("CacheRequest | cache key prepared {} ", cachedRequestKey);
-            final Cache cache = cacheManager.getCache(cacheName);
-            if (cache != null && StringUtils.isNotEmpty(cachedRequestKey)) {
-                LOGGER.debug("cache Name {}", cache.getName());
-                Cache.ValueWrapper cacheResponse = null;
-                try {
-                    LOGGER.debug("cacheResponse {} ", cache.get(cachedRequestKey));
-                    cacheResponse = cache.get(cachedRequestKey);
-                } catch (Exception e) {
-                    LOGGER.error("exception while getting data from redis {} ", e.getMessage());
-                }
-
-                LOGGER.debug("Cached response available :{} ", !Objects.isNull(cacheResponse));
-                if (!Objects.isNull(cacheResponse)) {
-                    Mono<Void> cachedExchange = getCachedResponse(exchange, cacheResponse);
-                    if (cachedExchange != null) {
-                        LOGGER.debug("returning cached response for request {} ", request.getPath());
-                        return cachedExchange;
-                    }
-                } else {
-                    LOGGER.info("Cache response data not available calling microservices {} {}",
-                            request.getMethod(), request.getPath());
-                    final ServerHttpResponse mutatedHttpResponse =
-                            globalFilterUtils.getServerHttpResponse(exchange, cache, cachedRequestKey);
-                    LOGGER.debug("RequestCache | mutatedHttpResponse {} ", mutatedHttpResponse);
-                    return chain.filter(exchange.mutate().response(mutatedHttpResponse).build());
-                }
-            }
-            return chain.filter(exchange);
+            return processCacheRequest(config, exchange, chain);
         }, GatewayConstants.CACHE_FILTER_ORDER);
+    }
+
+    private Mono<Void> processCacheRequest(Config config, ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        String cachedRequestKey = prepareCachedRequestKey(request, config.cacheKey);
+        LOGGER.debug("CacheRequest | cache key prepared {} ", cachedRequestKey);
+        final Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null && StringUtils.isNotEmpty(cachedRequestKey)) {
+            LOGGER.debug("cache Name {}", cache.getName());
+            Cache.ValueWrapper cacheResponse = null;
+            try {
+                LOGGER.debug("cacheResponse {} ", cache.get(cachedRequestKey));
+                cacheResponse = cache.get(cachedRequestKey);
+            } catch (Exception e) {
+                LOGGER.error("exception while getting data from redis {} ", e.getMessage());
+            }
+
+            LOGGER.debug("Cached response available :{} ", !Objects.isNull(cacheResponse));
+            if (!Objects.isNull(cacheResponse)) {
+                Mono<Void> cachedExchange = getCachedResponse(exchange, cacheResponse);
+                if (cachedExchange != null) {
+                    LOGGER.debug("returning cached response for request {} ", request.getPath());
+                    return cachedExchange;
+                }
+            } else {
+                LOGGER.info("Cache response data not available calling microservices {} {}",
+                        request.getMethod(), request.getPath());
+                final ServerHttpResponse mutatedHttpResponse =
+                        globalFilterUtils.getServerHttpResponse(exchange, cache, cachedRequestKey);
+                LOGGER.debug("RequestCache | mutatedHttpResponse {} ", mutatedHttpResponse);
+                return chain.filter(exchange.mutate().response(mutatedHttpResponse).build());
+            }
+        }
+        return chain.filter(exchange);
     }
 
     private Mono<Void> getCachedResponse(ServerWebExchange exchange, Cache.ValueWrapper cacheResponse) {

@@ -21,7 +21,6 @@ package org.eclipse.ecsp.gateway.utils;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -45,6 +44,7 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
@@ -135,14 +135,14 @@ public class GlobalFilterUtils {
             StringBuilder resultStringBuilder = new StringBuilder();
             int length;
             while ((length = gzipInputStream.read(buffer)) != MIN_INPUT_STREAM_LENGTH) {
-                resultStringBuilder.append(new String(buffer, 0, length, GatewayConstants.ENCODING_UTF));
+                resultStringBuilder.append(new String(buffer, 0, length, StandardCharsets.UTF_8));
             }
             decompressedString = resultStringBuilder.toString();
 
         } catch (IOException e) {
             LOGGER.error("Error while reading the cached Byte Response {}", e.getMessage());
         }
-        return StringEscapeUtils.escapeHtml4(decompressedString);
+        return decompressedString;
     }
 
     /**

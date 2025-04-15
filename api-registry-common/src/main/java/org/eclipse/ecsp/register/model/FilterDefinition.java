@@ -59,10 +59,10 @@ public class FilterDefinition {
         }
         setName(text.substring(0, eqIdx));
 
-        String[] args = tokenizeToStringArray(text.substring(eqIdx + 1), ",");
+        String[] tokenized = tokenizeToStringArray(text.substring(eqIdx + 1), ",");
 
-        for (int i = 0; i < args.length; i++) {
-            this.args.put(NameUtils.generateName(i), args[i]);
+        for (int i = 0; i < tokenized.length; i++) {
+            this.args.put(NameUtils.generateName(i), tokenized[i]);
         }
     }
 

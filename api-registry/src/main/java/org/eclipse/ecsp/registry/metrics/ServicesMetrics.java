@@ -20,7 +20,6 @@ package org.eclipse.ecsp.registry.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
@@ -41,8 +40,16 @@ public class ServicesMetrics {
     @Value("${api-registry.metrics.service-routes.prefix:service_route_count}")
     private String routesCountMetricsName;
 
-    @Autowired
-    private MeterRegistry meterRegistry;
+    private final MeterRegistry meterRegistry;
+
+    /**
+     * ServicesMetrics constructor.
+     *
+     * @param meterRegistry meter registry.
+     */
+    public ServicesMetrics(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
 
     /**
      * handles {@link ServiceMetricsEvent} and exposes service health and count metrics.

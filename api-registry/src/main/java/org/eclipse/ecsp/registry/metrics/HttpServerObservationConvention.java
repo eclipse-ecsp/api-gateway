@@ -20,6 +20,7 @@ package org.eclipse.ecsp.registry.metrics;
 
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.registry.utils.RegistryUtils;
@@ -74,11 +75,15 @@ public class HttpServerObservationConvention extends DefaultServerRequestObserva
      * @param context server request observation context
      * @return KeyValue with outcome.
      */
-    protected KeyValue outcomeStatus(ServerRequestObservationContext context) {
+    protected KeyValue outcomeStatus(@Nonnull ServerRequestObservationContext context) {
         KeyValue outcome = outcome(context);
-        if (outcome.getValue().equals(RegistryConstants.UNKNOWN) && context.getResponse() != null) {
-            outcome = KeyValue.of("outcome", context.getError() != null ? "ERROR" : getStatus(context.getResponse()));
+        if (outcome.getValue().equals(RegistryConstants.UNKNOWN)) {
+            Throwable error = context.getError();
+            HttpServletResponse response = context.getResponse();
+            String status = response != null ? getStatus(response) : RegistryConstants.UNKNOWN;
+            outcome = KeyValue.of("outcome", error != null ? "ERROR" : status);
         }
+        LOGGER.debug("outcomeStatus {}", outcome);
         return outcome;
     }
 

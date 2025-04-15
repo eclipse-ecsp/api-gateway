@@ -21,15 +21,18 @@ package org.eclipse.ecsp.gateway.metrics;
 
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientRequestObservationContext;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.DefaultClientRequestObservationConvention;
+import java.util.Objects;
 
 /**
  * HttpClientObservationConvention overrides DefaultClientRequestObservationConvention.
@@ -53,7 +56,7 @@ public class HttpClientObservationConvention extends DefaultClientRequestObserva
     }
 
     @Override
-    public KeyValues getLowCardinalityKeyValues(ClientRequestObservationContext context) {
+    public KeyValues getLowCardinalityKeyValues(@Nonnull ClientRequestObservationContext context) {
         LOGGER.debug("HttpClientObservationConvention append serviceName");
         // Make sure that KeyValues entries are already sorted by name for better performance
         return KeyValues.of(
@@ -73,9 +76,10 @@ public class HttpClientObservationConvention extends DefaultClientRequestObserva
      * @return KeyValue with request url.
      */
     protected KeyValue url(ClientRequestObservationContext context) {
-        KeyValue url = uri(context);
-        if (url.getValue().equals(GatewayConstants.UNKNOWN) && context.getRequest() != null) {
-            url = KeyValue.of("uri", context.getRequest().url().getPath());
+        KeyValue url = super.uri(context);
+        if (url.getValue().equals(GatewayConstants.UNKNOWN)) {
+            ClientRequest request = context.getRequest();
+            url = KeyValue.of("uri", Objects.nonNull(request) ? request.url().getPath() : "UNKNOWN");
         }
         return url;
     }
@@ -87,10 +91,13 @@ public class HttpClientObservationConvention extends DefaultClientRequestObserva
      * @param context client request observation context.
      * @return KeyValue with outcome.
      */
-    protected KeyValue outcomeStatus(ClientRequestObservationContext context) {
+    protected KeyValue outcomeStatus(@Nonnull ClientRequestObservationContext context) {
         KeyValue outcome = outcome(context);
-        if (outcome.getValue().equals(GatewayConstants.UNKNOWN) && context.getResponse() != null) {
-            outcome = KeyValue.of("outcome", context.getError() != null ? "ERROR" : getStatus(context.getResponse()));
+        if (outcome.getValue().equals(GatewayConstants.UNKNOWN)) {
+            Throwable error = context.getError();
+            ClientResponse response = context.getResponse();
+            String status = response != null ? getStatus(response) : GatewayConstants.UNKNOWN;
+            outcome = KeyValue.of("outcome", error != null ? "ERROR" : status);
         }
         return outcome;
     }

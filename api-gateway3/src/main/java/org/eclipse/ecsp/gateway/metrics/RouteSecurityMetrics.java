@@ -70,7 +70,7 @@ public class RouteSecurityMetrics {
         if (gatewayMetricsProperties != null
                 && gatewayMetricsProperties.getSecurityMetrics() != null) {
             String metricsPrefix = "api.gateway";
-            if (!gatewayMetricsProperties.getSecurityMetrics().getEnabled()) {
+            if (Boolean.FALSE.equals(gatewayMetricsProperties.getSecurityMetrics().getEnabled())) {
                 LOGGER.warn("Route Security metrics is disabled");
                 this.isEnabled = false;
             } else {

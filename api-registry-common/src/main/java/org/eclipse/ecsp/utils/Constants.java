@@ -18,9 +18,12 @@
 
 package org.eclipse.ecsp.utils;
 
+import lombok.NoArgsConstructor;
+
 /**
  * Constant Class to define the constants used in API registry common.
  */
+@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class Constants {
     /**
      * Endpoint for POST requests.

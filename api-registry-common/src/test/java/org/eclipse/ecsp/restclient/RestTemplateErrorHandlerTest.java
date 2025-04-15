@@ -47,7 +47,7 @@ class RestTemplateErrorHandlerTest {
     private static final URI URL = URI.create("http://localhost:8080/error-api");
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         errorHandler = new RestTemplateErrorHandler();
     }
 
@@ -64,7 +64,7 @@ class RestTemplateErrorHandlerTest {
 
     @Test
     void testHandleError404() {
-        Assertions.assertThrows(IllegalArgumentException.class,
+        Assertions.assertThrowsExactly(IllegalArgumentException.class,
                 () -> errorHandler.handleError(URL, HttpMethod.GET,
                         createClientHttpResponse(HttpStatus.BAD_REQUEST, "Not Found"))
         );
@@ -83,11 +83,6 @@ class RestTemplateErrorHandlerTest {
             @Override
             public HttpStatusCode getStatusCode() throws IOException {
                 return status;
-            }
-
-            @Override
-            public int getRawStatusCode() throws IOException {
-                return status.value();
             }
 
             @Override
@@ -117,17 +112,17 @@ class RestTemplateErrorHandlerTest {
     }
 
     @Test
-    void handleErrorWithNullBody() throws IOException {
+    void handleErrorWithNullBody() {
         handlerErrorResponseBody(null);
     }
 
     @Test
-    void handleErrorWithEmptyBody() throws IOException {
+    void handleErrorWithEmptyBody() {
         handlerErrorResponseBody("");
     }
 
     @Test
-    void handleErrorWithValidJsonBody() throws IOException {
+    void handleErrorWithValidJsonBody() {
         handlerErrorResponseBody("Valid message");
     }
 

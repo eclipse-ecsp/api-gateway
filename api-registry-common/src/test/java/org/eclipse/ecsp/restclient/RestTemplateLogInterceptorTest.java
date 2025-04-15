@@ -51,7 +51,7 @@ class RestTemplateLogInterceptorTest {
     private static final int STATUS_CODE = 500;
 
     @BeforeEach
-    public void before() {
+    void before() {
         restTemplateLogInterceptor = new RestTemplateLogInterceptor();
     }
 
@@ -97,11 +97,6 @@ class RestTemplateLogInterceptorTest {
         @Override
         public HttpStatusCode getStatusCode() throws IOException {
             return null;
-        }
-
-        @Override
-        public int getRawStatusCode() throws IOException {
-            return 0;
         }
 
         @Override

@@ -24,16 +24,15 @@ import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * Test class for ApiRoutesHealthMonitor.
@@ -54,7 +53,7 @@ class ApiRoutesHealthMonitorTest {
 
     @BeforeEach
     void beforeEach() {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
         apiRoutesHealthMonitor = new ApiRoutesHealthMonitor(apiRouteRepo, restTemplate, eventPublisher);
     }
 

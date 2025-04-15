@@ -26,12 +26,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Optional;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * Test class for ApiRouteService.
@@ -46,7 +45,7 @@ class ApiRouteServiceTest {
 
     @BeforeEach
     void beforeEach() {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
         apiRouteService = new ApiRouteService(apiRouteRepo);
     }
 
@@ -64,8 +63,13 @@ class ApiRouteServiceTest {
     void testCreateOrUpdateException() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.createOrUpdate(null));
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> apiRouteService.createOrUpdate(new RouteDefinition()));
+        RouteDefinition rd = new RouteDefinition();
+        try {
+            apiRouteService.createOrUpdate(rd);
+            Assertions.fail("Expected IllegalArgumentException");
+        }catch (IllegalArgumentException e) {
+            Assertions.assertTrue(true);
+        }
     }
 
     @Test

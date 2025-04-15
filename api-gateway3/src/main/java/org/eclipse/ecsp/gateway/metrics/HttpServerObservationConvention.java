@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.metrics;
 
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
+import jakarta.annotation.Nonnull;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -107,11 +108,12 @@ public class HttpServerObservationConvention extends DefaultServerRequestObserva
      * @param context ServerRequestObservationContext
      * @return KeyValue with response outcome.
      */
-    protected KeyValue outcomeStatus(ServerRequestObservationContext context) {
+    protected KeyValue outcomeStatus(@Nonnull ServerRequestObservationContext context) {
         KeyValue outcome = outcome(context);
         if (outcome.getValue().equals(GatewayConstants.UNKNOWN) && context.getResponse() != null) {
-            String outcomeStatus = getStatus(context.getResponse());
-            outcome = KeyValue.of("outcome", outcomeStatus != null ? outcomeStatus : GatewayConstants.UNKNOWN);
+            ServerHttpResponse response = context.getResponse();
+            String outcomeStatus = response != null ? getStatus(response) : GatewayConstants.UNKNOWN;
+            outcome = KeyValue.of("outcome", outcomeStatus);
         }
         return outcome;
     }

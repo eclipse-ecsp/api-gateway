@@ -20,6 +20,7 @@ package org.eclipse.ecsp.security.validator;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.eclipse.ecsp.security.Scopes;
+import org.eclipse.ecsp.security.Scopes.Fields;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,7 +29,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TestValidator {
 
-    @SecurityRequirement(name = "ValidScope", scopes = {Scopes.Fields.SelfManage})
+    @SecurityRequirement(name = "ValidScope", scopes = {Fields.SELF_MANAGE})
     public void validScope() {
         // Valid scope
     }

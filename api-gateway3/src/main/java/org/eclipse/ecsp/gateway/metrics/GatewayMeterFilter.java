@@ -71,10 +71,11 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      *
      * @param id The meter filter to apply.
      */
+    @Override
     public MeterFilterReply accept(Meter.Id id) {
         if (metricsConfig != null
                 && id.getName().startsWith(metricsConfig.getPrefix())
-                && !metricsConfig.getEnabled()) {
+                && Boolean.FALSE.equals(metricsConfig.getEnabled())) {
             LOGGER.info("GatewayMeterFilter#accept for meterId: {}, is disabled", id.getName());
             return MeterFilterReply.DENY;
         }
@@ -87,6 +88,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      * @param id The meter ID to map.
      * @return The mapped meter ID.
      */
+    @Override
     public Meter.Id map(Meter.Id id) {
         return this.meterFilter.map(id);
     }
@@ -99,6 +101,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      * @param config The distribution statistic configuration to apply.
      * @return The configured distribution statistic configuration.
      */
+    @Override
     public DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
         if (metricsConfig != null
                 && metricsConfig.getEnabled()
@@ -138,7 +141,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     public double[] convertServiceLevelObjectives(Duration[] sloDurations) {
         return Stream.of(sloDurations)
                 .map(Duration::toNanos)
-                .flatMapToDouble(num -> DoubleStream.of((double) num))
+                .flatMapToDouble(DoubleStream::of)
                 .toArray();
     }
 
@@ -152,7 +155,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     public double getMinimumValue(Duration[] durations) {
         OptionalDouble minValue = Stream.of(durations)
                 .map(Duration::toNanos)
-                .flatMapToDouble(num -> DoubleStream.of((double) num))
+                .flatMapToDouble(DoubleStream::of)
                 .min();
         if (minValue.isPresent()) {
             return minValue.getAsDouble();
@@ -171,7 +174,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     public double getMaximumValue(Duration[] durations) {
         OptionalDouble maxValue = Stream.of(durations)
                 .map(Duration::toNanos)
-                .flatMapToDouble(num -> DoubleStream.of((double) num))
+                .flatMapToDouble(DoubleStream::of)
                 .max();
         if (maxValue.isPresent()) {
             return maxValue.getAsDouble();

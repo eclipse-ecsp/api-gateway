@@ -20,7 +20,6 @@ package org.eclipse.ecsp.registry.repo;
 
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -31,8 +30,17 @@ import java.util.Optional;
 @ConditionalOnNoSqlDatabase
 @Repository("apiRouteMongoRepository")
 public class ApiRouteMongoRepository implements ApiRouteRepo {
-    @Autowired
-    private ApiRouteMongoDaoImpl apiRouteMongoDao;
+
+    private final ApiRouteMongoDaoImpl apiRouteMongoDao;
+
+    /**
+     * Constructor to initialize the ApiRouteMongoDaoImpl.
+     *
+     * @param apiRouteMongoDao the ApiRouteMongoDaoImpl
+     */
+    public ApiRouteMongoRepository(ApiRouteMongoDaoImpl apiRouteMongoDao) {
+        this.apiRouteMongoDao = apiRouteMongoDao;
+    }
 
     @Override
     public Optional<ApiRouteEntity> findById(String id) {

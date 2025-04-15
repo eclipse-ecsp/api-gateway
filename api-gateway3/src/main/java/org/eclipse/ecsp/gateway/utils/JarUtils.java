@@ -43,6 +43,7 @@ public class JarUtils {
      * @param parentClassLoader the parent class loader
      * @return the loaded class
      */
+    @SuppressWarnings("java:S2095")
     public static Class<?> loadClass(String path, String clazzName, ClassLoader parentClassLoader) {
         LOGGER.info("Loading external jars from: {}", path);
         File externalJarPath = new File(path);

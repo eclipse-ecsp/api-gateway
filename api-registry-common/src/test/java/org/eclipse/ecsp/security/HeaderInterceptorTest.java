@@ -61,10 +61,10 @@ class HeaderInterceptorTest {
     private HeaderInterceptor headerInterceptor;
 
     @Test
-    void testPreHandle() throws Exception {
+    void testPreHandle() {
         Assertions.assertTrue(headerInterceptor.preHandle(new Request(), new Response(), new Handler() {
             @Override
-            public void publish(LogRecord record) {
+            public void publish(LogRecord logRecord) {
                 // No implementation needed
             }
 

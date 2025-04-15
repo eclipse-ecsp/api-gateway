@@ -67,6 +67,7 @@ public class RouteDefinition {
      * Default constructor for RouteDefinition.
      */
     public RouteDefinition() {
+        // Default constructor
     }
 
     private String cacheKey;

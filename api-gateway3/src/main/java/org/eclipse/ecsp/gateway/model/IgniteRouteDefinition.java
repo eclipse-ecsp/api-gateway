@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.model;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.cloud.gateway.route.RouteDefinition;
@@ -29,6 +30,7 @@ import org.springframework.cloud.gateway.route.RouteDefinition;
  */
 @Getter
 @Setter
+@EqualsAndHashCode(callSuper = true)
 public class IgniteRouteDefinition extends RouteDefinition {
     private String service;
     private String contextPath;

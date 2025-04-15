@@ -28,7 +28,7 @@ public enum Scopes {
     /**
      * openid scope.
      */
-    @FieldNameConstants.Include openid,
+    @FieldNameConstants.Include OPEN_ID,
     /**
      * OPENID scope.
      */
@@ -60,5 +60,5 @@ public enum Scopes {
     /**
      * SelfManage scope.
      */
-    @FieldNameConstants.Include SelfManage
+    @FieldNameConstants.Include SELF_MANAGE
 }

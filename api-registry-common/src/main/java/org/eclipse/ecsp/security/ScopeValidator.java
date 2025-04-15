@@ -82,7 +82,7 @@ public class ScopeValidator {
             throw new IllegalAccessError("Invalid route/claims");
         }
         LOGGER.debug("User scopes: {} and target method scopes: {}", userScopes, methodScopes);
-        // atleast one of the methodScopes should match userScopes
+        // at least one of the methodScopes should match userScopes
         boolean validScope = userScopes.stream().anyMatch(methodScopes::contains);
         if (!validScope) {
             throw new IllegalAccessError("Insufficient claims");

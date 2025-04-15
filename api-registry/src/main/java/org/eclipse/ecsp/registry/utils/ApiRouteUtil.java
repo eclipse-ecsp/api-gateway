@@ -44,7 +44,7 @@ public class ApiRouteUtil {
         TreeMap<String, RouteDefinition> routes = new TreeMap<>();
         if (entities != null) {
             entities.forEach(entity -> {
-                if (entity.getActive()) {
+                if (Boolean.TRUE.equals(entity.getActive())) {
                     routes.put(entity.getId(), convert(entity));
                 }
             });

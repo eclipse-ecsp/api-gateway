@@ -32,13 +32,13 @@ import java.util.Collections;
  * Class provides option for Cors Configuration.
  */
 @Configuration
-public class CorsConfiguration extends
+public class GatewayCorsConfiguration extends
         org.springframework.web.cors.CorsConfiguration {
     /**
      * allows a way to enable the cors configuration.
      */
     private static final IgniteLogger LOGGER
-            = IgniteLoggerFactory.getLogger(CorsConfiguration.class);
+            = IgniteLoggerFactory.getLogger(GatewayCorsConfiguration.class);
     /**
      * gets the allowedOriginPatterns from configuration.
      */
@@ -74,7 +74,7 @@ public class CorsConfiguration extends
      */
     @Bean
     public CorsWebFilter corsWebFilter() {
-        final CorsConfiguration corsConfig = new CorsConfiguration();
+        final GatewayCorsConfiguration corsConfig = new GatewayCorsConfiguration();
         LOGGER.debug("allowedOrigins -> {}", allowedOriginPatterns);
         corsConfig.setMaxAge(Long.parseLong(maxAge));
         corsConfig.setAllowedMethods(Arrays.asList(allowedMethods));

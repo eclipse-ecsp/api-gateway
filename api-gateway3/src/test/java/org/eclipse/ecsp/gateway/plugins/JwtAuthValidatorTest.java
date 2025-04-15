@@ -206,7 +206,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenVerificationFailed() throws Exception {
+    void testTokenVerificationFailed() {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
@@ -218,7 +218,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testInvalidToken() throws Exception {
+    void testInvalidToken() {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
@@ -404,6 +404,7 @@ class JwtAuthValidatorTest {
             return "http://localhost:443/oauth2/token";
         }
 
+        @SuppressWarnings("unused")
         public Claims setIssuer(String iss) {
             return null;
         }
@@ -413,6 +414,7 @@ class JwtAuthValidatorTest {
             return "admin";
         }
 
+        @SuppressWarnings("unused")
         public Claims setSubject(String sub) {
             return null;
         }
@@ -422,6 +424,7 @@ class JwtAuthValidatorTest {
             return Set.of("GO7ZgKKVxJgejMkb_NR0GCKAr3wa");
         }
 
+        @SuppressWarnings("unused")
         public Claims setAudience(String aud) {
             return null;
         }
@@ -431,6 +434,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setExpiration(Date exp) {
             return null;
         }
@@ -440,6 +444,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setNotBefore(Date nbf) {
             return null;
         }
@@ -449,6 +454,7 @@ class JwtAuthValidatorTest {
             return new Date(START_DATE);
         }
 
+        @SuppressWarnings("unused")
         public Claims setIssuedAt(Date iat) {
             return null;
         }
@@ -458,7 +464,7 @@ class JwtAuthValidatorTest {
             return "ea8cef5b-fd49-439e-b63f-bdb56e9f638d";
         }
 
-
+        @SuppressWarnings("unused")
         public Claims setId(String jti) {
             return null;
         }
@@ -591,7 +597,6 @@ class JwtAuthValidatorTest {
                 @Override
                 public URI getURI() {
                     try {
-                        URI uri = new URI("https://v1/vehicleType");
                         return URI.create("https://v1/vehicleType");
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -620,7 +625,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            ServerHttpResponse response = new ServerHttpResponse() {
+            return new ServerHttpResponse() {
                 @Override
                 public HttpHeaders getHeaders() {
                     return null;
@@ -676,7 +681,6 @@ class JwtAuthValidatorTest {
                     // No implementation needed
                 }
             };
-            return response;
         }
 
         @Override
@@ -817,7 +821,6 @@ class JwtAuthValidatorTest {
                 @Override
                 public URI getURI() {
                     try {
-                        URI uri = new URI("https://v1/vehicleType");
                         return URI.create("https://v1/vehicleType");
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -846,7 +849,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            ServerHttpResponse response = new ServerHttpResponse() {
+            return new ServerHttpResponse() {
                 @Override
                 public HttpHeaders getHeaders() {
                     return null;
@@ -902,7 +905,6 @@ class JwtAuthValidatorTest {
                     // No implementation needed
                 }
             };
-            return response;
         }
 
         @Override

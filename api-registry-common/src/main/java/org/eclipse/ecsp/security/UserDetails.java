@@ -71,9 +71,7 @@ public class UserDetails {
      */
     public String getScopeAsString() {
         StringBuilder s = new StringBuilder();
-        scope.forEach(e -> {
-            s.append(e).append(",");
-        });
+        scope.forEach(e -> s.append(e).append(","));
         return s.toString();
     }
 }

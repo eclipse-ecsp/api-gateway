@@ -26,7 +26,6 @@ import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.security.Scopes;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;

@@ -47,17 +47,18 @@ public class RouteUtils {
      * @return returns the route path
      */
     public static String getRoutePath(List<PredicateDefinition> predicates) {
+        String routePath = null;
         for (PredicateDefinition predicate : predicates) {
             LOGGER.info("predicate name {}", predicate.getName());
             if (GatewayConstants.PATH.equalsIgnoreCase(predicate.getName())) {
                 LOGGER.info("predicates info {}", predicate.getArgs().toString());
                 for (Entry<String, String> entry : predicate.getArgs().entrySet()) {
                     LOGGER.info("Route: " + entry.getValue());
-                    return entry.getValue();
+                    routePath =  entry.getValue();
                 }
             }
         }
-        return null;
+        return routePath;
     }
 
     /**
@@ -67,15 +68,16 @@ public class RouteUtils {
      * @return route method
      */
     public static String getRouteMethod(List<PredicateDefinition> predicates) {
+        String routeMethod = null;
         for (PredicateDefinition predicate : predicates) {
             if (GatewayConstants.METHOD.equalsIgnoreCase(predicate.getName())) {
                 for (Entry<String, String> entry : predicate.getArgs().entrySet()) {
                     LOGGER.info("Route: " + entry.getValue());
-                    return entry.getValue();
+                    routeMethod =  entry.getValue();
                 }
             }
         }
-        return null;
+        return routeMethod;
     }
 
     /**

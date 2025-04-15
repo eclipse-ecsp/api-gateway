@@ -28,13 +28,13 @@ public enum Security {
     /**
      * JwtAuthValidator.
      */
-    @FieldNameConstants.Include JwtAuthValidator,
+    @FieldNameConstants.Include JWT_AUTH_VALIDATOR,
     /**
      * CacheRequestBody.
      */
-    @FieldNameConstants.Include CacheRequestBody,
+    @FieldNameConstants.Include CACHE_REQUEST_BODY,
     /**
      * RequestBodyValidator.
      */
-    @FieldNameConstants.Include RequestBodyValidator
+    @FieldNameConstants.Include REQUEST_BODY_VALIDATOR
 }

@@ -36,11 +36,16 @@ import java.util.Optional;
 public class ApiRouteService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteService.class);
 
+    private final ApiRouteRepo apiRouteRepo;
+
     /**
-     * Creating bean of ApiRouteRepo.
+     * Constructor to initialize the ApiRouteService.
+     *
+     * @param apiRouteRepo the ApiRouteRepo
      */
-    @Autowired
-    private ApiRouteRepo apiRouteRepo;
+    public ApiRouteService(ApiRouteRepo apiRouteRepo) {
+        this.apiRouteRepo = apiRouteRepo;
+    }
 
     /**
      * Method create or updated the RouteDefinition.

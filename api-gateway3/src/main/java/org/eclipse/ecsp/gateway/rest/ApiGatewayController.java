@@ -41,11 +41,20 @@ import java.util.TreeSet;
 @RestController
 public class ApiGatewayController {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiGatewayController.class);
+
     @Value("${api.registered.services}")
     private String registeredServices;
 
-    @Autowired(required = false)
-    private IgniteRouteLocator igniteRouteLocator;
+    private final IgniteRouteLocator igniteRouteLocator;
+
+    /**
+     * Constructor to initialize the ApiGatewayController.
+     *
+     * @param igniteRouteLocator the IgniteRouteLocator
+     */
+    public ApiGatewayController(IgniteRouteLocator igniteRouteLocator) {
+        this.igniteRouteLocator = igniteRouteLocator;
+    }
 
     /**
      * to get the health of the api-gateway.

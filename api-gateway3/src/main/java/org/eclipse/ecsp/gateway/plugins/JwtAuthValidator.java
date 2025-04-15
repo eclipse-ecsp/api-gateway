@@ -82,17 +82,19 @@ public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthValida
     @Setter
     private Map<String, Map<String, String>> tokenHeaderValidationConfig;
 
-    @Autowired
-    private JwtPublicKeyLoader jwtPublicKeyLoader;
+    private final JwtPublicKeyLoader jwtPublicKeyLoader;
 
     @Value("${api.userId.field}")
     private String userIdField;
 
     /**
      * Constructor to initialize the JwtAuthValidator.
+     *
+     * @param jwtPublicKeyLoader the JWT public key loader
      */
-    public JwtAuthValidator() {
+    public JwtAuthValidator(JwtPublicKeyLoader jwtPublicKeyLoader) {
         super(Config.class);
+        this.jwtPublicKeyLoader = jwtPublicKeyLoader;
     }
 
     @Override

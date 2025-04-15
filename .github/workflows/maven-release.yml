@@ -41,7 +41,7 @@ jobs:
             echo "::set-output name=release_version::$version"
           fi
 
-  publish_artificats:
+  publish_artifacts:
     needs: extract_version
     uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@main
     secrets: inherit

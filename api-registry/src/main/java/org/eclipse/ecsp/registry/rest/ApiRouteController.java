@@ -46,8 +46,16 @@ import java.util.List;
 public class ApiRouteController {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteController.class);
 
-    @Autowired
-    private ApiRouteService apiRouteService;
+    private final ApiRouteService apiRouteService;
+
+    /**
+     * Constructor to initialize the ApiRouteController.
+     *
+     * @param apiRouteService the ApiRouteService
+     */
+    public ApiRouteController(ApiRouteService apiRouteService) {
+        this.apiRouteService = apiRouteService;
+    }
 
     /**
      * register an api route.

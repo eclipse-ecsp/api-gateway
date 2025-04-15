@@ -143,6 +143,8 @@
         <skipJavadocs>false</skipJavadocs>
         <skipSource>false</skipSource>
         <skipGpgSign>true</skipGpgSign>
+        <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
+        <skipNexusStaging>true</skipNexusStaging>
     </properties>
 
     <distributionManagement>
@@ -487,6 +489,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>${maven-gpg-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <gpgArguments>
                         <arg>--pinentry-mode</arg>
@@ -495,6 +506,18 @@
                         <arg>--yes</arg>
                     </gpgArguments>
                     <skip>${skipGpgSign}</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>${nexus-staging-maven-plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <skipStaging>${skipNexusStaging}</skipStaging>
+                    <autoReleaseAfterClose>${autoReleaseAfterClose}</autoReleaseAfterClose>
                 </configuration>
             </plugin>
         </plugins>
@@ -511,6 +534,8 @@
                 <skipGpgSign>true</skipGpgSign>
                 <skipJavadocs>false</skipJavadocs>
                 <skipSource>false</skipSource>
+                <skipNexusStaging>true</skipNexusStaging>
+                <autoReleaseAfterClose>false</autoReleaseAfterClose>
             </properties>
         </profile>
         <profile>
@@ -523,6 +548,8 @@
                 <skipGpgSign>true</skipGpgSign>
                 <skipJavadocs>true</skipJavadocs>
                 <skipSource>true</skipSource>
+                <skipNexusStaging>true</skipNexusStaging>
+                <autoReleaseAfterClose>false</autoReleaseAfterClose>
             </properties>
         </profile>
         <profile>
@@ -533,6 +560,8 @@
                 <skipGpgSign>false</skipGpgSign>
                 <skipJavadocs>false</skipJavadocs>
                 <skipSource>false</skipSource>
+                <skipNexusStaging>false</skipNexusStaging>
+                <autoReleaseAfterClose>true</autoReleaseAfterClose>
             </properties>
         </profile>
     </profiles>

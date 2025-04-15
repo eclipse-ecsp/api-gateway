@@ -105,9 +105,11 @@ class ApiRoutesLoaderTest {
         Mockito.when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         Mockito.when(openApiService.getContext()).thenReturn(Mockito.mock(ApplicationContext.class));
         Mockito.when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
+        ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
+        apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers);
+                springDocProviders, springDocCustomizers, apiRouteConfig);
     }
 
     @Test

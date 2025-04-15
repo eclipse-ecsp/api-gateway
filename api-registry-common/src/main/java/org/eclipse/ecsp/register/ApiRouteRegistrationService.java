@@ -26,7 +26,6 @@ import org.eclipse.ecsp.utils.Constants;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -48,14 +47,23 @@ import java.util.List;
 @ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
 public class ApiRouteRegistrationService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteRegistrationService.class);
-    private static ObjectMapper mapper = ObjectMapperUtil.getObjectMapper();
-    @Autowired
-    ApiRoutesLoader apiRoutesLoader;
+    private static final ObjectMapper MAPPER = ObjectMapperUtil.getObjectMapper();
+
     @Value("${api.registry.service_name}")
     private String registryServiceName;
-    @Autowired
-    private RestTemplate restTemplate;
 
+    private final ApiRoutesLoader apiRoutesLoader;
+    private final RestTemplate restTemplate;
+
+    /**
+     * Constructor to initialize the ApiRouteRegistrationService.
+     *
+     * @param apiRoutesLoader the ApiRoutesLoader
+     */
+    public ApiRouteRegistrationService(ApiRoutesLoader apiRoutesLoader, RestTemplate restTemplate) {
+        this.apiRoutesLoader = apiRoutesLoader;
+        this.restTemplate = restTemplate;
+    }
 
     /**
      * registers the routes to the Api Gateway.
@@ -68,7 +76,7 @@ public class ApiRouteRegistrationService {
         List<RouteDefinition> apiRoutes = apiRoutesLoader.getApiRoutes();
         apiRoutes.forEach(route -> {
             try {
-                LOGGER.info("Route : {}", mapper.writeValueAsString(route));
+                LOGGER.info("Route : {}", MAPPER.writeValueAsString(route));
             } catch (JsonProcessingException ex) {
                 LOGGER.warn("Failed to register application: {}", ex.getMessage());
             }

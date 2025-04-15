@@ -49,12 +49,24 @@ public class ApiRoutesHealthMonitor {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesHealthMonitor.class);
     private final Map<String, String> services = new HashMap<>();
     private final Map<String, List<ApiRouteEntity>> serviceApiRoutes = new HashMap<>();
-    @Autowired
-    private ApiRouteRepo apiRouteRepo;
-    @Autowired
-    private RestTemplate restTemplate;
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private final ApiRouteRepo apiRouteRepo;
+    private final RestTemplate restTemplate;
+    private final ApplicationEventPublisher eventPublisher;
+
+    /**
+     * Constructor to initialize the ApiRoutesHealthMonitor.
+     *
+     * @param apiRouteRepo   the ApiRouteRepo
+     * @param restTemplate   the RestTemplate
+     * @param eventPublisher the ApplicationEventPublisher
+     */
+    public ApiRoutesHealthMonitor(ApiRouteRepo apiRouteRepo,
+                                  RestTemplate restTemplate,
+                                  ApplicationEventPublisher eventPublisher) {
+        this.apiRouteRepo = apiRouteRepo;
+        this.restTemplate = restTemplate;
+        this.eventPublisher = eventPublisher;
+    }
 
     /**
      * healthCheck is cron job to check the health status of components.

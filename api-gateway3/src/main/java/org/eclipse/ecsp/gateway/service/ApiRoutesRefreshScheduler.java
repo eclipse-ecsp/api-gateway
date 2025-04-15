@@ -38,8 +38,16 @@ import org.springframework.stereotype.Service;
 public class ApiRoutesRefreshScheduler {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesRefreshScheduler.class);
 
-    @Autowired
-    private IgniteRouteLocator igniteRouteLocator;
+    private final IgniteRouteLocator igniteRouteLocator;
+
+    /**
+     * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.
+     *
+     * @param igniteRouteLocator the IgniteRouteLocator
+     */
+    public ApiRoutesRefreshScheduler(IgniteRouteLocator igniteRouteLocator) {
+        this.igniteRouteLocator = igniteRouteLocator;
+    }
 
     /**
      * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.

@@ -101,7 +101,6 @@ public class ApiRoutesLoader extends OpenApiResource {
     /**
      * API Routes configuration.
      */
-    @Autowired
     protected ApiRoutesConfig apiRoutesConfig;
     @Getter
     @Setter
@@ -134,6 +133,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocConfigProperties   SpringDocConfigProperties for configuration.
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
+     * @param apiRoutesConfig             apiRoutesConfig
      */
     @Autowired
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
@@ -141,11 +141,13 @@ public class ApiRoutesLoader extends OpenApiResource {
                            AbstractRequestService requestBuilder,
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
-                           SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers) {
+                           SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
+                           ApiRoutesConfig apiRoutesConfig) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
+        this.apiRoutesConfig = apiRoutesConfig;
     }
 
     /**

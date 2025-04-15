@@ -33,7 +33,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiRouteRefreshSchedulerTest {
 
-    @InjectMocks
     private ApiRoutesRefreshScheduler apiRoutesRefreshScheduler;
 
     @Mock
@@ -42,6 +41,7 @@ class ApiRouteRefreshSchedulerTest {
     @BeforeEach
     void beforeEach() {
         initMocks(this);
+        apiRoutesRefreshScheduler = new ApiRoutesRefreshScheduler(igniteRouteLocator);
     }
 
     @Test

@@ -41,7 +41,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiRoutesHealthMonitorTest {
 
-    @InjectMocks
     private ApiRoutesHealthMonitor apiRoutesHealthMonitor;
 
     @Mock
@@ -56,20 +55,31 @@ class ApiRoutesHealthMonitorTest {
     @BeforeEach
     void beforeEach() {
         initMocks(this);
+        apiRoutesHealthMonitor = new ApiRoutesHealthMonitor(apiRouteRepo, restTemplate, eventPublisher);
     }
 
     @Test
     void healthCheckTest() {
+        // Scenario 1: No API routes found
+        Mockito.when(apiRouteRepo.findAll()).thenReturn(new ArrayList<>());
         apiRoutesHealthMonitor.healthCheck();
+        Mockito.verify(restTemplate, Mockito.never()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
+
+        // Scenario 2: API routes found, health check succeeds
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         ArrayList<ApiRouteEntity> apiRouteEntities = new ArrayList<>();
         apiRouteEntities.add(apiRouteEntity);
         Mockito.when(apiRouteRepo.findAll()).thenReturn(apiRouteEntities);
-        apiRoutesHealthMonitor.healthCheck();
         Mockito.when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
                 .thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
         apiRoutesHealthMonitor.healthCheck();
-        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.any());
+        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
+
+        // Scenario 3: API routes found, health check fails
+        Mockito.when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
+                .thenThrow(new RuntimeException("Health check failed"));
+        apiRoutesHealthMonitor.healthCheck();
+        Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
     }
 
 }

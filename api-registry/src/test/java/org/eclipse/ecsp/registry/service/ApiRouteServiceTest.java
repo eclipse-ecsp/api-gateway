@@ -39,7 +39,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @ExtendWith(SpringExtension.class)
 class ApiRouteServiceTest {
 
-    @InjectMocks
     private ApiRouteService apiRouteService;
 
     @Mock
@@ -48,6 +47,7 @@ class ApiRouteServiceTest {
     @BeforeEach
     void beforeEach() {
         initMocks(this);
+        apiRouteService = new ApiRouteService(apiRouteRepo);
     }
 
     @Test

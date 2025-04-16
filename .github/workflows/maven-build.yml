@@ -1,3 +1,4 @@
+
 name: Maven Build & Sonar Analysis
 
 on:
@@ -30,7 +31,7 @@ jobs:
 
   docker_push_api_registry:
     needs: sonar_analysis
-    if: github.ref == 'refs/heads/main'
+    if: false
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
@@ -39,9 +40,9 @@ jobs:
 
   docker_push_api-gateway:
     needs: sonar_analysis
-    if: github.ref == 'refs/heads/main'
+    if: false
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
-      context_path: ./api-gateway3
+      context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'

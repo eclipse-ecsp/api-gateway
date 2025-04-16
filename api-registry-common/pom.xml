@@ -5,7 +5,7 @@
 
     <parent>
         <groupId>org.eclipse.ecsp</groupId>
-        <artifactId>api-gateway3-parent</artifactId>
+        <artifactId>api-gateway-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 

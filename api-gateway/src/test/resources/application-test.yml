@@ -6,7 +6,7 @@ server:
 
 spring:
   application:
-    name: api-gateway3
+    name: api-gateway
   data:
     redis:
       cluster:
@@ -59,7 +59,7 @@ main:
   web-application-type: reactive
 
 jwt:
-  publicKeyFileBasePath: /opt/api-gateway3/pem_files/
+  publicKeyFileBasePath: /opt/api-gateway/pem_files/
   publicKeyFiles: test-certificate.pem
 requestBody:
   validation: true
@@ -121,4 +121,4 @@ plugin:
   classes: ${plugin_classes:}
 
 api-gateway:
-  uri: ${api_gateway_uri:http://api-gateway3-int-svc:7000/}
+  uri: ${api_gateway_uri:http://api-gateway-int-svc:7000/}

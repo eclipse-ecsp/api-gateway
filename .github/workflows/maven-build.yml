@@ -7,6 +7,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+env:
+  DOCKER_PUSH_ENABLED: false
+
 jobs:
   maven_build:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
@@ -15,11 +18,13 @@ jobs:
       maven_args: 'clean package --file pom.xml'
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+
   sonar_analysis:
     needs: maven_build
     uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
+
   dependencies_update:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
@@ -30,7 +35,7 @@ jobs:
 
   docker_push_api_registry:
     needs: sonar_analysis
-    if: github.ref == 'refs/heads/main'
+    if: github.ref_name == 'main' && env.DOCKER_PUSH_ENABLED == 'true'
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
@@ -39,9 +44,9 @@ jobs:
 
   docker_push_api-gateway:
     needs: sonar_analysis
-    if: github.ref == 'refs/heads/main'
+    if: github.ref_name == 'main' && env.DOCKER_PUSH_ENABLED == 'true'
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
-      context_path: ./api-gateway3
+      context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'

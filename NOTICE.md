@@ -32,7 +32,7 @@ https://github.com/eclipse-ecsp/api-gateway
 
 This project leverages the following third party content.
 
-api-gateway3-parent(1.4.0)
+api-gateway-parent(1.4.0)
 LICENSE:Apache-2.0
 
 api-registry-common(1.4.0)

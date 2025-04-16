@@ -5,14 +5,14 @@
 
     <parent>
         <groupId>org.eclipse.ecsp</groupId>
-        <artifactId>api-gateway3-parent</artifactId>
+        <artifactId>api-gateway-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>api-gateway3</artifactId>
+    <artifactId>api-gateway</artifactId>
     <packaging>jar</packaging>
 
-    <name>api-gateway3</name>
+    <name>api-gateway</name>
     <description>A Spring cloud gateway based API Gateway that serves as a single entry point for microservices</description>
     <url>https://github.com/eclipse-ecsp/api-gateway</url>
 

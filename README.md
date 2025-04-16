@@ -94,7 +94,7 @@ To run a method from within a test
 
 ### Deployment
 
-We can deploy this component as a Kubernetes pod by installing api-gateway3 and api-gateway3 charts.
+We can deploy this component as a Kubernetes pod by installing api-gateway and api-registry charts.
 
 Link:
 [Charts](../../../csp-opensource-charts/tree/main/api-gateway-spring)

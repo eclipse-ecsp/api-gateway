@@ -1,13 +1,13 @@
 spring:
   application:
-    name: api-gateway3
+    name: api-gateway
   cloud:
     kubernetes:
       config:
         enabled: true
         sources:
           - namespace: default
-            name: api-gateway3
+            name: api-gateway
       reload:
         enabled: true
         mode: event

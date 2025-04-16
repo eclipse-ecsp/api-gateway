@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.eclipse.ecsp</groupId>
-    <artifactId>api-gateway3-parent</artifactId>
+    <artifactId>api-gateway-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
@@ -11,10 +11,10 @@
     <modules>
         <module>api-registry-common</module>
         <module>api-registry</module>
-        <module>api-gateway3</module>
+        <module>api-gateway</module>
     </modules>
 
-    <name>api-gateway</name>
+    <name>api-gateway-parent</name>
     <description>A Spring cloud gateway based API Gateway that serves as a single entry point for microservices</description>
     <url>https://github.com/eclipse-ecsp/api-gateway</url>
 

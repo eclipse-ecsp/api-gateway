@@ -8,7 +8,7 @@
 
 # Api Gateway
 
-Api Gateway3 does provide single entry point for all clients to allow access of backend APIs. The API gateway handles
+Api Gateway does provide single entry point for all clients to allow access of backend APIs. The API gateway handles
 requests in one of two ways. Some requests are simply proxied/routed to the appropriate service. It handles other
 requests by fanning out to multiple services. Spring Cloud API gateway, also provide a one-size-fits-all style API, the
 API gateway can expose a different API for each client.

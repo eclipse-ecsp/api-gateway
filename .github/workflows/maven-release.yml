@@ -65,3 +65,10 @@ jobs:
       context_path: ./api-gateway
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
+  
+  update_next_version:
+    needs: extract_version
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@main
+    with:
+      version: ${{ needs.extract_version.outputs.release_version }}
+    secrets: inherit

@@ -18,23 +18,26 @@
 
 package org.eclipse.ecsp.security;
 
-import lombok.experimental.FieldNameConstants;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
- * Security.
+ * Security class.
+ *
+ * @author Abhishek Kumar
  */
-@FieldNameConstants(onlyExplicitlyIncluded = true)
-public enum Security {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class Security {
     /**
      * JwtAuthValidator.
      */
-    @FieldNameConstants.Include JWT_AUTH_VALIDATOR,
+    public static final String JWT_AUTH_VALIDATOR = "JwtAuthValidator";
     /**
      * CacheRequestBody.
      */
-    @FieldNameConstants.Include CACHE_REQUEST_BODY,
+    public static final String CACHE_REQUEST_BODY = "CacheRequestBody";
     /**
      * RequestBodyValidator.
      */
-    @FieldNameConstants.Include REQUEST_BODY_VALIDATOR
+    public static final String REQUEST_BODY_VALIDATOR = "RequestBodyValidator";
 }

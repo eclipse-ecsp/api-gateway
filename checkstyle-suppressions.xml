@@ -12,6 +12,7 @@
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.utils.Constants"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.JarUtils"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.GatewayUtils"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.security.Security"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.GatewayConstants"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.service.RouteUtils"/>
     <suppress checks="OneTopLevelClass" files="org.eclipse.ecsp.gateway.plugins.RequestBodyValidator"/>

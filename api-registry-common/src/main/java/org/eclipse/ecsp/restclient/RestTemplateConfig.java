@@ -35,6 +35,11 @@ public class RestTemplateConfig {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateConfig.class);
 
 
+    /**
+     * Create and returns the object of RestTemplateCustomizer.
+     *
+     * @return RestTemplateCustomizer Object
+     */
     @Bean
     public RestTemplateCustomizer restTemplateCustomizer() {
         return restTemplate -> {

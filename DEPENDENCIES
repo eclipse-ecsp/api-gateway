@@ -31,7 +31,7 @@ maven/mavencentral/commons-codec/commons-codec/1.17.2, Apache-2.0 AND (Apache-2.
 maven/mavencentral/commons-fileupload/commons-fileupload/1.5, Apache-2.0, approved, #7109
 maven/mavencentral/commons-io/commons-io/2.11.0, Apache-2.0, approved, CQ23745
 maven/mavencentral/commons-io/commons-io/2.16.1, Apache-2.0, approved, #14190
-maven/mavencentral/de.siegmar/logback-gelf/6.1.0, LGPL-2.1-or-later AND (LGPL-2.1-or-later AND MIT), approved, #20666
+maven/mavencentral/de.siegmar/logback-gelf/6.1.1, LGPL-2.1-or-later AND (LGPL-2.1-or-later AND MIT), approved, #20666
 maven/mavencentral/dev.morphia.morphia/morphia-core/2.2.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.dropwizard.metrics/metrics-core/4.2.19, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.dropwizard.metrics/metrics-healthchecks/4.2.19, Apache-2.0, approved, clearlydefined
@@ -128,7 +128,7 @@ maven/mavencentral/org.apache.httpcomponents.core5/httpcore5-h2/5.3.3, Apache-2.
 maven/mavencentral/org.apache.httpcomponents.core5/httpcore5/5.3.3, Apache-2.0, approved, #16866
 maven/mavencentral/org.apache.logging.log4j/log4j-api/2.24.3, Apache-2.0, approved, #16095
 maven/mavencentral/org.apache.logging.log4j/log4j-to-slf4j/2.24.3, Apache-2.0, approved, #16094
-maven/mavencentral/org.apache.tomcat.embed/tomcat-embed-core/10.1.39, Apache-2.0 AND (EPL-2.0 OR (GPL-2.0 WITH Classpath-exception-2.0)) AND CDDL-1.0 AND (CDDL-1.1 OR (GPL-2.0-only WITH Classpath-exception-2.0)) AND EPL-2.0, approved, #15195
+maven/mavencentral/org.apache.tomcat.embed/tomcat-embed-core/10.1.39, Apache-2.0 AND (EPL-2.0 OR (GPL-2.0-only WITH Classpath-exception-2.0)) AND CDDL-1.0 AND (CDDL-1.1 OR (GPL-2.0-only WITH Classpath-exception-2.0)) AND EPL-2.0, approved, #15195
 maven/mavencentral/org.apache.tomcat.embed/tomcat-embed-el/10.1.39, Apache-2.0, approved, #6997
 maven/mavencentral/org.apache.tomcat.embed/tomcat-embed-websocket/10.1.39, Apache-2.0, approved, #7920
 maven/mavencentral/org.apache.tomcat/tomcat-annotations-api/10.1.39, Apache-2.0, approved, #8196
@@ -145,7 +145,7 @@ maven/mavencentral/org.eclipse.angus/angus-activation/2.0.2, EPL-2.0 OR GPL-2.0-
 maven/mavencentral/org.eclipse.ecsp/api-registry-common/1.0.0-SNAPSHOT, Apache-2.0, approved, automotive.ecsp
 maven/mavencentral/org.eclipse.ecsp/entities/1.1.0, Apache-2.0, approved, automotive.ecsp
 maven/mavencentral/org.eclipse.ecsp/nosql-dao/1.1.0, Apache-2.0, approved, automotive.ecsp
-maven/mavencentral/org.eclipse.ecsp/sql-dao/1.0.0, Apache-2.0, approved, automotive.ecsp
+maven/mavencentral/org.eclipse.ecsp/sql-dao/1.1.2, Apache-2.0, approved, automotive.ecsp
 maven/mavencentral/org.eclipse.ecsp/utils/1.1.0, Apache-2.0, approved, automotive.ecsp
 maven/mavencentral/org.eclipse.jetty.ee10/jetty-ee10-servlet/12.0.18, EPL-2.0 OR Apache-2.0, approved, rt.jetty
 maven/mavencentral/org.eclipse.jetty.ee10/jetty-ee10-servlets/12.0.18, EPL-2.0 OR Apache-2.0, approved, rt.jetty
@@ -204,7 +204,7 @@ maven/mavencentral/org.openapi4j/openapi-schema-validator/1.0.7, Apache-2.0, app
 maven/mavencentral/org.opentest4j/opentest4j/1.3.0, Apache-2.0, approved, #9713
 maven/mavencentral/org.ow2.asm/asm/9.7.1, BSD-3-Clause, approved, #16464
 maven/mavencentral/org.postgresql/postgresql/42.7.5, BSD-2-Clause AND Apache-2.0, approved, #11681
-maven/mavencentral/org.projectlombok/lombok/1.18.36, MIT, approved, #15192
+maven/mavencentral/org.projectlombok/lombok/1.18.38, MIT, approved, #15192
 maven/mavencentral/org.reactivestreams/reactive-streams/1.0.4, CC0-1.0, approved, CQ16332
 maven/mavencentral/org.reflections/reflections/0.9.11, MIT, approved, CQ16665
 maven/mavencentral/org.skyscreamer/jsonassert/1.5.3, Apache-2.0, approved, clearlydefined

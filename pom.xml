@@ -116,6 +116,7 @@
 
             <!-- Registry Common -->
             **/config/*.java,
+            **/restclient/RestTemplateConfig.java,
             **/register/model/*.java,
             **/register/ApiRoutesConfig.java,
             **/security/Scopes.java,

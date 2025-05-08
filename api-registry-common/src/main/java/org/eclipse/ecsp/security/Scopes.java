@@ -58,7 +58,7 @@ public enum Scopes {
      */
     @FieldNameConstants.Include USER_MANAGE,
     /**
-     * SelfManage scope.
+     * SELF_MANAGE scope.
      */
     @FieldNameConstants.Include SELF_MANAGE
 }

@@ -20,7 +20,9 @@ package org.eclipse.ecsp.restclient;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -32,6 +34,17 @@ import org.springframework.web.client.RestTemplate;
 public class RestTemplateConfig {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateConfig.class);
 
+
+    @Bean
+    public RestTemplateCustomizer restTemplateCustomizer() {
+        return restTemplate -> {
+            restTemplate.setErrorHandler(new RestTemplateErrorHandler());
+            if (LOGGER.isDebugEnabled()) {
+                restTemplate.getInterceptors().add(new RestTemplateLogInterceptor());
+            }
+        };
+    }
+
     /**
      * Create and returns the object of RestTemplate.
      *
@@ -39,13 +52,8 @@ public class RestTemplateConfig {
      * @return RestTemplate Object
      */
     @Bean
+    @ConditionalOnMissingBean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        // add rest error handler
-        builder.errorHandler(new RestTemplateErrorHandler());
-        // add log interceptor
-        if (LOGGER.isDebugEnabled()) {
-            builder.additionalInterceptors(new RestTemplateLogInterceptor());
-        }
         return builder.build();
     }
 

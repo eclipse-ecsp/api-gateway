@@ -382,12 +382,12 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void addRequestBodyFilters(RouteDefinition route) {
         FilterDefinition filter = new FilterDefinition();
-        filter.setName(Security.Fields.CACHE_REQUEST_BODY);
+        filter.setName(Security.CACHE_REQUEST_BODY);
         filter.getArgs().put(Constants.BODY_CLASS, Constants.STRING);
         route.getFilters().add(filter);
 
         filter = new FilterDefinition();
-        filter.setName(Security.Fields.REQUEST_BODY_VALIDATOR);
+        filter.setName(Security.REQUEST_BODY_VALIDATOR);
         route.getFilters().add(filter);
     }
 

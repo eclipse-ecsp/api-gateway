@@ -22,20 +22,22 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Security.
+ * Security class.
+ *
+ * @author Abhishek Kumar
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Security {
-   /**
-    * JwtAuthValidator.
-    */
-   public static final String JWT_AUTH_VALIDATOR = "JwtAuthValidator";
-   /**
-    * CacheRequestBody.
-    */
-   public static final String CACHE_REQUEST_BODY = "CacheRequestBody";
-   /**
-    * RequestBodyValidator.
-    */
-   public static final String REQUEST_BODY_VALIDATOR = "RequestBodyValidator";
+    /**
+     * JwtAuthValidator.
+     */
+    public static final String JWT_AUTH_VALIDATOR = "JwtAuthValidator";
+    /**
+     * CacheRequestBody.
+     */
+    public static final String CACHE_REQUEST_BODY = "CacheRequestBody";
+    /**
+     * RequestBodyValidator.
+     */
+    public static final String REQUEST_BODY_VALIDATOR = "RequestBodyValidator";
 }

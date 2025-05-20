@@ -88,7 +88,7 @@ Link:
 
 Sequence diagram of api-gateway-spring:
 
-[<img src="./images/apiGatewaySpringSequenceDiagram.png" width="800" height="300"/>](apiGatewaySpringSequenceDiagram.png)
+[<img src="./images/api-gateway-diagram.png"/>](api-gateway-diagram.png)
 
 ## Usage
 

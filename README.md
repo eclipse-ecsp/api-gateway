@@ -8,10 +8,7 @@
 
 # Api Gateway
 
-Api Gateway does provide single entry point for all clients to allow access of backend APIs. The API gateway handles
-requests in one of two ways. Some requests are simply proxied/routed to the appropriate service. It handles other
-requests by fanning out to multiple services. Spring Cloud API gateway, also provide a one-size-fits-all style API, the
-API gateway can expose a different API for each client.
+API Gateway acts as a single entry point for all client requests to access backend APIs. It processes requests in two main ways: either by routing them directly to the appropriate service or by distributing (fanning out) the request to multiple services. Spring Cloud API Gateway supports one-size-fits-all style API..
 
 # Table of Contents
 
@@ -27,7 +24,6 @@ API gateway can expose a different API for each client.
 * [Troubleshooting](#troubleshooting)
 * [License](#license)
 * [Announcements](#announcements)
-* [Acknowledgments](#acknowledgments)
 
 ## Getting Started
 
@@ -45,20 +41,9 @@ from the command line interface.
 
 ### Prerequisites
 
-1. The list of tools required to build and run the project:
-   JDK 11/Java 17
-   Apache Maven 3.8
-
-Download and Install Apache Maven 3.8 locally and follow the below steps for IntelliJ IDE:
-
-* Go to the right corner of the IDE and get inside the Maven option.
-* Select the Maven Settings option and set the Maven Home Path to the path of the Apache Maven 3.8 installed locally.
-* Click Apply and then OK.
-
-2. PostgreSQL or MongoDB need to installed and ignite database/schema should be created with the required
-   tables/collection.
-
-* Link of the database and table scripts to be installed :
+The list of tools required to build and run the project:
+1. Java 17
+2. Apache Maven 3.8 or higher
 
 ### Installation
 
@@ -97,7 +82,7 @@ To run a method from within a test
 We can deploy this component as a Kubernetes pod by installing api-gateway and api-registry charts.
 
 Link:
-[Charts](../../../csp-opensource-charts/tree/main/api-gateway-spring)
+[Charts](../../../ecsp-helm-charts/tree/main/api-gateway)
 
 ## Architecture
 
@@ -134,21 +119,20 @@ Sequence diagram of api-gateway-spring:
 
 ## Built With Dependencies
 
-* [Spring](https://spring.io/projects/spring-framework) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [PostgreSQL](https://jdbc.postgresql.org/) - PostgreSQL driver
-* [MongoDB](https://www.mongodb.com/docs/drivers/java-drivers/) - MongoDB Java driver
-* [Project Lombok](https://projectlombok.org/) - Builder
-* [Apache Common](https://commons.apache.org/proper/commons-lang/) - Java Library
-* [Jackson](https://github.com/FasterXML) - Reading JSON Objects
-* [Logback](https://logback.qos.ch/) - Log Functionality
-* [slf4j](https://www.slf4j.org/) - Log Functionality
-* [Mockito](https://site.mockito.org/) - Mocking Functionality
-* [JUnit5](https://junit.org/) - Testing Framework) - Testing Framework
-* [SpringCloud](https://spring.io/projects/spring-cloud) - Spring Cloud Gateway
-* [Lombok](https://projectlombok.org/) - Lombok framework
-* [Redis](https://redis.io/docs/latest/develop/use/client-side-caching/) - Redis In Memory Database
-* [Spring doc Open-Api](https://springdoc.org/) - To generate the API Documentation
+* [Spring](https://spring.io/projects/spring-framework) - Web framework used for building the application
+* [Spring cloud Gateway](https://spring.io/projects/spring-cloud-gateway/) – API Gateway for routing and filtering requests
+* [Maven](https://maven.apache.org/) - Build tool used for dependency management
+* [PostgreSQL](https://jdbc.postgresql.org/) - Relational database
+* [MongoDB](https://www.mongodb.com/docs/drivers/java-drivers/) - NoSQL document database
+* [Apache Common](https://commons.apache.org/proper/commons-lang/) - Provides utility classes for various Java operations
+* [Jackson](https://github.com/FasterXML) - Library for parsing and generating JSON
+* [Logback](https://logback.qos.ch/) - Concrete logging implementation used with SLF4J
+* [slf4j](https://www.slf4j.org/) - Logging facade providing abstraction for various logging frameworks
+* [Mockito](https://site.mockito.org/) - Mocking framework for testing
+* [JUnit5](https://junit.org/) - Unit testing framework 
+* [Lombok](https://projectlombok.org/) - Auto-generates Java boilerplate code (e.g., getters, setters, builders)
+* [Redis](https://redis.io/docs/latest/develop/use/client-side-caching/) - In-memory data store used for caching & Rate Limiting
+* [Spring doc Open-Api](https://springdoc.org/) - Automatically generates interactive API documentation (Swagger UI) from Spring controllers
 
 ## How to contribute
 

@@ -1,14 +1,13 @@
 [<img src="./images/logo.png" width="300" height="150"/>](logo.png)
 
+# Api Gateway
 [![Maven Build & Sonar Analysis](https://github.com/eclipse-ecsp/api-gateway/actions/workflows/maven-build.yml/badge.svg)](https://github.com/eclipse-ecsp/api-gateway/actions/workflows/maven-build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=eclipse-ecsp_api-gateway&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=eclipse-ecsp_api-gateway)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=eclipse-ecsp_api-gateway&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=eclipse-ecsp_api-gateway)
 [![License Compliance](https://github.com/eclipse-ecsp/api-gateway/actions/workflows/licence-compliance.yaml/badge.svg)](https://github.com/eclipse-ecsp/api-gateway/actions/workflows/licence-compliance.yaml)
 [![Latest Release](https://img.shields.io/github/v/release/eclipse-ecsp/api-gateway?sort=semver)](https://github.com/eclipse-ecsp/api-gateway/releases)
 
-# Api Gateway
-
-API Gateway acts as a single entry point for all client requests to access backend APIs. It processes requests in two main ways: either by routing them directly to the appropriate service or by distributing (fanning out) the request to multiple services. Spring Cloud API Gateway supports one-size-fits-all style API..
+API Gateway acts as a single entry point for all client requests to access backend APIs. It processes requests in two main ways: either by routing them directly to the appropriate service or by distributing (fanning out) the request to multiple services. Spring Cloud API Gateway supports one-size-fits-all style API.
 
 # Table of Contents
 

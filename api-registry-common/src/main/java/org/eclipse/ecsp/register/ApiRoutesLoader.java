@@ -31,12 +31,14 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import lombok.Setter;
+import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.security.CachingTagger;
 import org.eclipse.ecsp.security.Security;
-import org.eclipse.ecsp.utils.Constants;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springdoc.core.customizers.SpringDocCustomizers;
@@ -59,6 +61,7 @@ import org.springframework.util.CollectionUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -87,11 +90,11 @@ import java.util.stream.Stream;
 @ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
 public class ApiRoutesLoader extends OpenApiResource {
     /**
-     * Constants for multipart/form-data.
+     * RegistryCommonConstants for multipart/form-data.
      */
     public static final String MULTIPART_FORM_DATA = "multipart/form-data";
     /**
-     * Constants for request body schema logger.
+     * RegistryCommonConstants for request body schema logger.
      */
     public static final String REQUEST_BODY_SCHEMA = "===> RequestBody Schema : {}";
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesLoader.class);
@@ -182,7 +185,7 @@ public class ApiRoutesLoader extends OpenApiResource {
         prepareStaticRoutes();
         // Load from Swagger Annotations
         LOGGER.info("Read API Routes from OpenApi (Swagger) Annotations...");
-        this.serviceUrl = new URI("http://" + serviceName + ":" + port + Constants.PATH_DELIMITER);
+        this.serviceUrl = new URI("http://" + serviceName + ":" + port + RegistryCommonConstants.PATH_DELIMITER);
         LOGGER.info("OpenApi ---> ServiceUrl = {}", this.serviceUrl);
         OpenAPI api = super.getOpenApi(Locale.getDefault());
         if (api == null) {
@@ -281,9 +284,11 @@ public class ApiRoutesLoader extends OpenApiResource {
             setSecurityFilters(operation, route);
             setHeaderMetadata(operation, route);
             setRewritePathFilter(route);
+            setRequestFilters(operation, route);
             if (!route.getFilters().isEmpty()) {
                 apiRoutes.add(route);
             }
+
             LOGGER.debug("API Route : {}", route);
         } catch (Exception ex) {
             LOGGER.error("Error registering route with method: {}, "
@@ -325,13 +330,13 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void setRoutePredicates(HttpMethod method, String path, RouteDefinition route) {
         PredicateDefinition methodPredicate = new PredicateDefinition();
-        methodPredicate.setName(Constants.METHOD);
-        methodPredicate.getArgs().put(Constants.KEY_0, method.name());
+        methodPredicate.setName(RegistryCommonConstants.METHOD);
+        methodPredicate.getArgs().put(RegistryCommonConstants.KEY_0, method.name());
         route.getPredicates().add(methodPredicate);
 
         PredicateDefinition pathPredicate = new PredicateDefinition();
-        pathPredicate.setName(Constants.PATH);
-        pathPredicate.getArgs().put(Constants.KEY_0, path);
+        pathPredicate.setName(RegistryCommonConstants.PATH);
+        pathPredicate.getArgs().put(RegistryCommonConstants.KEY_0, path);
         route.getPredicates().add(pathPredicate);
 
         LOGGER.debug("Predicates added to the route: "
@@ -366,7 +371,7 @@ public class ApiRoutesLoader extends OpenApiResource {
                     String schemaStr = ObjectMapperUtil.getObjectMapper()
                             .writeValueAsString(components.getSchemas().get(schemaName));
                     LOGGER.info(REQUEST_BODY_SCHEMA, schemaStr);
-                    route.getMetadata().put(Constants.SCHEMA, schemaStr);
+                    route.getMetadata().put(RegistryCommonConstants.SCHEMA, schemaStr);
                     addRequestBodyFilters(route);
                 }
             }
@@ -383,7 +388,7 @@ public class ApiRoutesLoader extends OpenApiResource {
     private void addRequestBodyFilters(RouteDefinition route) {
         FilterDefinition filter = new FilterDefinition();
         filter.setName(Security.CACHE_REQUEST_BODY);
-        filter.getArgs().put(Constants.BODY_CLASS, Constants.STRING);
+        filter.getArgs().put(RegistryCommonConstants.BODY_CLASS, RegistryCommonConstants.STRING);
         route.getFilters().add(filter);
 
         filter = new FilterDefinition();
@@ -402,11 +407,15 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void setCachingFilters(HttpMethod method, Operation operation, RouteDefinition route) {
         LOGGER.info("operation.getExtensions() {}", operation.getExtensions());
-        if (operation.getExtensions() != null && method.name().equalsIgnoreCase("GET")) {
+        if (operation.getExtensions() != null
+                && operation.getExtensions().containsKey(CachingTagger.CACHE_EXTENSION)
+                && method.name().equalsIgnoreCase("GET")) {
+            Map<String, String> cacheConfig = (Map<String, String>) operation.getExtensions()
+                    .get(CachingTagger.CACHE_EXTENSION);
             LOGGER.info("caching extensions --" + operation.getExtensions());
-            String extensionCacheSize = (String) operation.getExtensions().get("cacheSize");
-            String cacheKey = (String) operation.getExtensions().get("cacheKey");
-            String cachettl = (String) operation.getExtensions().get("cacheTll");
+            String extensionCacheSize = cacheConfig.get("cacheSize");
+            String cacheKey = cacheConfig.get("cacheKey");
+            String cachettl = cacheConfig.get("cacheTll");
             route.setCacheKey(cacheKey);
             route.setCacheSize(extensionCacheSize);
             route.setCacheTtl(cachettl);
@@ -430,7 +439,7 @@ public class ApiRoutesLoader extends OpenApiResource {
                     filter.setName(name);
                     if (scopes != null && !scopes.isEmpty()) {
                         enabledOverrideScope(route, scopes);
-                        filter.getArgs().put(Constants.SCOPE, String.join(",", scopes));
+                        filter.getArgs().put(RegistryCommonConstants.SCOPE, String.join(",", scopes));
                         LOGGER.info("Final scope config: " + scopes);
                     }
                 });
@@ -469,9 +478,10 @@ public class ApiRoutesLoader extends OpenApiResource {
     private void setRewritePathFilter(RouteDefinition route) {
         if (this.contextPath != null && !this.contextPath.isBlank()) {
             FilterDefinition filter = new FilterDefinition();
-            filter.setName(Constants.REWRITE_PATH_FILTER);
-            filter.getArgs().put(Constants.REGEX, Constants.REGEX_SEGMENT);
-            filter.getArgs().put(Constants.REPLACEMENT, this.contextPath + Constants.REPLACEMENT_REGEX);
+            filter.setName(RegistryCommonConstants.REWRITE_PATH_FILTER);
+            filter.getArgs().put(RegistryCommonConstants.REGEX, RegistryCommonConstants.REGEX_SEGMENT);
+            filter.getArgs().put(RegistryCommonConstants.REPLACEMENT,
+                    this.contextPath + RegistryCommonConstants.REPLACEMENT_REGEX);
             route.getFilters().add(filter);
             LOGGER.info("Rewrite Path Filter: " + filter);
         }
@@ -496,21 +506,22 @@ public class ApiRoutesLoader extends OpenApiResource {
 
                 // Set Route Predicates
                 PredicateDefinition methodPred = new PredicateDefinition();
-                methodPred.setName(Constants.METHOD);
-                methodPred.getArgs().put(Constants.KEY_0, HttpMethod.GET.name());
+                methodPred.setName(RegistryCommonConstants.METHOD);
+                methodPred.getArgs().put(RegistryCommonConstants.KEY_0, HttpMethod.GET.name());
                 route.getPredicates().add(methodPred);
                 PredicateDefinition pathPred = new PredicateDefinition();
-                pathPred.setName(Constants.PATH);
-                pathPred.getArgs().put(Constants.KEY_0, "/v3/api-docs/" + group.getGroup() + "/**");
+                pathPred.setName(RegistryCommonConstants.PATH);
+                pathPred.getArgs().put(RegistryCommonConstants.KEY_0, "/v3/api-docs/" + group.getGroup() + "/**");
                 route.getPredicates().add(pathPred);
                 // set Filters
                 final LinkedList<FilterDefinition> filters = new LinkedList<>();
                 if (this.contextPath != null && !this.contextPath.isBlank()) {
                     // Set Rewrite Filter to append context-path at the beginning
                     FilterDefinition filter = new FilterDefinition();
-                    filter.setName(Constants.REWRITE_PATH_FILTER);
-                    filter.getArgs().put(Constants.REGEX, Constants.REGEX_SEGMENT);
-                    filter.getArgs().put(Constants.REPLACEMENT, this.contextPath + Constants.REPLACEMENT_REGEX);
+                    filter.setName(RegistryCommonConstants.REWRITE_PATH_FILTER);
+                    filter.getArgs().put(RegistryCommonConstants.REGEX, RegistryCommonConstants.REGEX_SEGMENT);
+                    filter.getArgs().put(RegistryCommonConstants.REPLACEMENT,
+                            this.contextPath + RegistryCommonConstants.REPLACEMENT_REGEX);
                     filters.add(filter);
                 }
                 if (!filters.isEmpty()) {
@@ -561,6 +572,38 @@ public class ApiRoutesLoader extends OpenApiResource {
                         header.getRequired() != null && header.getRequired()));
             }
             route.getMetadata().put("headers", ObjectMapperUtil.getObjectMapper().writeValueAsString(headerList));
+        }
+    }
+
+    private void setRequestFilters(Operation operation, RouteDefinition route) {
+        Map<String, Object> extensions = operation.getExtensions();
+        if (extensions != null && !extensions.isEmpty()) {
+            List<FilterDefinition> filters = new ArrayList<>();
+            extensions.forEach((key, value) -> {
+                LOGGER.debug("searching for request filter: {}", key);
+                if (key.startsWith(CustomGatewayFilterCustomizer.FILTERS_EXTENSION)) {
+                    FilterDefinition filter = new FilterDefinition();
+                    filter.setName(key.substring(
+                            CustomGatewayFilterCustomizer.FILTERS_EXTENSION.length() + 1)
+                    ); // Remove "x-filter-" prefix
+                    if (value instanceof Map<?, ?> map) {
+                        Map<String, String> stringMap = new HashMap<>();
+                        for (Map.Entry<?, ?> entry : map.entrySet()) {
+                            if (entry.getValue() instanceof String val) {
+                                stringMap.put((String) entry.getKey(), val);
+                            }
+                        }
+                        filter.setArgs(stringMap);
+                    }
+                    LOGGER.debug("Adding filter: {} with args: {}", filter.getName(), filter.getArgs());
+                    filters.add(filter);
+                }
+            });
+
+            if (!filters.isEmpty()) {
+                LOGGER.debug("Adding filters {} to route: {}", filters, route.getId());
+                route.getFilters().addAll(filters);
+            }
         }
     }
 }

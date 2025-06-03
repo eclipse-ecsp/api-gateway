@@ -22,6 +22,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
+import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
 import org.eclipse.ecsp.security.CachingTagger;
 import org.eclipse.ecsp.security.ScopeTagger;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -122,10 +123,14 @@ public class ApiConfig {
      *
      * @param scopeTagger   used to match the scope
      * @param cachingTagger caching tagger
+     * @param customGatewayFilterCustomizer add custom gateway filter
+     *
      * @return GroupedOpenApi object
      */
     @Bean
-    public GroupedOpenApi groupedOpenApi(final ScopeTagger scopeTagger, final CachingTagger cachingTagger) {
+    public GroupedOpenApi groupedOpenApi(final ScopeTagger scopeTagger,
+                                         final CachingTagger cachingTagger,
+                                         final CustomGatewayFilterCustomizer customGatewayFilterCustomizer) {
         LOGGER.info("Calling GroupedOpenApi of " + applicationName() + " \nEndpoints Included "
                 + Arrays.toString(this.pathsInclude()) + " \nEndpoints Excluded "
                 + Arrays.toString(this.pathsExclude()));
@@ -135,6 +140,7 @@ public class ApiConfig {
                 .pathsToExclude(pathsExclude())
                 .addOperationCustomizer(scopeTagger)
                 .addOperationCustomizer(cachingTagger)
+                .addOperationCustomizer(customGatewayFilterCustomizer)
                 .build();
     }
 }

@@ -20,7 +20,9 @@ package org.eclipse.ecsp.restclient;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
  * Configuration class for RestTemplate.
  */
 @Configuration
+@ImportAutoConfiguration(RestTemplateAutoConfiguration.class)
 public class RestTemplateConfig {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateConfig.class);
 

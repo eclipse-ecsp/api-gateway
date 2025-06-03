@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.config;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -43,8 +44,8 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.Http2SslContextSpec;
 import reactor.netty.http.client.HttpClient;
+import javax.net.ssl.SSLException;
 import java.time.Duration;
 
 /**
@@ -107,11 +108,15 @@ public class GatewayConfig {
                 if (serverProperties.getHttp2().isEnabled()) {
                     HttpClientProperties.Ssl ssl = httpClientProperties.getSsl();
                     return client.secure(sslContextSpec -> {
-                        Http2SslContextSpec clientSslCtxt = Http2SslContextSpec.forClient().configure(builder -> builder
-                                .trustManager(InsecureTrustManagerFactory.INSTANCE));
-                        sslContextSpec.sslContext(clientSslCtxt).handshakeTimeout(ssl.getHandshakeTimeout())
-                                .closeNotifyFlushTimeout(ssl.getCloseNotifyFlushTimeout())
-                                .closeNotifyReadTimeout(ssl.getCloseNotifyReadTimeout());
+                        try {
+                            SslContextBuilder clientSslCtxt = SslContextBuilder.forClient()
+                                    .trustManager(InsecureTrustManagerFactory.INSTANCE);
+                            sslContextSpec.sslContext(clientSslCtxt.build()).handshakeTimeout(ssl.getHandshakeTimeout())
+                                    .closeNotifyFlushTimeout(ssl.getCloseNotifyFlushTimeout())
+                                    .closeNotifyReadTimeout(ssl.getCloseNotifyReadTimeout());
+                        } catch (SSLException e) {
+                            throw new IllegalStateException(e);
+                        }
                     });
                 }
                 return super.configureSsl(client);

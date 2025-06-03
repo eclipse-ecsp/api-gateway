@@ -195,7 +195,7 @@ public class IgniteRouteLocator implements RouteLocator {
      */
     private Buildable<Route> setPredicateSpec(IgniteRouteDefinition apiRoute,
                                               PredicateSpec predicateSpec) {
-        LOGGER.info("set predicate spec {} ", predicateSpec);
+        LOGGER.debug("set predicate spec {} ", predicateSpec);
         LOGGER.debug("ApiRoute -> {} ,{}", apiRoute.getId(), apiRoute.getPredicates());
         //set api doc route
         setApiDocRoute(apiRoute);
@@ -205,18 +205,18 @@ public class IgniteRouteLocator implements RouteLocator {
 
         BooleanSpec booleanSpec = predicateSpec.path(RouteUtils.getRoutePath(apiRoute.getPredicates()));
         String method = RouteUtils.getRouteMethod(apiRoute.getPredicates());
-        LOGGER.info("method ---{}", method);
+        LOGGER.debug("method ---{}", method);
         if (StringUtils.hasLength(method)) {
             booleanSpec.and().method(method);
         }
-        LOGGER.info("method name after booleanspec---{}", booleanSpec.toString());
+        LOGGER.debug("method name after booleanspec---{}", booleanSpec.toString());
         List<GatewayFilter> filters = new ArrayList<>();
         if (!this.gatewayProperties.getDefaultFilters().isEmpty()) {
             filters.addAll(
                     loadGatewayFilters(apiRoute.getId(), new ArrayList<>(this.gatewayProperties.getDefaultFilters())));
         }
         Buildable<Route> route = booleanSpec.uri(apiRoute.getUri());
-        LOGGER.info("route---{}", route);
+        LOGGER.debug("route---{}", route);
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
             setCacheFilter(apiRoute);
 
@@ -242,22 +242,22 @@ public class IgniteRouteLocator implements RouteLocator {
             // set the metadata if configured
             ((AbstractBuilder) route).metadata(apiRoute.getMetadata());
         }
-        LOGGER.info("route in setPredicates {} ", route);
+        LOGGER.debug("route in setPredicates {} ", route);
         return route;
     }
 
     private void setCacheFilter(IgniteRouteDefinition apiRoute) {
         FilterDefinition fd = new FilterDefinition();
-        LOGGER.info("Enabled Cache Type {}", cacheType);
-        LOGGER.info("local cache enabled {}", cacheType.equalsIgnoreCase(LOCAL_CACHE));
+        LOGGER.debug("Enabled Cache Type {}", cacheType);
+        LOGGER.debug("local cache enabled {}", cacheType.equalsIgnoreCase(LOCAL_CACHE));
         if (apiRoute.getCacheKey() != null && (redisCachingEnabled || localCachingEnabled)) {
             if (cacheType.equalsIgnoreCase(REDIS_CACHE)) {
-                LOGGER.info("cache Key---- {}", apiRoute.getCacheKey());
+                LOGGER.debug("cache Key---- {}", apiRoute.getCacheKey());
                 fd.setName(CACHE_FILTER);
                 String cacheKey = apiRoute.getCacheKey();
                 fd.addArg("cacheKey", cacheKey);
             } else if (cacheType.equalsIgnoreCase(LOCAL_CACHE)) {
-                LOGGER.info("cache filter---- {}", LOCAL_RESPONSE_FILTER);
+                LOGGER.debug("cache filter---- {}", LOCAL_RESPONSE_FILTER);
                 fd.setName(LOCAL_RESPONSE_FILTER);
                 fd.addArg(CACHE_SIZE, apiRoute.getCacheSize());
                 fd.addArg(TIME_TO_LIVE, apiRoute.getCacheTtl());
@@ -286,7 +286,7 @@ public class IgniteRouteLocator implements RouteLocator {
      */
     private List<GatewayFilter> getFilters(RouteDefinition apiRoute) {
         final String Override_Filter_Name_Key = "filterName";
-        LOGGER.info("Fetching gateway filters");
+        LOGGER.debug("Fetching gateway filters");
         List<GatewayFilter> filters = new ArrayList<>();
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
             List<FilterDefinition> filterDefinitions = new ArrayList<>();
@@ -327,7 +327,7 @@ public class IgniteRouteLocator implements RouteLocator {
      * @return List of GatewayFilter
      */
     private List<GatewayFilter> loadGatewayFilters(String id, List<FilterDefinition> filterDefinitions) {
-        LOGGER.info("Loading Gateway filters");
+        LOGGER.debug("Loading Gateway filters");
         ArrayList<GatewayFilter> ordered = new ArrayList<>(filterDefinitions.size());
         for (int i = 0; i < filterDefinitions.size(); i++) {
             FilterDefinition definition = filterDefinitions.get(i);

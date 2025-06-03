@@ -108,6 +108,10 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
             errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
             errorPropertiesMap.put(MESSAGE, "Request not found");
             httpStatus = HttpStatus.NOT_FOUND;
+        } else if (throwable instanceof ResponseStatusException responseStatusException) {
+            errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
+            errorPropertiesMap.put(MESSAGE, determineMessage(responseStatusException, request.path()));
+            httpStatus = responseStatusException.getStatusCode();
         } else {
             errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
             errorPropertiesMap.put(MESSAGE, determineMessage(throwable, request.path()));
@@ -126,7 +130,8 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
      */
     private String determineMessage(Throwable throwable, String uri) {
         if (throwable instanceof ResponseStatusException responseStatusException) {
-            LOGGER.error("Error during request processing: {}, sen", responseStatusException.getReason());
+            LOGGER.error("ResponseStatusException during request processing: {}",
+                    responseStatusException.getReason(), responseStatusException);
             return responseStatusException.getReason();
         }
 

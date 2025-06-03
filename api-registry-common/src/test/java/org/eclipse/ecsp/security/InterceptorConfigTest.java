@@ -18,6 +18,8 @@
 
 package org.eclipse.ecsp.security;
 
+import org.eclipse.ecsp.config.InterceptorConfig;
+import org.eclipse.ecsp.interceptors.HeaderInterceptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -18,7 +18,7 @@
 
 package org.eclipse.ecsp.register.model;
 
-import org.eclipse.ecsp.utils.Constants;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +44,7 @@ public final class NameUtils {
      * @return generated name
      */
     public static String generateName(int i) {
-        return Constants.GENERATED_NAME_PREFIX + i;
+        return RegistryCommonConstants.GENERATED_NAME_PREFIX + i;
     }
 
     /**

@@ -9,7 +9,7 @@
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.ApiGatewayApplication"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.registry.utils.RegistryUtils"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.registry.utils.RegistryConstants"/>
-    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.utils.Constants"/>
+    <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.utils.RegistryCommonConstants"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.JarUtils"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.utils.GatewayUtils"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.security.Security"/>

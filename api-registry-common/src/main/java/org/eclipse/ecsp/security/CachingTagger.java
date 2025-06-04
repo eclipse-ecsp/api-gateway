@@ -34,6 +34,10 @@ import java.util.Map;
 @Component
 public class CachingTagger implements OperationCustomizer {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CachingTagger.class);
+    /**
+     * The extension key used to store caching metadata in the OpenAPI operation.
+     */
+    public static final String CACHE_EXTENSION = "x-cache-filter";
 
     /**
      * Customizes the given OpenAPI operation by adding caching metadata.
@@ -49,18 +53,16 @@ public class CachingTagger implements OperationCustomizer {
         // Retrieve the CacheData annotation from the handler method
         CacheData data = handlerMethod.getMethodAnnotation(CacheData.class);
 
-        // Create a map to hold caching metadata
-        Map<String, Object> cacheMap = new HashMap<>();
-
         // If the CacheData annotation is present, add its values to the cacheMap
         if (data != null) {
+            // Create a map to hold caching metadata
+            Map<String, Object> cacheMap = new HashMap<>();
             cacheMap.put("cacheKey", data.key());
             cacheMap.put("cacheTll", data.ttl());
             cacheMap.put("cacheSize", data.size());
+            // Set the caching metadata as extensions on the operation
+            operation.addExtension(CACHE_EXTENSION, cacheMap);
         }
-
-        // Set the caching metadata as extensions on the operation
-        operation.setExtensions(cacheMap);
         return operation;
     }
 }

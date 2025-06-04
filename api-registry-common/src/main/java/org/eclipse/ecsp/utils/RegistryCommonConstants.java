@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
  * Constant Class to define the constants used in API registry common.
  */
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
-public class Constants {
+public class RegistryCommonConstants {
     /**
      * Endpoint for POST requests.
      */

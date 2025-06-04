@@ -16,11 +16,12 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.security;
+package org.eclipse.ecsp.interceptors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.eclipse.ecsp.utils.Constants;
+import org.eclipse.ecsp.security.HeaderContext;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.jetbrains.annotations.NotNull;
@@ -40,10 +41,10 @@ public class HeaderInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(@NotNull HttpServletRequest request,
                              @NotNull HttpServletResponse response, @NotNull Object handler) {
-        if (!Constants.HEALTH_URL.equals(request.getContextPath())
-                && !request.getContextPath().startsWith(Constants.OPEN_API_URL)) {
-            String scope = request.getHeader(Constants.SCOPE);
-            String overrideScope = request.getHeader(Constants.OVERRIDE_SCOPE);
+        if (!RegistryCommonConstants.HEALTH_URL.equals(request.getContextPath())
+                && !request.getContextPath().startsWith(RegistryCommonConstants.OPEN_API_URL)) {
+            String scope = request.getHeader(RegistryCommonConstants.SCOPE);
+            String overrideScope = request.getHeader(RegistryCommonConstants.OVERRIDE_SCOPE);
             LOGGER.debug("Override scope-config received from request: {}", overrideScope);
             Set<String> userScopes = new HashSet<>();
             Set<String> overrideScopes = new HashSet<>();
@@ -54,7 +55,7 @@ public class HeaderInterceptor implements HandlerInterceptor {
             if (scope != null) {
                 userScopes.addAll(Arrays.asList(scope.split(",")));
             }
-            String userId = request.getHeader(Constants.USER_ID);
+            String userId = request.getHeader(RegistryCommonConstants.USER_ID);
             HeaderContext.setUser(userId, userScopes, overrideScopes);
             LOGGER.debug("Request from user: {} ", HeaderContext.getUserDetails());
         }

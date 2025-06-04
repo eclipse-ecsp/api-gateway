@@ -49,11 +49,11 @@ public class RouteUtils {
     public static String getRoutePath(List<PredicateDefinition> predicates) {
         String routePath = null;
         for (PredicateDefinition predicate : predicates) {
-            LOGGER.info("predicate name {}", predicate.getName());
+            LOGGER.debug("predicate name {}", predicate.getName());
             if (GatewayConstants.PATH.equalsIgnoreCase(predicate.getName())) {
-                LOGGER.info("predicates info {}", predicate.getArgs().toString());
+                LOGGER.debug("predicates info {}", predicate.getArgs().toString());
                 for (Entry<String, String> entry : predicate.getArgs().entrySet()) {
-                    LOGGER.info("Route: " + entry.getValue());
+                    LOGGER.debug("Route: " + entry.getValue());
                     routePath =  entry.getValue();
                 }
             }
@@ -72,7 +72,7 @@ public class RouteUtils {
         for (PredicateDefinition predicate : predicates) {
             if (GatewayConstants.METHOD.equalsIgnoreCase(predicate.getName())) {
                 for (Entry<String, String> entry : predicate.getArgs().entrySet()) {
-                    LOGGER.info("Route: " + entry.getValue());
+                    LOGGER.debug("Route: " + entry.getValue());
                     routeMethod =  entry.getValue();
                 }
             }

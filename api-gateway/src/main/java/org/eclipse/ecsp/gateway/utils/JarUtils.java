@@ -62,11 +62,11 @@ public class JarUtils {
                 try {
                     URLClassLoader urlClassLoader = new URLClassLoader("urlClassLoader",
                             urls.toArray(new URL[urls.size()]), parentClassLoader);
-                    Class<?> clazz = urlClassLoader.loadClass(clazzName);
+                    Class<?> clazz = urlClassLoader.loadClass(clazzName.trim());
                     LOGGER.info("Successfully loaded class: {}", clazz);
                     return clazz;
                 } catch (Exception e) {
-                    LOGGER.error("Error occurred while loading class: {}", clazzName);
+                    LOGGER.error("Error occurred while loading class: " + clazzName, e);
                 }
             }
         } else {

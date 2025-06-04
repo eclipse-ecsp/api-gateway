@@ -95,4 +95,7 @@
     <logger name="org.apache.kafka" level="${KAFKA_LOG_LEVEL}" additivity="false">
         <appender-ref ref="${LOG_APPENDER}"/>
     </logger>
+    <logger name="${CUSTOM_PLUGINS_PACKAGE:-org.eclipse.ecsp.gateway.plugins}" level="${API_GATEWAY_LOG_LEVEL}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER}" />
+    </logger>
 </configuration>

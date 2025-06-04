@@ -22,8 +22,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.Scopes;
-import org.eclipse.ecsp.utils.Constants;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -91,10 +91,13 @@ public class ApiRouteRegistrationService {
             LOGGER.info("Registering route: {}", route);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set(Constants.USER_ID, "1");
-            headers.set(Constants.SCOPE, Scopes.Fields.SYSTEM_MANAGE);
+            headers.set(RegistryCommonConstants.USER_ID, "1");
+            headers.set(RegistryCommonConstants.SCOPE, Scopes.Fields.SYSTEM_MANAGE);
             HttpEntity<RouteDefinition> entity = new HttpEntity<>(route, headers);
-            String apiRegistryUrl = registryServiceName + Constants.COLON + Constants.PORT + Constants.POST_ENDPOINT;
+            String apiRegistryUrl = registryServiceName
+                    + RegistryCommonConstants.COLON
+                    + RegistryCommonConstants.PORT
+                    + RegistryCommonConstants.POST_ENDPOINT;
             LOGGER.info("Registry POST-API: {}", apiRegistryUrl);
             ResponseEntity<String> response = restTemplate.postForEntity(apiRegistryUrl, entity, String.class);
             if (response == null || !response.getStatusCode().is2xxSuccessful()) {

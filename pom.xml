@@ -67,7 +67,7 @@
         <spring-cloud.version>2024.0.1</spring-cloud.version>
         <spring-cloud-resilience4j.version>3.2.1</spring-cloud-resilience4j.version>
         <spring-cloud-starter-gateway.version>4.2.2</spring-cloud-starter-gateway.version>
-        <springdoc.version>2.8.5</springdoc.version>
+        <springdoc.version>2.8.8</springdoc.version>
         <!-- maven-plugin dependant versions ordered by artifactId -->
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <maven-clean-plugin.version>3.4.1</maven-clean-plugin.version>

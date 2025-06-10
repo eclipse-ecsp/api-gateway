@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.register.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import dev.morphia.annotations.Entity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -92,6 +93,7 @@ public class RouteDefinition {
         this.cacheSize = cacheSize;
     }
 
+    @JsonAlias({"cacheTtl", "cacheTTl"})
     private String cacheTtl;
 
     /**

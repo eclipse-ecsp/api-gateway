@@ -97,46 +97,54 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
         ErrorAttributeOptions options = ErrorAttributeOptions.of(ErrorAttributeOptions.Include.MESSAGE);
         Map<String, Object> errorPropertiesMap = getErrorAttributes(request, options);
         Throwable throwable = getError(request);
-        HttpStatusCode httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         errorPropertiesMap.clear();
-        // prepare the response based on the ApiGatewayException
-        if (throwable instanceof ApiGatewayException apiGatewayException) {
-            errorPropertiesMap.put(CODE, apiGatewayException.getErrorCode());
-            errorPropertiesMap.put(MESSAGE, apiGatewayException.getMessage());
-            httpStatus = apiGatewayException.getStatusCode();
-        } else if (throwable instanceof NoResourceFoundException) {
-            errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
-            errorPropertiesMap.put(MESSAGE, "Request not found");
-            httpStatus = HttpStatus.NOT_FOUND;
-        } else if (throwable instanceof ResponseStatusException responseStatusException) {
-            errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
-            errorPropertiesMap.put(MESSAGE, determineMessage(responseStatusException, request.path()));
-            httpStatus = responseStatusException.getStatusCode();
-        } else {
-            errorPropertiesMap.put(CODE, API_GATEWAY_ERROR);
-            errorPropertiesMap.put(MESSAGE, determineMessage(throwable, request.path()));
-        }
+        errorPropertiesMap.putAll(prepareResponse(throwable));
+        HttpStatusCode httpStatus = determineHttpStatus(throwable);
+
         return ServerResponse.status(httpStatus)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(errorPropertiesMap);
     }
 
     /**
-     * Determines the error message based on the provided Throwable and URI.
+     * Prepares the error response map based on the provided Throwable.
      *
      * @param throwable The Throwable that caused the error.
-     * @param uri       The URI of the request that caused the error.
-     * @return A String containing the error message.
+     * @return A Map containing the error message and code.
      */
-    private String determineMessage(Throwable throwable, String uri) {
-        if (throwable instanceof ResponseStatusException responseStatusException) {
-            LOGGER.error("ResponseStatusException during request processing: {}",
-                    responseStatusException.getReason(), responseStatusException);
-            return responseStatusException.getReason();
-        }
+    public static Map<String, String> prepareResponse(Throwable throwable) {
+        String responseMessage = "Internal Server Error";
+        String errorResponseCode = API_GATEWAY_ERROR;
+        if (throwable instanceof NoResourceFoundException) {
+            responseMessage = "Request not found";
+        } else if (throwable instanceof ApiGatewayException apiGatewayException) {
+            responseMessage = apiGatewayException.getMessage();
+            errorResponseCode = apiGatewayException.getErrorCode();
+        } else if (throwable instanceof ResponseStatusException responseStatusException
+                && responseStatusException.getReason() != null) {
+            responseMessage = responseStatusException.getReason();
 
-        LOGGER.error("Unexpected error occurred : {} , sending Internal Server Error response to api: {}",
-                throwable, uri);
-        return "Internal Server Error";
+        }
+        return Map.of(MESSAGE, responseMessage, CODE, errorResponseCode);
     }
+
+    /**
+     * Determines the HTTP status code based on the provided Throwable.
+     *
+     * @param throwable The Throwable that caused the error.
+     * @return The HttpStatusCode corresponding to the error.
+     */
+    public static HttpStatusCode determineHttpStatus(Throwable throwable) {
+        if (throwable instanceof NoResourceFoundException) {
+            return HttpStatus.NOT_FOUND;
+        }
+        if (throwable instanceof ResponseStatusException responseStatusException) {
+            return responseStatusException.getStatusCode();
+        }
+        if (throwable instanceof ApiGatewayException apiGatewayException) {
+            return apiGatewayException.getStatusCode();
+        }
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
 }

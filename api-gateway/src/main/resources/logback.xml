@@ -63,6 +63,9 @@
     <logger name="org.eclipse.ecsp" level="${IGNITE_LOG_LEVEL}" additivity="false">
         <appender-ref ref="${LOG_APPENDER}"/>
     </logger>
+    <logger name="org.eclipse.ecsp.gateway.plugins.AccessLog" level="${ACCESS_LOG_LEVEL:INFO}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER}"/>
+    </logger>
     <logger name="org.eclipse.ecsp.nosqldao" level="${STORAGE_LOG_LEVEL}"
             additivity="false">
         <appender-ref ref="${LOG_APPENDER}"/>

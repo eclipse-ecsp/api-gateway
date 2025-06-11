@@ -188,4 +188,29 @@ public class GatewayConstants {
      * constant value is prometheus.
      */
     public static final String PROMETHEUS = "prometheus";
+
+    /**
+     * Key for message field in responses or error objects.
+     */
+    public static final String MESSAGE = "message";
+
+    /**
+     * Key for code field in responses or error objects.
+     */
+    public static final String CODE = "code";
+
+    /**
+     * Key for API Gateway error attribute.
+     */
+    public static final String API_GATEWAY_ERROR = "api.gateway.error";
+
+    /**
+     * Message for request not found errors.
+     */
+    public static final String REQUEST_NOT_FOUND = "Request not found";
+
+    /**
+     * Message for internal server errors.
+     */
+    public static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
 }

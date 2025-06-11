@@ -18,8 +18,8 @@
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 <configuration scan="true" scanPeriod="60 seconds">
     <appender name="GELF" class="de.siegmar.logbackgelf.GelfTcpAppender">
-        <graylogHost>${GRAYLOG_HOST}</graylogHost>
-        <graylogPort>${GRAYLOG_PORT}</graylogPort>
+        <graylogHost>${GRAYLOG_HOST:-localhost}</graylogHost>
+        <graylogPort>${GRAYLOG_PORT:-12201}</graylogPort>
         <connectTimeout>15000</connectTimeout>
         <reconnectInterval>300</reconnectInterval>
         <maxRetries>10</maxRetries>
@@ -61,6 +61,9 @@
         <appender-ref ref="${LOG_APPENDER}"/>
     </root>
     <logger name="org.eclipse.ecsp" level="${IGNITE_LOG_LEVEL}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER}"/>
+    </logger>
+    <logger name="org.eclipse.ecsp.gateway.plugins.AccessLog" level="${ACCESS_LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="${LOG_APPENDER}"/>
     </logger>
     <logger name="org.eclipse.ecsp.nosqldao" level="${STORAGE_LOG_LEVEL}"

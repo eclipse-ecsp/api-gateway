@@ -40,6 +40,11 @@ import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import java.util.Map;
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.API_GATEWAY_ERROR;
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.CODE;
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.INTERNAL_SERVER_ERROR;
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.MESSAGE;
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.REQUEST_NOT_FOUND;
 
 /**
  * Global exception handler for the Ignite API Gateway.
@@ -54,9 +59,6 @@ import java.util.Map;
 public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IgniteGlobalExceptionHandler.class);
-    private static final String MESSAGE = "message";
-    private static final String CODE = "code";
-    private static final String API_GATEWAY_ERROR = "api.gateway.error";
 
     /**
      * Constructs an IgniteGlobalExceptionHandler with the specified parameters.
@@ -113,10 +115,10 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
      * @return A Map containing the error message and code.
      */
     public static Map<String, String> prepareResponse(Throwable throwable) {
-        String responseMessage = "Internal Server Error";
+        String responseMessage = INTERNAL_SERVER_ERROR;
         String errorResponseCode = API_GATEWAY_ERROR;
         if (throwable instanceof NoResourceFoundException) {
-            responseMessage = "Request not found";
+            responseMessage = REQUEST_NOT_FOUND;
         } else if (throwable instanceof ApiGatewayException apiGatewayException) {
             responseMessage = apiGatewayException.getMessage();
             errorResponseCode = apiGatewayException.getErrorCode();

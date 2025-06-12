@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 
 /**
  * ObjectMapperUtil.
@@ -32,7 +34,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 
 @SuppressWarnings({"checkstyle:hideutilityclassconstructor"})
 public class ObjectMapperUtil {
-
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ObjectMapperUtil.class);
     private static final ObjectMapper INSTANCE;
 
     static {
@@ -58,6 +60,21 @@ public class ObjectMapperUtil {
      */
     public static ObjectMapper getObjectMapper() {
         return INSTANCE;
+    }
+
+    /**
+     * Converts an object to its JSON string representation.
+     *
+     * @param object the object to convert
+     * @return the JSON string representation of the object, or an empty string if conversion fails
+     */
+    public static String toJson(Object object) {
+        try {
+            return INSTANCE.writeValueAsString(object);
+        } catch (Exception e) {
+            LOGGER.error("Error converting object to JSON: {}", e.getMessage(), e);
+        }
+        return "";
     }
 
 }

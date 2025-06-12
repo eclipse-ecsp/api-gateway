@@ -85,7 +85,7 @@ public class CustomGatewayFilterCustomizer implements OperationCustomizer {
         for (CustomGatewayFilter filter : requestFilterList) {
             processFilterAnnotation(operation, filter, filters);
         }
-        String descriptionBuilder = operation.getDescription() + "<br><b>Custom Gateway Filters:</b>"
+        String descriptionBuilder = operation.getDescription() + "<br><b>Custom Gateway Filters:</b> "
                 + filters.stream()
                 .map(filter -> "<span style='color:blue;'>" + filter + "</span>")
                 .collect(Collectors.joining(", "));

@@ -18,8 +18,8 @@
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 <configuration scan="true" scanPeriod="60 seconds">
     <appender name="GELF" class="de.siegmar.logbackgelf.GelfTcpAppender">
-        <graylogHost>${GRAYLOG_HOST}</graylogHost>
-        <graylogPort>${GRAYLOG_PORT}</graylogPort>
+        <graylogHost>${GRAYLOG_HOST:-localhost}</graylogHost>
+        <graylogPort>${GRAYLOG_PORT:12201}</graylogPort>
         <connectTimeout>15000</connectTimeout>
         <reconnectInterval>300</reconnectInterval>
         <maxRetries>10</maxRetries>

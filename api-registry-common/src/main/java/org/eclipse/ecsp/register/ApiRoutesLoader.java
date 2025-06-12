@@ -284,7 +284,7 @@ public class ApiRoutesLoader extends OpenApiResource {
             setSecurityFilters(operation, route);
             setHeaderMetadata(operation, route);
             setRewritePathFilter(route);
-            setRequestFilters(operation, route);
+            setCustomGatewayFilters(operation, route);
             if (!route.getFilters().isEmpty()) {
                 apiRoutes.add(route);
             }
@@ -575,28 +575,14 @@ public class ApiRoutesLoader extends OpenApiResource {
         }
     }
 
-    private void setRequestFilters(Operation operation, RouteDefinition route) {
+    private void setCustomGatewayFilters(Operation operation, RouteDefinition route) {
         Map<String, Object> extensions = operation.getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
             List<FilterDefinition> filters = new ArrayList<>();
             extensions.forEach((key, value) -> {
                 LOGGER.debug("searching for request filter: {}", key);
                 if (key.startsWith(CustomGatewayFilterCustomizer.FILTERS_EXTENSION)) {
-                    FilterDefinition filter = new FilterDefinition();
-                    filter.setName(key.substring(
-                            CustomGatewayFilterCustomizer.FILTERS_EXTENSION.length() + 1)
-                    ); // Remove "x-filter-" prefix
-                    if (value instanceof Map<?, ?> map) {
-                        Map<String, String> stringMap = new HashMap<>();
-                        for (Map.Entry<?, ?> entry : map.entrySet()) {
-                            if (entry.getValue() instanceof String val) {
-                                stringMap.put((String) entry.getKey(), val);
-                            }
-                        }
-                        filter.setArgs(stringMap);
-                    }
-                    LOGGER.debug("Adding filter: {} with args: {}", filter.getName(), filter.getArgs());
-                    filters.add(filter);
+                    processCustomGatewayFilters(key, value, filters);
                 }
             });
 
@@ -605,5 +591,23 @@ public class ApiRoutesLoader extends OpenApiResource {
                 route.getFilters().addAll(filters);
             }
         }
+    }
+
+    private static void processCustomGatewayFilters(String key, Object value, List<FilterDefinition> filters) {
+        FilterDefinition filter = new FilterDefinition();
+        filter.setName(key.substring(
+                CustomGatewayFilterCustomizer.FILTERS_EXTENSION.length() + 1)
+        ); // Remove "x-filter-" prefix
+        if (value instanceof Map<?, ?> map) {
+            Map<String, String> stringMap = new HashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getValue() instanceof String val) {
+                    stringMap.put((String) entry.getKey(), val);
+                }
+            }
+            filter.setArgs(stringMap);
+        }
+        LOGGER.debug("Adding filter: {} with args: {}", filter.getName(), filter.getArgs());
+        filters.add(filter);
     }
 }

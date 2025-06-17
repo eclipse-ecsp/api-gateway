@@ -150,7 +150,6 @@ public class IgniteRouteLocator implements RouteLocator {
         this.gatewayFilterFactories.keySet().forEach(factory ->
             LOGGER.info("Registered filter name : {}", factory)
         );
-        // check if filter override is enabled and throw if invalid filter configuration
         this.gatewayProperties = gatewayProperties;
     }
 

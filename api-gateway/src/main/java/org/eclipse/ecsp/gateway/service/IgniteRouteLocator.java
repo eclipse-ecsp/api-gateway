@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
@@ -30,7 +31,6 @@ import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -79,6 +80,7 @@ public class IgniteRouteLocator implements RouteLocator {
     private static final String CACHE_SIZE = "size";
     private static final String REDIS_CACHE = "redis";
     private static final String LOCAL_CACHE = "local";
+    private static final String OVERRIDE_FILTER_NAME_KEY = "filterName";
     @Getter
     private final Set<ApiService> apiDocRoutes = new TreeSet<>();
     private final ConfigurationService configurationService;
@@ -104,6 +106,8 @@ public class IgniteRouteLocator implements RouteLocator {
 
     @Value("${api.isFilterOverrideEnabled}")
     private boolean isFilterOverrideEnabled;
+
+    private boolean isCustomPluginsEnabled = false;
 
     /**
      * Constructor to initialize the IgniteRouteLocator with required dependencies.
@@ -134,6 +138,7 @@ public class IgniteRouteLocator implements RouteLocator {
         this.springCloudGatewayConfig = springCloudGatewayConfig;
         gatewayFilterFactories.forEach(factory -> this.gatewayFilterFactories.put(factory.name(), factory));
         if (pluginEnabled) {
+            isCustomPluginsEnabled = true;
             LOGGER.debug("Loading custom plugins...");
             List<Object> plugins = pluginLoader.loadPlugins();
             plugins.forEach(p -> {
@@ -146,7 +151,38 @@ public class IgniteRouteLocator implements RouteLocator {
         this.gatewayFilterFactories.keySet().forEach(factory ->
             LOGGER.info("Registered filter name : {}", factory)
         );
+        // check if filter override is enabled and throw if invalid filter configuration
         this.gatewayProperties = gatewayProperties;
+    }
+
+    /**
+     * validate the filter override configuration and log the details.
+     */
+    @PostConstruct
+    public void init() {
+        if (isCustomPluginsEnabled) {
+            LOGGER.info("Custom plugins are enabled...");
+            if (isFilterOverrideEnabled && overrideFilterConfig != null && !overrideFilterConfig.isEmpty()) {
+                LOGGER.info("Filter override configuration is enabled, validating filter overrides configuration...");
+                overrideFilterConfig.forEach((filterName, filterConfig) -> {
+                    LOGGER.debug("validating filter override for: {}, filter config: {}", filterName, filterConfig);
+                    Map<String, String> overrideFilterMap = overrideFilterConfig.get(filterName);
+                    String customFilterName = overrideFilterMap.get(OVERRIDE_FILTER_NAME_KEY);
+                    if (gatewayFilterFactories.containsKey(customFilterName)) {
+                        LOGGER.info("Overriding filter: {} with configuration: {} is validated",
+                                filterName, filterConfig);
+                    } else {
+                        LOGGER.error("Overriding filter {} not found in registered filters.",
+                                customFilterName);
+                        throw new IllegalArgumentException("Overriding filter "
+                                + customFilterName + " not found in registered filters"
+                                + ", please check the filter override configuration.");
+                    }
+                });
+            }
+        } else {
+            LOGGER.info("Custom plugins are not enabled, using default filters.");
+        }
     }
 
     /**
@@ -179,11 +215,25 @@ public class IgniteRouteLocator implements RouteLocator {
         Flux<IgniteRouteDefinition> apiRoutes = registryRouteLoader.getRoutes();
         // Build api-gateway routes on the ApiRoutes received from api-registry
         Flux<Route> routes = apiRoutes
+                .filter(r -> validateRouteFilters(r, r.getFilters()))
                 .map(apiRoute -> routesBuilder.route(apiRoute.getId(),
                         predicateSpec -> setPredicateSpec(apiRoute, predicateSpec)))
                 .collectList().flatMapMany(builders -> routesBuilder.build().getRoutes());
         LOGGER.info("Loaded Routes...!");
         return routes;
+    }
+
+    private boolean validateRouteFilters(IgniteRouteDefinition route, List<FilterDefinition> filters) {
+        String filterName =  filters.stream().map(FilterDefinition::getName)
+                .filter(f -> !gatewayFilterFactories.containsKey(f))
+                .findFirst().orElse(null);
+
+        if (filterName != null) {
+            LOGGER.error("Route ID: {} has an invalid filter: {}, will not be exposed via api-gateway",
+                    route.getId(), filterName);
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -285,7 +335,6 @@ public class IgniteRouteLocator implements RouteLocator {
      * @return List of GatewayFilter
      */
     private List<GatewayFilter> getFilters(RouteDefinition apiRoute) {
-        final String Override_Filter_Name_Key = "filterName";
         LOGGER.debug("Fetching gateway filters");
         List<GatewayFilter> filters = new ArrayList<>();
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
@@ -294,13 +343,13 @@ public class IgniteRouteLocator implements RouteLocator {
                 FilterDefinition fd = new FilterDefinition();
                 if (isFilterOverrideEnabled && overrideFilterConfig.containsKey(filter.getName())) {
                     Map<String, String> overrideFilterMap = overrideFilterConfig.get(filter.getName());
-                    if (overrideFilterMap != null && overrideFilterMap.get(Override_Filter_Name_Key) != null) {
+                    if (overrideFilterMap != null && overrideFilterMap.get(OVERRIDE_FILTER_NAME_KEY) != null) {
                         LOGGER.info("{} filter overridden successfully with filter: {}", filter.getName(),
-                                overrideFilterMap.get(Override_Filter_Name_Key));
-                        fd.setName(overrideFilterMap.get(Override_Filter_Name_Key));
+                                overrideFilterMap.get(OVERRIDE_FILTER_NAME_KEY));
+                        fd.setName(overrideFilterMap.get(OVERRIDE_FILTER_NAME_KEY));
                         fd.setArgs(filter.getArgs());
                     } else {
-                        LOGGER.warn("Filter {} is not overridden, check override filter configuration",
+                        LOGGER.error("Filter {} is not overridden, check override filter configuration",
                                 filter.getName());
                         fd.setName(filter.getName());
                         fd.setArgs(filter.getArgs());

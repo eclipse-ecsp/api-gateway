@@ -68,7 +68,7 @@ public class GatewayMetricsConfig {
     public GatewayMetricsConfig(GatewayMetricsProperties gatewayMetricsProperties,
                                 ConfigurableEnvironment configurableEnvironment) {
         this.gatewayMetricsProperties = gatewayMetricsProperties;
-        configurableEnvironment.getSystemProperties().put("management.endpoints.enabled-by-default", "false");
+        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.include",
                 String.join(",", EXPOSE_ENDPOINTS));
         configurableEnvironment.getSystemProperties().put("management.endpoints.jmx.exposure.exclude", "*");

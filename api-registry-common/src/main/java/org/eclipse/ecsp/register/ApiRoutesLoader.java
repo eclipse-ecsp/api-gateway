@@ -187,7 +187,7 @@ public class ApiRoutesLoader extends OpenApiResource {
         LOGGER.info("Read API Routes from OpenApi (Swagger) Annotations...");
         this.serviceUrl = new URI("http://" + serviceName + ":" + port + RegistryCommonConstants.PATH_DELIMITER);
         LOGGER.info("OpenApi ---> ServiceUrl = {}", this.serviceUrl);
-        OpenAPI api = super.getOpenApi(Locale.getDefault());
+        OpenAPI api = super.getOpenApi(null, Locale.getDefault());
         if (api == null) {
             return;
         }

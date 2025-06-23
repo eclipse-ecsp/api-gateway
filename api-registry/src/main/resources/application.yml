@@ -144,12 +144,13 @@ management:
     port: ${api-registry.metrics.port}
   endpoint:
     prometheus:
-      enabled: ${api-registry.metrics.prometheus.enabled}
+      access: read-only
     health:
-      enabled: ${api-registry.metrics.health.enabled}
+      access: read-only
       show-components: ALWAYS
   endpoints:
-    enabled-by-default: false
+    access:
+      default: none
     web:
       exposure:
         include: health, prometheus

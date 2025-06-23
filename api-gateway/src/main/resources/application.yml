@@ -174,12 +174,13 @@ management:
     port: ${api.gateway.metrics.port}
   endpoint:
     prometheus:
-      enabled: ${api.gateway.metrics.prometheus.enabled}
+      access: read-only
     health:
-      enabled: ${api.gateway.metrics.health.enabled}
+      access: read-only
       show-components: ALWAYS
   endpoints:
-    enabled-by-default: false
+    access:
+      default: none
     web:
       exposure:
         include: health, prometheus

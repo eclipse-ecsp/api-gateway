@@ -45,7 +45,7 @@ public class RegistryMetricsConfig {
      */
     public RegistryMetricsConfig(ConfigurableEnvironment configurableEnvironment) {
         configurableEnvironment.getSystemProperties()
-                .put("management.endpoints.enabled-by-default", "false");
+                .put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties()
                 .put("management.endpoints.web.exposure.include", String.join(",", exposeEndpoints));
         configurableEnvironment.getSystemProperties()

@@ -1,0 +1,149 @@
+services:
+  dev_container:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: dev_container
+    command: sleep infinity
+    environment:
+      api.routes.refreshCronJob: "0 0/15 * * * *"
+      RATE_LIMIT_BURST_CAPACITY: 1000
+      RATE_LIMIT_REPLENISH_RATE: 1000
+      plugin_enabled: "false"
+      api_registry_enabled: true
+      api_dynamic_routes_enabled: "true"
+      spring.data.redis.host: redis
+      spring.data.redis.port: 6379
+      api_registry_database_type: sql
+      api_registry_database_provider: postgres
+      postgres_db_url: jdbc:postgresql://postgres_db:5432/ecsp
+      postgres_username: postgres
+      postgres_password: postgres
+    networks:
+      - backend
+    volumes:
+      - ..:/workspace:cached
+
+  postgres_db:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecsp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+  mongo_db:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: ecsp
+    networks:
+      - backend
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  uidam-user-management:
+    image: docker.io/eclipseecsp/uidam-user-management:1.1.0
+    container_name: uidam-user-management
+    ports:
+      - "8082:8082"
+    environment:
+      POSTGRES_DATASOURCE: jdbc:postgresql://postgres_db:5432/uidam_management
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+      LOG_APPENDER: STDOUT
+      sp.restart.on.failure: false
+      api_registry_enabled: true
+      api_registry_service_name: http://localhost
+      api_gatewayUrls: http://localhost:8080
+      spring_application_servicename: localhost
+      server.port: 8082
+      LOG_LEVEL: "ERROR"
+      IGNITE_LOG_LEVEL: "ERROR"
+      SVC_LOG_LEVEL: ERROR
+      STORAGE_LOG_LEVEL: ERROR
+      SPRING_LOG_LEVEL: ERROR
+      REGISTRY_COMMON_LOG_LEVEL: ERROR
+      GRAYLOG_ENABLE: "false"
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    healthcheck:
+      test: echo 'curl localhost:8082/actuator/health --quiet'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  uidam-authorization-server:
+    image: docker.io/eclipseecsp/uidam-authorization-server:1.1.0
+    container_name: uidam-authorization-server
+    ports:
+      - "9443:9443"
+    environment:
+      LOG_APPENDER: STDOUT
+      sp.restart.on.failure: false
+      POSTGRES_DATASOURCE: jdbc:postgresql://postgres_db:5432/uidam_management
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+      server.port: 9443
+      USER_MANAGEMENT_ENV: http://uidam-user-management:8082
+      GRAYLOG_ENABLED: "false"
+      NEVER_BLOCK_FOR_GRAYLOG: "false"
+      LOG_LEVEL: ERROR
+      IGNITE_LOG_LEVEL: ERROR
+      SVC_LOG_LEVEL: ERROR
+      STORAGE_LOG_LEVEL: ERROR
+      SPRING_LOG_LEVEL: ERROR
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      uidam-user-management:
+        condition: service_healthy
+    healthcheck:
+      test: echo 'curl localhost:9443/actuator/health --quiet'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  mongodb_data: {}
+
+networks:
+  backend:
+    driver: bridge

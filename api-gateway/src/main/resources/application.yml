@@ -1,7 +1,12 @@
 server:
-  port: 8080
+  port: 8088
   http2:
     enabled: true
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
 spring:
   application:
     name: api-gateway
@@ -9,13 +14,8 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
-  http:
-    encoding:
-      enabled: true
-      force: true
-      charset: UTF-8
+      host: redis
+      port: 6479
   cloud:
     discovery:
       client:
@@ -51,8 +51,8 @@ spring:
         - name: RequestRateLimiter
           args:
             key-resolver: "#{@requestKeyResolver}"
-            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
-            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
+            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:100}
+            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:100}
             redis-rate-limiter.requestedTokens: 1
         - name: RequestHeaderFilter
           args:
@@ -102,7 +102,7 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9100
+      port: 9109
       base-path: /gateway
       prometheus:
         enabled: true
@@ -177,6 +177,8 @@ management:
       access: read-only
     health:
       access: read-only
+      probes:
+        enabled: ${api.gateway.metrics.health.enabled}
       show-components: ALWAYS
   endpoints:
     access:
@@ -195,9 +197,7 @@ management:
     enabled: ${api.gateway.metrics.enabled}
     tags:
       application: ${spring.application.name:api-gateway}
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: ${api.gateway.metrics.prometheus.enabled}
-  health:
-    probes:
-      enabled: ${api.gateway.metrics.health.enabled}

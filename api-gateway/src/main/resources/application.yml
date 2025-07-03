@@ -2,6 +2,11 @@ server:
   port: 8080
   http2:
     enabled: true
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
 spring:
   application:
     name: api-gateway
@@ -11,11 +16,6 @@ spring:
     redis:
       cluster:
         nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
-  http:
-    encoding:
-      enabled: true
-      force: true
-      charset: UTF-8
   cloud:
     discovery:
       client:
@@ -26,33 +26,35 @@ spring:
         enabled: true
         discovery-server-url: http://api-registry-int-svc:7000
     gateway:
-      metrics:
-        enabled: ${api.gateway.metrics.gateway-requests.enabled}
-        prefix: ${api.gateway.metrics.gateway-requests.prefix}
+      server:
+        webflux:
+          filter:
+            local-response-cache:
+              enabled: false
+              timeToLive: 60s
+            redis.cache.enabled: false
+          globalcors:
+            cors-configurations:
+              config:
+                allowedmethods: "*"
+                allowedheaders: "*"
+                maxage: "3600"
+                allowedoriginpatterns: "https://*.example.com"
+          httpclient:
+            wiretap: true
+            pool.metrics: ${api.gateway.metrics.enabled}
+          metrics:
+            enabled: ${api.gateway.metrics.gateway-requests.enabled}
+            prefix: ${api.gateway.metrics.gateway-requests.prefix}
       filter:
-        local-response-cache:
-          enabled: false
-          timeToLive: ${api.caching.ttl:5}
         redis.cache.enabled: false
-      globalcors:
-        corsConfigurations:
-          config:
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            maxAge: "3600"
-            allowedOriginPatterns: "https://*.example.com"
-      httpclient:
-        wiretap: true
-        pool.metrics: ${api.gateway.metrics.enabled}
-      httpserver:
-        wiretap: true
       default-filters:
         - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
         - name: RequestRateLimiter
           args:
             key-resolver: "#{@requestKeyResolver}"
-            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
-            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
+            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:1000}
+            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:1000}
             redis-rate-limiter.requestedTokens: 1
         - name: RequestHeaderFilter
           args:
@@ -61,9 +63,9 @@ spring:
             allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName}
             append-headers-if-missing: ${api_gateway_request-header-filter_append_headers_if_missing:correlationId}
             global-headers:
-              - name: sessionId
+              - name: correlationId
                 required: true # first level
-                regex: "^[a-zA-Z0-9_]{5,10}$" # second level
+                regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
 
 jwt:
   publicKeyFileBasePath: /opt/api-gateway/pem_files/
@@ -102,7 +104,7 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9100
+      port: 9102
       base-path: /gateway
       prometheus:
         enabled: true
@@ -176,6 +178,7 @@ management:
     prometheus:
       access: read-only
     health:
+      probes.enabled: ${api.gateway.metrics.health.enabled}
       access: read-only
       show-components: ALWAYS
   endpoints:
@@ -192,12 +195,7 @@ management:
       exposure:
         exclude: "*" # Disable all JMX endpoints
   metrics:
-    enabled: ${api.gateway.metrics.enabled}
     tags:
       application: ${spring.application.name:api-gateway}
-    export:
-      prometheus:
-        enabled: ${api.gateway.metrics.prometheus.enabled}
-  health:
-    probes:
-      enabled: ${api.gateway.metrics.health.enabled}
+  prometheus.metrics.export.enabled: ${api.gateway.metrics.prometheus.enabled}
+  defaults.metrics.export.enabled: false

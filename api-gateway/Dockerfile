@@ -3,7 +3,7 @@ FROM azul/zulu-openjdk-alpine:17.0.14-17.56-jre-headless
 RUN apk update && apk add --no-cache curl
 
 ARG PROJECT_JAR_NAME
-ENV PROJECT_JAR_NAME ${PROJECT_JAR_NAME}
+ENV PROJECT_JAR_NAME=${PROJECT_JAR_NAME}
 
 COPY ./target/${PROJECT_JAR_NAME}.jar /opt/api-gateway/api-gateway.jar
 COPY ./src/main/resources/logback.xml /api-gateway/conf/logback.xml

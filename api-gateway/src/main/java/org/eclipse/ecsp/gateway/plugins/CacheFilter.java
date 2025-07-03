@@ -115,7 +115,7 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
                 LOGGER.debug("CacheRequest | after adding userId {}", finalCacheKey);
             }
         }
-        finalCacheKey.append(cachedKey[cachedKey.length - 1]);
+        finalCacheKey.append("_").append(cachedKey[cachedKey.length - 1]);
         LOGGER.debug("CacheRequest | final cache key {} ", finalCacheKey);
         return finalCacheKey.toString();
     }

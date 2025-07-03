@@ -88,11 +88,11 @@ public class IgniteRouteLocator implements RouteLocator {
     @Getter
     @Setter
     Map<String, Map<String, String>> overrideFilterConfig;
-    @Value("${api.caching.type}")
+    @Value("${api.caching.type:local}")
     private String cacheType;
-    @Value("${spring.cloud.gateway.filter.redis.cache.enabled}")
+    @Value("${spring.cloud.gateway.server.webflux.filter.redis.cache.enabled:false}")
     private boolean redisCachingEnabled;
-    @Value("${spring.cloud.gateway.filter.local-response-cache.enabled}")
+    @Value("${spring.cloud.gateway.server.webflux.filter.local-response-cache.enabled:false}")
     private boolean localCachingEnabled;
 
     private final RegistryRouteLoader registryRouteLoader;
@@ -195,7 +195,7 @@ public class IgniteRouteLocator implements RouteLocator {
      * Loading all Default Filters.
      */
     private void loadDefaultFilters() {
-        LOGGER.info("Loading Default Filters");
+        LOGGER.debug("Loading Default Filters");
         if (springCloudGatewayConfig != null && springCloudGatewayConfig.getDefaultFilters() != null) {
             this.gatewayProperties.setDefaultFilters(springCloudGatewayConfig.getDefaultFilters());
         }
@@ -204,7 +204,7 @@ public class IgniteRouteLocator implements RouteLocator {
 
     @Override
     public Flux<Route> getRoutes() {
-        LOGGER.info("get Routes");
+        LOGGER.debug("get Routes");
         apiDocRoutes.clear();
         // Load Default filter applicable for all the routes
         loadDefaultFilters();
@@ -217,7 +217,7 @@ public class IgniteRouteLocator implements RouteLocator {
                 .map(apiRoute -> routesBuilder.route(apiRoute.getId(),
                         predicateSpec -> setPredicateSpec(apiRoute, predicateSpec)))
                 .collectList().flatMapMany(builders -> routesBuilder.build().getRoutes());
-        LOGGER.info("Loaded Routes...!");
+        LOGGER.debug("Loaded Routes...!");
         return routes;
     }
 
@@ -311,7 +311,7 @@ public class IgniteRouteLocator implements RouteLocator {
                 fd.addArg(TIME_TO_LIVE, apiRoute.getCacheTtl());
             }
             apiRoute.getFilters().add(fd);
-            LOGGER.info("added the caching filter {}", fd.toString());
+            LOGGER.debug("added the caching filter {}", fd.toString());
         }
     }
 
@@ -357,7 +357,7 @@ public class IgniteRouteLocator implements RouteLocator {
                     fd.setArgs(filter.getArgs());
                 }
                 filterDefinitions.add(fd);
-                LOGGER.info("Filter loaded:" + filter);
+                LOGGER.debug("Filter loaded:" + filter);
             });
             filters.addAll(loadGatewayFilters(apiRoute.getId(), filterDefinitions));
         }

@@ -39,17 +39,17 @@
             <shortPatternLayout class="ch.qos.logback.classic.PatternLayout">
                 <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level-%msg %n</pattern>
             </shortPatternLayout>
-            <staticField>app:${app}</staticField>
-            <staticField>node_name:${NODE_NAME}</staticField>
-            <staticField>cName:${HOSTNAME}</staticField>
-            <staticField>ms:${ms}</staticField>
-            <staticField>msCtype:${msCtype}</staticField>
+            <staticField>app:${app:api-gateway}</staticField>
+            <staticField>node_name:${NODE_NAME:localhost}</staticField>
+            <staticField>cName:${HOSTNAME:local}</staticField>
+            <staticField>ms:${ms:api-gateway}</staticField>
+            <staticField>msCtype:${msCtype:api}</staticField>
         </encoder>
     </appender>
     <appender name="ASYNC-GELF" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>100000</queueSize>
         <discardingThreshold>0</discardingThreshold>
-        <neverBlock>${NEVER_BLOCK_FOR_GRAYLOG}</neverBlock>
+        <neverBlock>${NEVER_BLOCK_FOR_GRAYLOG:-true}</neverBlock>
         <appender-ref ref="GELF"/>
     </appender>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -57,48 +57,48 @@
             <pattern>%d{HH:mm:ss.SSS} [%thread] %c{1} %-5level - %msg %ex{full} %n</pattern>
         </encoder>
     </appender>
-    <root level="${LOG_LEVEL}">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <root level="${LOG_LEVEL:-ERROR}">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </root>
-    <logger name="org.eclipse.ecsp" level="${IGNITE_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.eclipse.ecsp" level="${IGNITE_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
     <logger name="org.eclipse.ecsp.gateway.plugins.AccessLog" level="${ACCESS_LOG_LEVEL:-INFO}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.eclipse.ecsp.nosqldao" level="${STORAGE_LOG_LEVEL}"
+    <logger name="org.eclipse.ecsp.nosqldao" level="${STORAGE_LOG_LEVEL:-ERROR}"
             additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.eclipse.ecsp.sql" level="${STORAGE_LOG_LEVEL}"
+    <logger name="org.eclipse.ecsp.sql" level="${STORAGE_LOG_LEVEL:-ERROR}"
             additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="com.mongodb" level="${STORAGE_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="com.mongodb" level="${STORAGE_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.springframework" level="${SPRING_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.springframework" level="${SPRING_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.eclipse.ecsp.gateway" level="${API_GATEWAY_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.eclipse.ecsp.gateway" level="${API_GATEWAY_LOG_LEVEL:-INFO}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.springframework.cloud" level="${API_GATEWAY_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.springframework.cloud" level="${API_GATEWAY_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.springframework.cloud.gateway" level="${API_GATEWAY_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.springframework.cloud.gateway" level="${API_GATEWAY_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.eclipse.ecsp.cache" level="${CACHE_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.eclipse.ecsp.cache" level="${CACHE_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.redisson" level="${CACHE_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.redisson" level="${CACHE_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.apache.kafka" level="${KAFKA_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}"/>
+    <logger name="org.apache.kafka" level="${KAFKA_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="${CUSTOM_PLUGINS_PACKAGE:-org.eclipse.ecsp.gateway.plugins}" level="${API_GATEWAY_LOG_LEVEL}" additivity="false">
-        <appender-ref ref="${LOG_APPENDER}" />
+    <logger name="${CUSTOM_PLUGINS_PACKAGE:-org.eclipse.ecsp.gateway.plugins}" level="${API_GATEWAY_LOG_LEVEL:-INFO}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}" />
     </logger>
 </configuration>

@@ -1,5 +1,10 @@
 server:
-  port: 8080
+  port: 7000
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
 
 springdoc:
   version: '@springdoc.version@'
@@ -16,11 +21,6 @@ spring:
     name: ${spring_application_name:api-registry}
     servicename: ${spring_application_servicename:api-registry-int-svc}
     version: ${spring_application_version:1.0}
-  http:
-    encoding:
-      enabled: true
-      force: true
-      charset: UTF-8
   jpa:
     show-sql: ${spring_jpa_hibernate_show_sql:false}
     hibernate:
@@ -44,7 +44,7 @@ api-registry:
   metrics:
     enabled: true
     base-path: /registry
-    port: 7000
+    port: 9101
     prometheus:
       enabled: true
       path: /metrics
@@ -146,6 +146,7 @@ management:
     prometheus:
       access: read-only
     health:
+      probes.enabled: ${api-registry.metrics.health.enabled}
       access: read-only
       show-components: ALWAYS
   endpoints:
@@ -162,18 +163,14 @@ management:
       exposure:
         exclude: "*" # Disable all JMX endpoints
   metrics:
-    enabled: ${api-registry.metrics.enabled}
     tags:
       application: ${spring.application.name:api-registry}
-    export:
-      prometheus:
-        enabled: ${api-registry.metrics.prometheus-enabled}
   observations:
     http:
       client.requests.name: ${api-registry.metrics.http-client-requests.prefix}
       server.requests.name: ${api-registry.metrics.http-server-requests.prefix}
-  health:
-    probes:
-      enabled: ${api-registry.metrics.health.enabled}
+  prometheus.metrics.export.enabled: ${api-registry.metrics.prometheus.enabled}
+  defaults.metrics.export.enabled: false
+  health.db.enabled: false
 postgresdb:
   metrics.enabled: ${postgres_metrics_enabled:false}

@@ -165,11 +165,11 @@ public class GatewayConstants {
     /**
      * constant value is 0.
      */
-    public static final int JWT_AUTH_FILTER_ORDER = NettyWriteResponseFilter.WRITE_RESPONSE_FILTER_ORDER + 1;
+    public static final int JWT_AUTH_FILTER_ORDER = NettyWriteResponseFilter.WRITE_RESPONSE_FILTER_ORDER - 2;
     /**
      * constant value is 1.
      */
-    public static final int CACHE_FILTER_ORDER = NettyWriteResponseFilter.WRITE_RESPONSE_FILTER_ORDER + 2;
+    public static final int CACHE_FILTER_ORDER = NettyWriteResponseFilter.WRITE_RESPONSE_FILTER_ORDER - 1;
     /**
      * constant value is 20.
      */

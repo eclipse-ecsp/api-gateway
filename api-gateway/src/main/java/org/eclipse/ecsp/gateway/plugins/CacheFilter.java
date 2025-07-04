@@ -37,6 +37,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.cache.LocalResponseCacheUtils;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.http.HttpHeaders;
@@ -48,8 +49,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Filter to cache the response data.
@@ -88,36 +93,32 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
         this.globalFilterUtils = new GlobalFilterUtils();
     }
 
-    private static String prepareCachedRequestKey(ServerHttpRequest request, String cachedRequestKey) {
-        LOGGER.debug("CacheRequest | cachedRequestKey: {} ", cachedRequestKey);
-        LOGGER.debug("CacheRequest | tenantId {}, userID {} ",
-                request.getHeaders().getFirst(GatewayConstants.TENANT_ID),
-                request.getHeaders().getFirst(GatewayConstants.USER_ID));
-        StringBuilder finalCacheKey = new StringBuilder(request.getURI().toString());
-        String cacheKey = cachedRequestKey.replace("{", "");
-        cacheKey = cacheKey.replace("}", "");
-        String[] cachedKey = cacheKey.split("-");
-        LOGGER.debug("CacheRequest | details of cacheKey {} ", cachedKey[0], cachedKey.length);
-        for (String key : cachedKey) {
-            if (key.equalsIgnoreCase(GatewayConstants.ACCOUNT_ID)
-                    && request.getHeaders().getFirst(GatewayConstants.ACCOUNT_ID) != null) {
-                finalCacheKey.append("_").append(request.getHeaders().getFirst(GatewayConstants.ACCOUNT_ID));
-                LOGGER.debug("CacheRequest | after adding accountId {}", finalCacheKey);
-            }
-            if (key.equalsIgnoreCase(GatewayConstants.TENANT_ID)
-                    && request.getHeaders().getFirst(GatewayConstants.TENANT_ID) != null) {
-                finalCacheKey.append("_").append(request.getHeaders().getFirst(GatewayConstants.TENANT_ID));
-                LOGGER.debug("CacheRequest | after adding tenantId {}", finalCacheKey);
-            }
-            if (key.equalsIgnoreCase(GatewayConstants.USERID)
-                    && request.getHeaders().getFirst(GatewayConstants.USER_ID) != null) {
-                finalCacheKey.append("_").append(request.getHeaders().getFirst(GatewayConstants.USER_ID));
-                LOGGER.debug("CacheRequest | after adding userId {}", finalCacheKey);
+    private static String prepareCachedRequestKey(ServerHttpRequest request, String cachedRequestKey, String routeId) {
+        String key = replaceHeadersInString(cachedRequestKey, request.getHeaders().toSingleValueMap());
+        if (key.contains("{routeId}") && StringUtils.isNotEmpty(routeId)) {
+            key = key.replace("{routeId}", routeId);
+        }
+
+        if (key.contains("{requestPath}")) {
+            URI uri = request.getURI();
+            key = key.replace("{requestPath}", uri.toString());
+        }
+
+        if (key.contains("{requestMethod}")) {
+            HttpMethod requestMethod = request.getMethod();
+            key = key.replace("{requestMethod}", requestMethod.name());
+        }
+
+        // for backward compatibility
+        if (key.contains("{userId}")) {
+            String userId = request.getHeaders().getFirst(GatewayConstants.USER_ID);
+            if (StringUtils.isNotEmpty(userId)) {
+                key = key.replace("{userId}", userId);
             }
         }
-        finalCacheKey.append(cachedKey[cachedKey.length - 1]);
-        LOGGER.debug("CacheRequest | final cache key {} ", finalCacheKey);
-        return finalCacheKey.toString();
+
+        LOGGER.debug("CacheRequest | final cache key {} ", key);
+        return key;
     }
 
     @Override
@@ -135,8 +136,10 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
 
     private Mono<Void> processCacheRequest(Config config, ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        String cachedRequestKey = prepareCachedRequestKey(request, config.cacheKey);
+        String routeId = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR);
+        String cachedRequestKey = prepareCachedRequestKey(request, config.cacheKey, routeId);
         LOGGER.debug("CacheRequest | cache key prepared {} ", cachedRequestKey);
+
         final Cache cache = cacheManager.getCache(cacheName);
         if (cache != null && StringUtils.isNotEmpty(cachedRequestKey)) {
             LOGGER.debug("cache Name {}", cache.getName());
@@ -194,6 +197,33 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
             LOGGER.error("CacheRequest | Error serializing cached response", e);
         }
         return null;
+    }
+
+    /**
+     * Replace headers in the string with the values from the headers map.
+     *
+     * @param key     The string containing placeholders for headers.
+     * @param headers The map of headers to replace in the string.
+     * @return The string with placeholders replaced by actual header values.
+     */
+    public static String replaceHeadersInString(String key, Map<String, String> headers) {
+        Pattern pattern = Pattern.compile("\\{([a-zA-Z0-9-]+)\\}");
+        StringBuilder resultBuffer = new StringBuilder();
+        Matcher matcher = pattern.matcher(key);
+        while (matcher.find()) {
+            String placeHolderName = matcher.group(1);
+            String lookupKey = placeHolderName.toLowerCase();
+            String headerName = headers.containsKey(lookupKey) ? lookupKey : placeHolderName;
+            String headerValue = headers.get(headerName);
+            if (headerValue != null) {
+                matcher.appendReplacement(resultBuffer, Matcher.quoteReplacement(headerValue));
+            } else {
+                matcher.appendReplacement(resultBuffer, Matcher.quoteReplacement(matcher.group(0)));
+                LOGGER.warn("CacheRequest | Header {} not found in request headers, using placeholder", headerName);
+            }
+        }
+        matcher.appendTail(resultBuffer);
+        return resultBuffer.toString();
     }
 
     /**

@@ -54,14 +54,11 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 class CacheFilterTest {
 
-    public static final int EIGHT = 8;
-    public static final int FIVE = 5;
     @Mock
     ServerHttpRequest request;
     @Mock
@@ -437,8 +434,8 @@ class CacheFilterTest {
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users")).when(mockedRequest).getURI();
         ReflectionTestUtils.invokeMethod(cacheFilter, "prepareCachedRequestKey",
-                mockedRequest, "accountId-tenantId-userId");
-        Mockito.verify(mockedRequest, times(EIGHT)).getHeaders();
+                mockedRequest, "accountId-tenantId-userId", "routeId123");
+        Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
     }
 
     @Test
@@ -450,7 +447,59 @@ class CacheFilterTest {
                 .when(mockedRequest).getURI();
         ReflectionTestUtils.invokeMethod(cacheFilter,
                 "prepareCachedRequestKey",
-                mockedRequest, "accountId-tenantId-userId");
-        Mockito.verify(mockedRequest, times(FIVE)).getHeaders();
+                mockedRequest, "accountId-tenantId-userId", "routeId123");
+        Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
+    }
+
+    @Test
+    void testPrepareRequestKeyWithoutHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        doReturn(headers).when(mockedRequest).getHeaders();
+        doReturn(URI.create("http://localhost:8080/v2/users"))
+                .when(mockedRequest).getURI();
+        String key = (String) ReflectionTestUtils.invokeMethod(cacheFilter,
+                "prepareCachedRequestKey",
+                mockedRequest, "{accountId}-{tenantId}-{userId}", "routeId123");
+        assertEquals("{accountId}-{tenantId}-{userId}", key);
+    }
+
+    @Test
+    void testPrepareRequestKeyWithHeaders() {
+        testPrepareKey("{accountId}-{tenantId}-{USER-ID}",
+                "igniteAccount-ignite-user123");
+    }
+
+    @Test
+    void testPrepareRequestKeyWithRouteId() {
+        testPrepareKey("{routeId}-{accountId}-{tenantId}-{USER-ID}",
+                "routeId123-igniteAccount-ignite-user123");
+    }
+
+    @Test
+    void testPrepareRequestKeyWithRequestPath() {
+        testPrepareKey("{requestPath}-{routeId}-{accountId}-{tenantId}-{USER-ID}",
+                "http://localhost:8080/v2/users-routeId123-igniteAccount-ignite-user123");
+    }
+
+    @Test
+    void testPrepareRequestKeyWithUserId() {
+        testPrepareKey("{requestPath}-{routeId}-{accountId}-{tenantId}-{userId}",
+            "http://localhost:8080/v2/users-routeId123-igniteAccount-ignite-user123");
+    }
+
+    void testPrepareKey(String key, String expected) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(GatewayConstants.ACCOUNT_ID, "igniteAccount");
+        headers.set(GatewayConstants.TENANT_ID, "ignite");
+        headers.set(GatewayConstants.USER_ID, "user123");
+        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        doReturn(headers).when(mockedRequest).getHeaders();
+        doReturn(URI.create("http://localhost:8080/v2/users"))
+                .when(mockedRequest).getURI();
+        String result = (String) ReflectionTestUtils.invokeMethod(cacheFilter,
+                "prepareCachedRequestKey",
+                mockedRequest, key, "routeId123");
+        assertEquals(expected, result);
     }
 }

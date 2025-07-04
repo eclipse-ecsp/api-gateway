@@ -77,7 +77,7 @@
     <logger name="com.mongodb" level="${STORAGE_LOG_LEVEL:-ERROR}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.springframework" level="${SPRING_LOG_LEVEL:-INFO}" additivity="false">
+    <logger name="org.springframework" level="${SPRING_LOG_LEVEL:-ERROR}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
     <logger name="org.eclipse.ecsp.gateway" level="${API_GATEWAY_LOG_LEVEL:-INFO}" additivity="false">

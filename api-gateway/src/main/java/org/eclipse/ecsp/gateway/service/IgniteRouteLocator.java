@@ -88,12 +88,11 @@ public class IgniteRouteLocator implements RouteLocator {
     @Getter
     @Setter
     Map<String, Map<String, String>> overrideFilterConfig;
+    @Value("${api.caching.enabled:false}")
+    private boolean isCacheEnabled;
+
     @Value("${api.caching.type:local}")
     private String cacheType;
-    @Value("${spring.cloud.gateway.server.webflux.filter.redis.cache.enabled:false}")
-    private boolean redisCachingEnabled;
-    @Value("${spring.cloud.gateway.server.webflux.filter.local-response-cache.enabled:false}")
-    private boolean localCachingEnabled;
 
     private final RegistryRouteLoader registryRouteLoader;
 
@@ -297,8 +296,7 @@ public class IgniteRouteLocator implements RouteLocator {
     private void setCacheFilter(IgniteRouteDefinition apiRoute) {
         FilterDefinition fd = new FilterDefinition();
         LOGGER.debug("Enabled Cache Type {}", cacheType);
-        LOGGER.debug("local cache enabled {}", cacheType.equalsIgnoreCase(LOCAL_CACHE));
-        if (apiRoute.getCacheKey() != null && (redisCachingEnabled || localCachingEnabled)) {
+        if (apiRoute.getCacheKey() != null && isCacheEnabled) {
             if (cacheType.equalsIgnoreCase(REDIS_CACHE)) {
                 LOGGER.debug("cache Key---- {}", apiRoute.getCacheKey());
                 fd.setName(CACHE_FILTER);

@@ -28,11 +28,6 @@ spring:
     gateway:
       server:
         webflux:
-          filter:
-            local-response-cache:
-              enabled: false
-              timeToLive: 60s
-            redis.cache.enabled: false
           globalcors:
             cors-configurations:
               config:

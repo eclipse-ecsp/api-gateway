@@ -136,7 +136,7 @@
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
         <junit-platform-launcher.version>1.12.1</junit-platform-launcher.version>
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
-        <wiremock.version>3.13.0</wiremock.version>
+        <wiremock.version>3.13.1</wiremock.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <license-tool-plugin.version>1.1.0</license-tool-plugin.version>

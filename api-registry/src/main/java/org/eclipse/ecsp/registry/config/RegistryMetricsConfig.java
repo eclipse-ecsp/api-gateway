@@ -36,7 +36,7 @@ import java.util.List;
 public class RegistryMetricsConfig {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RegistryMetricsConfig.class);
 
-    private final List<String> exposeEndpoints = List.of("health", "prometheus");
+    private static final List<String> EXPOSE_ENDPOINTS = List.of("health", "prometheus");
 
     /**
      * constructor to create instance of RegistryMetricsConfig.
@@ -44,17 +44,18 @@ public class RegistryMetricsConfig {
      * @param configurableEnvironment environment config.
      */
     public RegistryMetricsConfig(ConfigurableEnvironment configurableEnvironment) {
-        configurableEnvironment.getSystemProperties()
-                .put("management.endpoints.access.default", "none");
-        configurableEnvironment.getSystemProperties()
-                .put("management.endpoints.web.exposure.include", String.join(",", exposeEndpoints));
-        configurableEnvironment.getSystemProperties()
-                .put("management.endpoints.jmx.exposure.exclude", "*");
-        configurableEnvironment.getSystemProperties()
-                .put("management.endpoints.web.exposure.exclude",
-                        "gateway, beans, cache, conditions, configprops, auditevents, env, flyway, httpexchanges, "
-                                + "info, integrationgraph, loggers, liquibase, metrics, mappings, quartz, "
-                                + "scheduledtasks, sessions, shutdown, startup, threaddump, heapdump, logfile");
+        LOGGER.info("RegistryMetricsConfig initialized with expose endpoints: {}", EXPOSE_ENDPOINTS);
+        //configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
+        configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.include",
+                String.join(",", EXPOSE_ENDPOINTS));
+        configurableEnvironment.getSystemProperties().put("management.endpoints.jmx.exposure.exclude", "*");
+        configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.exclude",
+                "gateway, beans, cache, conditions, configprops, auditevents, env, flyway, httpexchanges, "
+                        + "info, integrationgraph, loggers, liquibase, metrics, mappings, quartz, scheduledtasks, "
+                        + "sessions, shutdown, startup, threaddump, heapdump, logfile");
+
+        // disable all the metrics export by default
+        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled" , "false");
     }
 
     /**
@@ -63,10 +64,11 @@ public class RegistryMetricsConfig {
      * @return instance of {@link EndpointFilter}
      */
     @Bean
-    EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
+    public EndpointFilter<ExposableWebEndpoint> registryEndpointFilter() {
         return (endpoint -> {
-            boolean endpointToBeExposed = exposeEndpoints.contains(endpoint.getEndpointId().toLowerCaseString());
-            LOGGER.info("GatewayMetrics {} endpoint enabled is {}",
+            LOGGER.debug("RegistryMetricsConfig registryEndpointFilter called for endpoint: {}", endpoint.getEndpointId());
+            boolean endpointToBeExposed = EXPOSE_ENDPOINTS.contains(endpoint.getEndpointId().toLowerCaseString());
+            LOGGER.info("RegistryMetricsConfig {} endpoint enabled is {}",
                     endpoint.getEndpointId().toLowerCaseString(), endpointToBeExposed);
             return endpointToBeExposed;
         });

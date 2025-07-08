@@ -14,8 +14,10 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
+#      cluster:
+#        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -88,7 +90,7 @@ api:
     cacheName: "DefaultCache"
     ttl: 5
   routes:
-    refreshCronJob: "*/30 * * * * *"
+    refreshCronJob: "0 */5 * * * *"
   dynamic:
     routes:
       enabled: true
@@ -99,11 +101,21 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9102
+      port: 9100
       base-path: /gateway
       prometheus:
         enabled: true
         path: /metrics
+      datadog:
+        enabled: false
+        uri: https://api.datadoghq.com
+        api-key: CHANGE_ME
+        application-key: ""
+        read-timeout: 5s
+        connect-timeout: 5s
+        batch-size: 1000
+        step: 1m
+        host-tag: "api-gateway"
       health:
         enabled: true
         path: /health
@@ -168,29 +180,46 @@ api-gateway:
 # spring actuator configurations
 management:
   server:
-    port: ${api.gateway.metrics.port}
+    port: ${api.gateway.metrics.port:9100}
+  endpoints:
+    web:
+      base-path: ${api.gateway.metrics.base-path:/gateway}
+      path-mapping:
+        prometheus: ${api.gateway.metrics.prometheus.path:/metrics}
+        health: ${api.gateway.metrics.health.path:/health}
+      exposure:
+        include: health, prometheus
+    access:
+      default: none
   endpoint:
     prometheus:
       access: read-only
     health:
-      probes.enabled: ${api.gateway.metrics.health.enabled}
+      probes:
+        enabled: ${api.gateway.metrics.health.enabled:true}
       access: read-only
-      show-components: ALWAYS
-  endpoints:
-    access:
-      default: none
-    web:
-      exposure:
-        include: health, prometheus
-      base-path: ${api.gateway.metrics.base-path}
-      path-mapping:
-        prometheus: ${api.gateway.metrics.prometheus.path}
-        health: ${api.gateway.metrics.health.path}
-    jmx:
-      exposure:
-        exclude: "*" # Disable all JMX endpoints
+  prometheus:
+    metrics:
+      export:
+        enabled: ${api.gateway.metrics.prometheus.enabled:true}
+  datadog:
+    metrics:
+      export:
+        enabled: ${api.gateway.metrics.datadog.enabled:false}
+        uri: ${api.gateway.metrics.datadog.uri:https://api.datadoghq.com}
+        api-key: ${api.gateway.metrics.datadog.api-key:}
+        application-key: ${api.gateway.metrics.datadog.application-key:}
+        read-timeout: ${api.gateway.metrics.datadog.read-timeout:5s}
+        connect-timeout: ${api.gateway.metrics.datadog.connect-timeout:5s}
+        batch-size: ${api.gateway.metrics.datadog.batch-size:1000}
+        step: ${api.gateway.metrics.datadog.step:1m}
+        host-tag: ${api.gateway.metrics.datadog.host-tag:api-gateway}
+  default:
+    metrics:
+      export:
+        enabled: false
   metrics:
     tags:
+      env: ${env:local}
+      host: ${HOSTNAME:localhost}
       application: ${spring.application.name:api-gateway}
-  prometheus.metrics.export.enabled: ${api.gateway.metrics.prometheus.enabled}
-  defaults.metrics.export.enabled: false

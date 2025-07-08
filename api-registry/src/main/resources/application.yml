@@ -5,6 +5,7 @@ server:
       enabled: true
       force: true
       charset: UTF-8
+  type: servlet
 
 springdoc:
   version: '@springdoc.version@'
@@ -51,6 +52,17 @@ api-registry:
     health:
       enabled: true
       path: /health
+    datadog:
+      enabled: true
+      uri: https://api.datadoghq.com
+      api-key: CHANGE_ME
+      application-key: ""
+      descriptions: true
+      read-timeout: 5s
+      connect-timeout: 5s
+      batch-size: 1000
+      step: 1m
+      host-tag: "api-registry"
     http-server-requests:
       prefix: "http.server.requests"
     http-client-requests:
@@ -59,8 +71,6 @@ api-registry:
       prefix: "service.health.status"
     service-routes:
       prefix: "service.route.count"
-
-
 
 service:
   name: ${service_name:api-registry}
@@ -137,40 +147,61 @@ metrics:
   prometheus:
     enabled: false ## keep is false as it will create another http server
   dao:
-    enabled: ${mongodb_metrics_enabled}
+    enabled: ${mongodb_metrics_enabled:false}
+postgresdb:
+  metrics:
+    enabled: false
 ---
 management:
   server:
-    port: ${api-registry.metrics.port}
+    port: ${api-registry.metrics.port:9100}
+  endpoints:
+    web:
+      base-path: ${api-registry.metrics.base-path:/registry}
+      path-mapping:
+        prometheus: ${api-registry.metrics.prometheus.path:/metrics}
+        health: ${api-registry.metrics.health.path:/health}
+      exposure:
+        include: health,prometheus
+    access:
+      default: none
   endpoint:
     prometheus:
       access: read-only
     health:
-      probes.enabled: ${api-registry.metrics.health.enabled}
+      probes:
+        enabled: ${api-registry.metrics.health.enabled:true}
       access: read-only
-      show-components: ALWAYS
-  endpoints:
-    access:
-      default: none
-    web:
-      exposure:
-        include: health, prometheus
-      base-path: ${api-registry.metrics.base-path}
-      path-mapping:
-        prometheus: ${api-registry.metrics.prometheus.path}
-        health: ${api-registry.metrics.health.path}
-    jmx:
-      exposure:
-        exclude: "*" # Disable all JMX endpoints
+  prometheus:
+    metrics:
+      export:
+        enabled: ${api-registry.metrics.prometheus.enabled:true}
+  datadog:
+    metrics:
+      export:
+        enabled: ${api-registry.metrics.datadog.enabled:false}
+        uri: ${api-registry.metrics.datadog.uri:https://api.datadoghq.com}
+        api-key: ${api-registry.metrics.datadog.api-key:}
+        application-key: ${api-registry.metrics.datadog.application-key:}
+        read-timeout: ${api-registry.metrics.datadog.read-timeout:5s}
+        connect-timeout: ${api-registry.metrics.datadog.connect-timeout:5s}
+        batch-size: ${api-registry.metrics.datadog.batch-size:1000}
+        step: ${api-registry.metrics.datadog.step:1m}
+        host-tag: ${api-registry.metrics.datadog.host-tag:api-gateway}
+  default:
+    metrics:
+      export:
+        enabled: false
   metrics:
     tags:
+      env: ${env:local}
+      host: ${HOSTNAME:localhost}
       application: ${spring.application.name:api-registry}
   observations:
     http:
       client.requests.name: ${api-registry.metrics.http-client-requests.prefix}
       server.requests.name: ${api-registry.metrics.http-server-requests.prefix}
-  prometheus.metrics.export.enabled: ${api-registry.metrics.prometheus.enabled}
-  defaults.metrics.export.enabled: false
-  health.db.enabled: false
-postgresdb:
-  metrics.enabled: ${postgres_metrics_enabled:false}
+  health:
+    db:
+      enabled: false
+  

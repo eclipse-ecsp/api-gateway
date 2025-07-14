@@ -45,7 +45,6 @@ public class RegistryMetricsConfig {
      */
     public RegistryMetricsConfig(ConfigurableEnvironment configurableEnvironment) {
         LOGGER.info("RegistryMetricsConfig initialized with expose endpoints: {}", EXPOSE_ENDPOINTS);
-        //configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.include",
                 String.join(",", EXPOSE_ENDPOINTS));
         configurableEnvironment.getSystemProperties().put("management.endpoints.jmx.exposure.exclude", "*");
@@ -55,6 +54,7 @@ public class RegistryMetricsConfig {
                         + "sessions, shutdown, startup, threaddump, heapdump, logfile");
 
         // disable all the metrics export by default
+        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled", "false");
     }
 

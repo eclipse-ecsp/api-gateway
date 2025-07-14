@@ -199,9 +199,8 @@ public class GatewayConfig {
     @ConditionalOnProperty(name = "api.gateway.metrics.enabled",
             havingValue = "false")
     EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
-        return (endpoint -> {
-            return false; // Do not expose any endpoints
-        });
+        LOGGER.info("Metrics are not enabled, disabling all endpoints.");
+        return (endpoint -> false);
     }
 
 }

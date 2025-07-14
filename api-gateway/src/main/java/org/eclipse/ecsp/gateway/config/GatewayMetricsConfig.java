@@ -69,7 +69,6 @@ public class GatewayMetricsConfig {
     public GatewayMetricsConfig(GatewayMetricsProperties gatewayMetricsProperties,
                                 ConfigurableEnvironment configurableEnvironment) {
         this.gatewayMetricsProperties = gatewayMetricsProperties;
-        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.include",
                 String.join(",", EXPOSE_ENDPOINTS));
         configurableEnvironment.getSystemProperties().put("management.endpoints.jmx.exposure.exclude", "*");
@@ -79,6 +78,7 @@ public class GatewayMetricsConfig {
                         + "sessions, shutdown, startup, threaddump, heapdump, logfile");
 
         // disable all the metrics export by default
+        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled", "false");
     }
 

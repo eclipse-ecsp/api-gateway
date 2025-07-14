@@ -14,10 +14,8 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      host: localhost
-      port: 6379
-#      cluster:
-#        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      cluster:
+        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -80,17 +78,13 @@ api:
   overrideFilterConfig:
     JwtAuthValidator:
       filterName: CustomValidator
-      #requestHeaderValidationConfig:
-      #correlationId:
-    #required: "true"
-    #regexPattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
   caching:
     type: "redis"
     enabled: true
     cacheName: "DefaultCache"
     ttl: 5
   routes:
-    refreshCronJob: "0 */5 * * * *"
+    refreshCronJob: "*/30 * * * * *"
   dynamic:
     routes:
       enabled: true

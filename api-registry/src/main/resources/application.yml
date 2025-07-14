@@ -45,7 +45,7 @@ api-registry:
   metrics:
     enabled: true
     base-path: /registry
-    port: 9101
+    port: 9100
     prometheus:
       enabled: true
       path: /metrics

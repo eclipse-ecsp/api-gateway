@@ -55,7 +55,7 @@ public class RegistryMetricsConfig {
                         + "sessions, shutdown, startup, threaddump, heapdump, logfile");
 
         // disable all the metrics export by default
-        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled" , "false");
+        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled", "false");
     }
 
     /**
@@ -66,7 +66,8 @@ public class RegistryMetricsConfig {
     @Bean
     public EndpointFilter<ExposableWebEndpoint> registryEndpointFilter() {
         return (endpoint -> {
-            LOGGER.debug("RegistryMetricsConfig registryEndpointFilter called for endpoint: {}", endpoint.getEndpointId());
+            LOGGER.debug("RegistryMetricsConfig registryEndpointFilter called for endpoint: {}",
+                    endpoint.getEndpointId());
             boolean endpointToBeExposed = EXPOSE_ENDPOINTS.contains(endpoint.getEndpointId().toLowerCaseString());
             LOGGER.info("RegistryMetricsConfig {} endpoint enabled is {}",
                     endpoint.getEndpointId().toLowerCaseString(), endpointToBeExposed);

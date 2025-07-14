@@ -79,7 +79,7 @@ public class GatewayMetricsConfig {
                         + "sessions, shutdown, startup, threaddump, heapdump, logfile");
 
         // disable all the metrics export by default
-        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled" , "false");
+        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled", "false");
     }
 
 
@@ -91,7 +91,8 @@ public class GatewayMetricsConfig {
     @Bean
     EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
         return (endpoint -> {
-            LOGGER.debug("GatewayMetrics endpoint filter for endpoint: {}", endpoint.getEndpointId().toLowerCaseString());
+            LOGGER.debug("GatewayMetrics endpoint filter for endpoint: {}",
+                    endpoint.getEndpointId().toLowerCaseString());
             boolean endpointToBeExposed = EXPOSE_ENDPOINTS.contains(endpoint.getEndpointId().toLowerCaseString());
             LOGGER.info("GatewayMetrics {} endpoint enabled is {}",
                     endpoint.getEndpointId().toLowerCaseString(),

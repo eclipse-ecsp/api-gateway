@@ -23,15 +23,15 @@ maven/mavencentral/com.google.guava/listenablefuture/9999.0-empty-to-avoid-confl
 maven/mavencentral/com.google.j2objc/j2objc-annotations/3.0.0, Apache-2.0, approved, #13676
 maven/mavencentral/com.google.protobuf/protobuf-java/4.31.0, BSD-3-Clause, approved, #22208
 maven/mavencentral/com.jayway.jsonpath/json-path/2.9.0, Apache-2.0, approved, #20009
-maven/mavencentral/com.networknt/json-schema-validator/1.5.6, Apache-2.0 AND Unicode-TOU, approved, #15630
+maven/mavencentral/com.networknt/json-schema-validator/1.5.7, Apache-2.0 AND Unicode-TOU, approved, #15630
 maven/mavencentral/com.nimbusds/nimbus-jose-jwt/10.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/com.sun.istack/istack-commons-runtime/4.1.2, BSD-3-Clause, approved, #15290
 maven/mavencentral/com.vaadin.external.google/android-json/0.0.20131108.vaadin1, Apache-2.0, approved, CQ21310
 maven/mavencentral/com.zaxxer/HikariCP/6.3.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/commons-codec/commons-codec/1.18.0, Apache-2.0 AND (Apache-2.0 AND BSD-3-Clause), approved, #19214
-maven/mavencentral/commons-fileupload/commons-fileupload/1.5, Apache-2.0, approved, #7109
-maven/mavencentral/commons-io/commons-io/2.11.0, Apache-2.0, approved, CQ23745
+maven/mavencentral/commons-fileupload/commons-fileupload/1.6.0, Apache-2.0, approved, #21847
 maven/mavencentral/commons-io/commons-io/2.16.1, Apache-2.0, approved, #14190
+maven/mavencentral/commons-io/commons-io/2.19.0, Apache-2.0, approved, #20657
 maven/mavencentral/de.siegmar/logback-gelf/6.1.1, LGPL-2.1-or-later AND (LGPL-2.1-or-later AND MIT), approved, #20666
 maven/mavencentral/dev.morphia.morphia/morphia-core/2.2.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.dropwizard.metrics/metrics-core/4.2.19, Apache-2.0, approved, clearlydefined
@@ -52,7 +52,7 @@ maven/mavencentral/io.github.resilience4j/resilience4j-spring-boot3/2.2.0, Apach
 maven/mavencentral/io.github.resilience4j/resilience4j-spring6/2.2.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.github.resilience4j/resilience4j-timelimiter/2.2.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.hypersistence/hypersistence-tsid/2.1.4, MIT, approved, #11907
-maven/mavencentral/io.hypersistence/hypersistence-utils-hibernate-63/3.10.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/io.hypersistence/hypersistence-utils-hibernate-63/3.10.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.jsonwebtoken/jjwt-api/0.12.6, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.jsonwebtoken/jjwt-gson/0.12.6, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.jsonwebtoken/jjwt-impl/0.12.6, Apache-2.0, approved, #14485
@@ -272,9 +272,9 @@ maven/mavencentral/org.springframework/spring-tx/6.2.8, Apache-2.0, approved, #1
 maven/mavencentral/org.springframework/spring-web/6.2.8, Apache-2.0, approved, #17558
 maven/mavencentral/org.springframework/spring-webflux/6.2.8, Apache-2.0, approved, #17567
 maven/mavencentral/org.springframework/spring-webmvc/6.2.8, Apache-2.0, approved, #17532
-maven/mavencentral/org.wiremock/wiremock-jetty12/3.13.0, Apache-2.0, approved, #21027
-maven/mavencentral/org.wiremock/wiremock-standalone/3.13.0, MIT AND Apache-2.0, approved, #21026
-maven/mavencentral/org.wiremock/wiremock/3.13.0, MIT AND Apache-2.0, approved, #21025
+maven/mavencentral/org.wiremock/wiremock-jetty12/3.13.1, Apache-2.0, approved, #21027
+maven/mavencentral/org.wiremock/wiremock-standalone/3.13.1, MIT AND Apache-2.0, approved, #21026
+maven/mavencentral/org.wiremock/wiremock/3.13.1, MIT AND Apache-2.0, approved, #21025
 maven/mavencentral/org.xmlunit/xmlunit-core/2.10.2, Apache-2.0, approved, #14590
 maven/mavencentral/org.xmlunit/xmlunit-legacy/2.10.2, Apache-2.0 AND BSD-3-Clause AND BSD-3-Clause, approved, #20661
 maven/mavencentral/org.xmlunit/xmlunit-placeholders/2.10.2, Apache-2.0, approved, #22214

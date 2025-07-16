@@ -24,7 +24,7 @@
         <sql.dao.version>1.1.2</sql.dao.version>
         <nosql.dao.version>1.1.1</nosql.dao.version>
         <hypersistence-utils-hibernate-63.version>3.10.3</hypersistence-utils-hibernate-63.version>
-        <mongodb-driver.version>4.5.1</mongodb-driver.version>
+        <mongodb-driver.version>5.5.1</mongodb-driver.version>
     </properties>
 
     <dependencyManagement>

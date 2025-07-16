@@ -37,7 +37,7 @@ public class RegistryConstants {
     /**
      * api_registry_database_type .
      */
-    public static final String DATABASE_TYPE = "api_registry_database_type";
+    public static final String DATABASE_TYPE = "api-registry.database.type";
     /**
      * sql.
      */

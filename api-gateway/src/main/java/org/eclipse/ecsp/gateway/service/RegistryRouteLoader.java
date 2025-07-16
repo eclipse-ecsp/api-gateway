@@ -84,9 +84,8 @@ public class RegistryRouteLoader {
             .header(GatewayConstants.SCOPE, "SYSTEM_READ")
             .retrieve()
             .bodyToFlux(IgniteRouteDefinition.class)
-            .doOnError(throwable -> {
-                LOGGER.error("Error while fetching routes from api-registry: {}", throwable.getMessage());
-            })
+            .doOnError(throwable -> LOGGER.error("Error while fetching routes from api-registry: {}",
+                    throwable.getMessage()))
             .onErrorReturn(routeUtils.getDummyRoute());
         // @formatter:on
     }

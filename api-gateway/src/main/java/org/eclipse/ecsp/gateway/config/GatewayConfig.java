@@ -25,6 +25,9 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.boot.actuate.endpoint.EndpointFilter;
+import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.ssl.SslBundles;
@@ -185,6 +188,19 @@ public class GatewayConfig {
     @Bean
     public WebProperties.Resources resources() {
         return new WebProperties.Resources();
+    }
+
+    /**
+     * EndpointFilter to restrict exposing endpoints other than defined in exposeEndpoints.
+     *
+     * @return instance of {@link EndpointFilter}
+     */
+    @Bean
+    @ConditionalOnProperty(name = "api.gateway.metrics.enabled",
+            havingValue = "false")
+    EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
+        LOGGER.info("Metrics are not enabled, disabling all endpoints.");
+        return (endpoint -> false);
     }
 
 }

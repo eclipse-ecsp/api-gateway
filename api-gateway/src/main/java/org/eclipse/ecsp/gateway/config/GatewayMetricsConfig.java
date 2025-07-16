@@ -59,6 +59,7 @@ public class GatewayMetricsConfig {
     private static final List<String> EXPOSE_ENDPOINTS = List.of(GatewayConstants.HEALTH, GatewayConstants.PROMETHEUS);
     private final GatewayMetricsProperties gatewayMetricsProperties;
 
+
     /**
      * constructor to create instance of GatewayMetricsConfig.
      *
@@ -68,7 +69,6 @@ public class GatewayMetricsConfig {
     public GatewayMetricsConfig(GatewayMetricsProperties gatewayMetricsProperties,
                                 ConfigurableEnvironment configurableEnvironment) {
         this.gatewayMetricsProperties = gatewayMetricsProperties;
-        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
         configurableEnvironment.getSystemProperties().put("management.endpoints.web.exposure.include",
                 String.join(",", EXPOSE_ENDPOINTS));
         configurableEnvironment.getSystemProperties().put("management.endpoints.jmx.exposure.exclude", "*");
@@ -76,7 +76,12 @@ public class GatewayMetricsConfig {
                 "gateway, beans, cache, conditions, configprops, auditevents, env, flyway, httpexchanges, "
                         + "info, integrationgraph, loggers, liquibase, metrics, mappings, quartz, scheduledtasks, "
                         + "sessions, shutdown, startup, threaddump, heapdump, logfile");
+
+        // disable all the metrics export by default
+        configurableEnvironment.getSystemProperties().put("management.endpoints.access.default", "none");
+        configurableEnvironment.getSystemProperties().put("management.defaults.metrics.export.enabled", "false");
     }
+
 
     /**
      * EndpointFilter to restrict exposing endpoints other than defined in exposeEndpoints.
@@ -86,6 +91,8 @@ public class GatewayMetricsConfig {
     @Bean
     EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
         return (endpoint -> {
+            LOGGER.debug("GatewayMetrics endpoint filter for endpoint: {}",
+                    endpoint.getEndpointId().toLowerCaseString());
             boolean endpointToBeExposed = EXPOSE_ENDPOINTS.contains(endpoint.getEndpointId().toLowerCaseString());
             LOGGER.info("GatewayMetrics {} endpoint enabled is {}",
                     endpoint.getEndpointId().toLowerCaseString(),

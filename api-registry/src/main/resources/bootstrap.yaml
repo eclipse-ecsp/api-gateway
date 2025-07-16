@@ -6,4 +6,13 @@ spring.cloud.kubernetes.reload.enabled: true
 spring.cloud.kubernetes.reload.mode: event
 spring.cloud.kubernetes.reload.strategy: refresh
 kubernetes.trust.certificates: true
-management.endpoint.restart.enabled: true
+management.endpoints.web.exposure.include: health,prometheus
+management.endpoints.access.default: none
+metrics.prometheus.enabled: false
+postgresdb.metrics.enabled: false
+management.defaults.metrics.export.enabled: false
+#enable for local development
+#management.prometheus.metrics.export.enabled: true
+#management.endpoint.prometheus.access: read-only
+#management.endpoint.health.access: read-only
+#management.endpoint.health.probes.enabled: true

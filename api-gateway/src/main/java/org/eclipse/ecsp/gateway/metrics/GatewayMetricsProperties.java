@@ -20,6 +20,8 @@ package org.eclipse.ecsp.gateway.metrics;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogProperties;
+import org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
@@ -35,12 +37,13 @@ import java.util.List;
 @Configuration
 @ConfigurationProperties(prefix = "api.gateway.metrics")
 public class GatewayMetricsProperties {
-    private boolean enabled;
     private DistributedMetrics serverRequests;
     private DistributedMetrics backendRequests;
     private DistributedMetrics httpClientRequests;
     private DistributedMetrics gatewayRequests;
     private SecurityMetrics securityMetrics;
+    private DatadogProperties datadog;
+    private PrometheusProperties prometheus;
 
     /**
      * base metrics configuration.

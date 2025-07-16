@@ -23,7 +23,10 @@ import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.boot.actuate.endpoint.EndpointFilter;
+import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -78,6 +81,19 @@ public class RegistryConfig {
         public SqlDatabaseConfig() {
             LOGGER.info("SqlDatabaseConfig loaded");
         }
+    }
+
+    /**
+     * EndpointFilter to restrict exposing endpoints when metrics are not enabled.
+     *
+     * @return instance of {@link EndpointFilter}
+     */
+    @Bean
+    @ConditionalOnProperty(name = "api-registry.metrics.enabled", havingValue = "false")
+    EndpointFilter<ExposableWebEndpoint> registryDisableEndpointFilter() {
+        LOGGER.info("Metrics are not enabled, disabling all endpoints.");
+        // This filter will disable all endpoints when metrics are not enabled.
+        return (endpoint -> false);
     }
 
 }

@@ -53,7 +53,7 @@ api-registry:
       enabled: true
       path: /health
     datadog:
-      enabled: true
+      enabled: false
       uri: https://api.datadoghq.com
       api-key: CHANGE_ME
       application-key: ""

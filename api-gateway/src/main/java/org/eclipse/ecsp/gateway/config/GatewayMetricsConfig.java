@@ -19,14 +19,12 @@
 package org.eclipse.ecsp.gateway.config;
 
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
-import org.eclipse.ecsp.gateway.metrics.ApiGatewayObservationConvention;
-import org.eclipse.ecsp.gateway.metrics.GatewayMeterFilter;
-import org.eclipse.ecsp.gateway.metrics.GatewayMetricsProperties;
-import org.eclipse.ecsp.gateway.metrics.HttpClientObservationConvention;
-import org.eclipse.ecsp.gateway.metrics.HttpServerObservationConvention;
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.ecsp.gateway.metrics.*;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -139,6 +137,25 @@ public class GatewayMetricsConfig {
             // Get the route information from the exchange attributes
             return Tags.of(Tags.of("requestUrl", exchange.getRequest().getPath().toString()));
         });
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "api.gateway.metrics.gateway-requests.enabled", havingValue =
+            "true", matchIfMissing = true)
+    public GatewayRequestMetricsFilter gatewayMetricsFilter(
+            MeterRegistry meterRegistry,
+            GatewayMetricsProperties gatewayMetricsProperties,
+            List<GatewayTagsProvider> tagsProviders) {
+        String prefix = "api.gateway";
+        if(gatewayMetricsProperties.getGatewayRequests() !=null &&
+                StringUtils.isNotBlank(gatewayMetricsProperties.getGatewayRequests().getPrefix())) {
+            prefix = gatewayMetricsProperties.getGatewayRequests().getPrefix();
+            LOGGER.info("Gateway metrics prefix is set to: {}", prefix);
+        }
+        LOGGER.info("GatewayMetricsFilter is enabled with prefix: {}",
+                gatewayMetricsProperties.getGatewayRequests().getPrefix());
+        return new GatewayRequestMetricsFilter(meterRegistry,
+                tagsProviders, prefix);
     }
 
     /**

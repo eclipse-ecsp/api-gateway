@@ -14,8 +14,10 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
+      # cluster:
+      #   nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -26,6 +28,9 @@ spring:
         enabled: true
         discovery-server-url: http://api-registry-int-svc:7000
     gateway:
+      metrics:
+        enabled: true
+        prefix: api.gateway
       server:
         webflux:
           globalcors:
@@ -37,10 +42,10 @@ spring:
                 allowedoriginpatterns: "https://*.example.com"
           httpclient:
             wiretap: true
-            pool.metrics: ${api.gateway.metrics.enabled}
+            pool.metrics: true
           metrics:
-            enabled: ${api.gateway.metrics.gateway-requests.enabled}
-            prefix: ${api.gateway.metrics.gateway-requests.prefix}
+            enabled: true
+            prefix: api.gateway
       filter:
         redis.cache.enabled: false
       default-filters:
@@ -95,7 +100,7 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9100
+      port: 9101
       base-path: /gateway
       prometheus:
         enabled: true

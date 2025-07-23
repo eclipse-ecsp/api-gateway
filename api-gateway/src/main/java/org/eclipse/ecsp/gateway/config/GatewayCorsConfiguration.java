@@ -43,28 +43,28 @@ public class GatewayCorsConfiguration extends
      * gets the allowedOriginPatterns from configuration.
      */
     @Value("${spring.cloud.gateway.server.webflux.globalcors."
-            + "cors-configurations.config.allowedoriginpatterns}")
+            + "cors-configurations.config.allowedoriginpatterns:*}")
     private String allowedOriginPatterns;
 
     /**
      * gets the maxAge from configuration.
      */
     @Value("${spring.cloud.gateway.server.webflux.globalcors."
-            + "cors-configurations.config.maxage}")
+            + "cors-configurations.config.maxage:3600}")
     private String maxAge;
 
     /**
      * gets the allowed methods for cors configuration.
      */
     @Value("${spring.cloud.gateway.server.webflux.globalcors."
-            + "cors-configurations.config.allowedmethods}")
+            + "cors-configurations.config.allowedmethods:*}")
     private String[] allowedMethods;
 
     /**
      * get allowed headers for cors configuration.
      */
     @Value("${spring.cloud.gateway.server.webflux.globalcors."
-            + "cors-configurations.config.allowedheaders}")
+            + "cors-configurations.config.allowedheaders:*}")
     private String allowedHeaders;
 
     /**

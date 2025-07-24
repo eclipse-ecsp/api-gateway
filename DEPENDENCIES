@@ -86,7 +86,7 @@ maven/mavencentral/io.projectreactor.addons/reactor-extra/3.5.2, Apache-2.0, app
 maven/mavencentral/io.projectreactor.netty/reactor-netty-core/1.2.7, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.projectreactor.netty/reactor-netty-http/1.2.7, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.projectreactor/reactor-core/3.7.7, Apache-2.0, approved, #17529
-maven/mavencentral/io.projectreactor/reactor-test/3.7.7, Apache-2.0, approved, clearlydefined
+maven/mavencentral/io.projectreactor/reactor-test/3.7.8, Apache-2.0, approved, #22536
 maven/mavencentral/io.prometheus/prometheus-metrics-config/1.3.8, Apache-2.0, approved, #19734
 maven/mavencentral/io.prometheus/prometheus-metrics-core/1.3.8, Apache-2.0, approved, #19687
 maven/mavencentral/io.prometheus/prometheus-metrics-exposition-formats-no-protobuf/1.3.8, Apache-2.0, approved, #22209

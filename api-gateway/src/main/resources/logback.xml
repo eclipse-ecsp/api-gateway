@@ -39,11 +39,11 @@
             <shortPatternLayout class="ch.qos.logback.classic.PatternLayout">
                 <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level-%msg %n</pattern>
             </shortPatternLayout>
-            <staticField>app:${app:api-gateway}</staticField>
-            <staticField>node_name:${NODE_NAME:localhost}</staticField>
-            <staticField>cName:${HOSTNAME:local}</staticField>
-            <staticField>ms:${ms:api-gateway}</staticField>
-            <staticField>msCtype:${msCtype:api}</staticField>
+            <staticField>app:${app:-api-gateway}</staticField>
+            <staticField>node_name:${NODE_NAME:-localhost}</staticField>
+            <staticField>cName:${HOSTNAME:-local}</staticField>
+            <staticField>ms:${ms:-api-gateway}</staticField>
+            <staticField>msCtype:${msCtype:-api}</staticField>
         </encoder>
     </appender>
     <appender name="ASYNC-GELF" class="ch.qos.logback.classic.AsyncAppender">

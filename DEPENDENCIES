@@ -252,7 +252,7 @@ maven/mavencentral/org.springframework.data/spring-data-commons/3.5.1, Apache-2.
 maven/mavencentral/org.springframework.data/spring-data-jpa/3.5.1, Apache-2.0, approved, #21922
 maven/mavencentral/org.springframework.data/spring-data-keyvalue/3.5.1, Apache-2.0 AND BSD-3-Clause AND Apache-2.0, approved, #22206
 maven/mavencentral/org.springframework.data/spring-data-redis/3.5.1, Apache-2.0, approved, clearlydefined
-maven/mavencentral/org.springframework.security/spring-security-crypto/6.5.1, Apache-2.0 AND ISC, approved, #22171
+maven/mavencentral/org.springframework.security/spring-security-crypto/6.5.2, Apache-2.0 AND ISC, approved, #22171
 maven/mavencentral/org.springframework/spring-aop/6.2.8, Apache-2.0, approved, #17530
 maven/mavencentral/org.springframework/spring-aspects/6.2.8, Apache-2.0, approved, #17550
 maven/mavencentral/org.springframework/spring-beans/6.2.8, Apache-2.0, approved, #17528

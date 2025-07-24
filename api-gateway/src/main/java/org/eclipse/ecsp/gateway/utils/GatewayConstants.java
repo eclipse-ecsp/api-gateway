@@ -213,4 +213,9 @@ public class GatewayConstants {
      * Message for internal server errors.
      */
     public static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
+
+    /**
+     * Gateway metrics filter order.
+     */
+    public static final int GATEWAY_METRICS_FILTER_ORDER = -100;
 }

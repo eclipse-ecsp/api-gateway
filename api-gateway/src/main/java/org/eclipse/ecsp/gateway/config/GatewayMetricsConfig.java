@@ -19,12 +19,15 @@
 package org.eclipse.ecsp.gateway.config;
 
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.metrics.ApiGatewayObservationConvention;
 import org.eclipse.ecsp.gateway.metrics.GatewayMeterFilter;
 import org.eclipse.ecsp.gateway.metrics.GatewayMetricsProperties;
+import org.eclipse.ecsp.gateway.metrics.GatewayRequestMetricsFilter;
 import org.eclipse.ecsp.gateway.metrics.HttpClientObservationConvention;
 import org.eclipse.ecsp.gateway.metrics.HttpServerObservationConvention;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -139,6 +142,36 @@ public class GatewayMetricsConfig {
             // Get the route information from the exchange attributes
             return Tags.of(Tags.of("requestUrl", exchange.getRequest().getPath().toString()));
         });
+    }
+
+    /**
+     * Creates a GatewayRequestMetricsFilter bean.
+     *
+     * <p>This filter captures all requests early in the filter chain to ensure
+     * metrics are recorded for all requests, including those that fail authentication.
+     *
+     * @param meterRegistry   the meter registry for recording metrics
+     * @param gatewayMetricsProperties properties for gateway metrics configuration
+     * @param tagsProviders   list of tag providers for metric tags
+     * @return custom gateway request metrics filter
+     */
+    @Bean
+    @ConditionalOnProperty(name = "api.gateway.metrics.gateway-requests.enabled", havingValue =
+            "true", matchIfMissing = true)
+    public GatewayRequestMetricsFilter gatewayMetricsFilter(
+            MeterRegistry meterRegistry,
+            GatewayMetricsProperties gatewayMetricsProperties,
+            List<GatewayTagsProvider> tagsProviders) {
+        String prefix = "api.gateway";
+        if (gatewayMetricsProperties.getGatewayRequests() != null
+                && StringUtils.isNotBlank(gatewayMetricsProperties.getGatewayRequests().getPrefix())) {
+            prefix = gatewayMetricsProperties.getGatewayRequests().getPrefix();
+            LOGGER.info("Gateway metrics prefix is set to: {}", prefix);
+        }
+        LOGGER.info("GatewayMetricsFilter is enabled with prefix: {}",
+                gatewayMetricsProperties.getGatewayRequests().getPrefix());
+        return new GatewayRequestMetricsFilter(meterRegistry,
+                tagsProviders, prefix);
     }
 
     /**

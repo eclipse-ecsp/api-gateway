@@ -54,7 +54,7 @@ public class GatewayRequestMetricsFilter extends GatewayMetricsFilter {
                                        String metricsPrefix) {
         super(meterRegistry, tagsProviders, metricsPrefix);
         LOGGER.info("GatewayRequestMetricsFilter initialized with order: {} and prefix: {}",
-                GatewayConstants.CUSTOM_METRICS_FILTER_ORDER, metricsPrefix);
+                GatewayConstants.GATEWAY_METRICS_FILTER_ORDER, metricsPrefix);
     }
 
     /**
@@ -73,6 +73,6 @@ public class GatewayRequestMetricsFilter extends GatewayMetricsFilter {
      */
     @Override
     public int getOrder() {
-        return GatewayConstants.CUSTOM_METRICS_FILTER_ORDER;
+        return GatewayConstants.GATEWAY_METRICS_FILTER_ORDER;
     }
 }

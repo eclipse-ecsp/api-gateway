@@ -60,12 +60,6 @@ public class GatewayRequestMetricsFilter extends GatewayMetricsFilter {
     /**
      * Override the order to run very early in the filter chain.
      *
-     * <p>Order -100 ensures this filter runs:
-     * - After AccessLogFilter (-1000)
-     * - Before CacheFilter (-10)
-     * - Before JwtAuthFilter (10)
-     * - Much earlier than default GatewayMetricsFilter (0)
-     *
      * <p>This guarantees that all requests are captured for metrics,
      * including those that fail authentication.
      *

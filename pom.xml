@@ -131,7 +131,7 @@
         </jacoco.ut.execution.data.file>
         <spring-security.version>6.5.2</spring-security.version>
         <bouncycastle.version>1.81</bouncycastle.version>
-        <nimbus-jose-jwt.version>10.4</nimbus-jose-jwt.version>
+        <nimbus-jose-jwt.version>10.4.1</nimbus-jose-jwt.version>
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
         <junit-platform-launcher.version>1.12.1</junit-platform-launcher.version>
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>

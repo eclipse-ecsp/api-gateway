@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
@@ -94,7 +95,7 @@ public class IgniteRouteLocator implements RouteLocator {
     @Value("${api.caching.type:local}")
     private String cacheType;
 
-    private final RegistryRouteLoader registryRouteLoader;
+    private final ApiRegistryClient apiRegistryClient;
 
     private final RouteLocatorBuilder routeLocatorBuilder;
 
@@ -115,7 +116,7 @@ public class IgniteRouteLocator implements RouteLocator {
      * @param gatewayProperties      the gateway properties
      * @param pluginEnabled          flag to enable custom plugins
      * @param pluginLoader           the plugin loader
-     * @param registryRouteLoader    the registry route loader
+     * @param apiRegistryClient    the registry route loader
      * @param routeLocatorBuilder    the route locator builder
      * @param applicationEventPublisher the application event publisher
      * @param springCloudGatewayConfig  the Spring Cloud Gateway configuration
@@ -125,12 +126,12 @@ public class IgniteRouteLocator implements RouteLocator {
                               GatewayProperties gatewayProperties,
                               @Value("${plugin.enabled}") boolean pluginEnabled,
                               PluginLoader pluginLoader,
-                              RegistryRouteLoader registryRouteLoader,
+                              ApiRegistryClient apiRegistryClient,
                               RouteLocatorBuilder routeLocatorBuilder,
                               ApplicationEventPublisher applicationEventPublisher,
                               SpringCloudGatewayConfig springCloudGatewayConfig) {
         this.configurationService = configurationService;
-        this.registryRouteLoader = registryRouteLoader;
+        this.apiRegistryClient = apiRegistryClient;
         this.routeLocatorBuilder = routeLocatorBuilder;
         this.applicationEventPublisher = applicationEventPublisher;
         this.springCloudGatewayConfig = springCloudGatewayConfig;
@@ -209,7 +210,7 @@ public class IgniteRouteLocator implements RouteLocator {
         loadDefaultFilters();
         // Load the ApiRoutes from api-registry
         RouteLocatorBuilder.Builder routesBuilder = routeLocatorBuilder.routes();
-        Flux<IgniteRouteDefinition> apiRoutes = registryRouteLoader.getRoutes();
+        Flux<IgniteRouteDefinition> apiRoutes = apiRegistryClient.getRoutes();
         // Build api-gateway routes on the ApiRoutes received from api-registry
         Flux<Route> routes = apiRoutes
                 .filter(r -> validateRouteFilters(r, r.getFilters()))
@@ -268,7 +269,7 @@ public class IgniteRouteLocator implements RouteLocator {
             setCacheFilter(apiRoute);
 
             filters.addAll(getFilters(apiRoute));
-            LOGGER.info("Gateway Filters: " + filters);
+            LOGGER.debug("Gateway Filters: " + filters);
         }
         // add the configured filters
         ((AbstractBuilder) route).filters(filters);

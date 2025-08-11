@@ -63,8 +63,25 @@ spring:
                 regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
 
 jwt:
-  publicKeyFileBasePath: /opt/api-gateway/pem_files/
-  publicKeyFiles: test-certificate.pem
+  keySources:
+  - id: test
+    type: PEM
+    location: /opt/api-gateway/pem_files/test-certificate.pem
+    default: true
+  tokenHeaderValidationConfig:
+    accountId:
+      required: false
+      regex: "^[a-zA-Z0-9]+$"
+    tenantId:
+      required: false
+      regex: "^[a-zA-Z0-9]+$"
+  # token claim to request header mapping
+  tokenClaimToHeaderMapping:
+    sub: "x-user-id"
+    email: "user-email"
+    user_id: "user-id"
+    tenantId: "tenantId"
+    accountId: "accountId"
 requestBody:
   validation: true
 
@@ -118,6 +135,12 @@ api:
         prefix: api.gateway
         ignoreTags: [ "exception" ]
         security-filter-name: JwtAuthFilter
+      public-key-cache:
+        enabled: true
+        cache-size:
+          name: public_key_cache_size
+        key-sources:
+          name: public_key_sources_count
       gateway-requests:
         enabled: true
         prefix: api.gateway

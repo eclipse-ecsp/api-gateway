@@ -42,6 +42,7 @@ public class GatewayMetricsProperties {
     private DistributedMetrics httpClientRequests;
     private DistributedMetrics gatewayRequests;
     private SecurityMetrics securityMetrics;
+    private PublicKeyCacheMetrics publicKeyCache;
     private DatadogProperties datadog;
     private PrometheusProperties prometheus;
 
@@ -63,6 +64,74 @@ public class GatewayMetricsProperties {
     @Getter
     public static class SecurityMetrics extends BaseMetrics {
         private String securityFilterName;
+    }
+
+    /**
+     * public key cache metrics configuration.
+     */
+    @Setter
+    @Getter
+    public static class PublicKeyCacheMetrics extends BaseMetrics {
+        private CacheSize cacheSize;
+        private KeySources keySources;
+        private RefreshCount refreshCount;
+        private RefreshTime refreshTime;
+        private RefreshSourceCount refreshSourceCount;
+        private RefreshSourceTime refreshSourceTime;
+
+        /**
+         * cache size metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class CacheSize {
+            private String name = "public_key_cache_size";
+        }
+
+        /**
+         * key sources metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class KeySources {
+            private String name = "public_key_sources_count";
+        }
+
+        /**
+         * refresh count metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class RefreshCount {
+            private String name = "public_key_refresh_count";
+        }
+
+        /**
+         * last refresh time metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class RefreshTime {
+            private String name = "public_key_refresh_time";
+        }
+
+        /**
+         * refresh source count metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class RefreshSourceCount {
+            private String name = "public_key_refresh_source_count";
+        }
+
+        /**
+         * refresh duration metrics configuration.
+         */
+        @Setter
+        @Getter
+        public static class RefreshSourceTime {
+            private String name = "public_key_source_refresh_time";
+        }
     }
 
     /**

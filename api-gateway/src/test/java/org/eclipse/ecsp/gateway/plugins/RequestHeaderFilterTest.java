@@ -25,6 +25,7 @@ import com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.Config;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.GlobalHeaderConfig;
 import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
+import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,9 @@ class RequestHeaderFilterTest {
 
     @MockitoBean
     ApiGatewayController apiGatewayController;
+
+    @MockitoBean
+    PublicKeyService publicKeyService;
 
     @Autowired
     WebTestClient webTestClient;

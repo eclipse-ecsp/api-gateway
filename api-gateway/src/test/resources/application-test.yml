@@ -59,8 +59,11 @@ main:
   web-application-type: reactive
 
 jwt:
-  publicKeyFileBasePath: /opt/api-gateway/pem_files/
-  publicKeyFiles: test-certificate.pem
+  keySources:
+    - id: test
+      type: PEM
+      location: ./src/test/resources/test-certificate.pem
+      default: true
 requestBody:
   validation: true
 

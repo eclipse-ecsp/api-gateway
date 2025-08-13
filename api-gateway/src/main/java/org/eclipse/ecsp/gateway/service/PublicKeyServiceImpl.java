@@ -141,7 +141,7 @@ public class PublicKeyServiceImpl implements PublicKeyService {
                 PublicKey publicKey = entry.getValue();
                 if (keyId != null && publicKey != null) {
                     String cacheKey = generateCacheKey(source, keyId);
-                    publicKeyCache.put(keyId, publicKey);
+                    publicKeyCache.put(cacheKey, publicKey);
                     LOGGER.info("Public key with ID: {} added to cache with key: {}", keyId, cacheKey);
                 } else {
                     LOGGER.warn("public key from source {} has null keyId or publicKey, skipping", source.getId());

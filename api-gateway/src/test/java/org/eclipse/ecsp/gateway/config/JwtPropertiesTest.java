@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
-import org.springframework.core.env.StandardEnvironment;
 
 import java.time.Duration;
 import java.util.HashMap;

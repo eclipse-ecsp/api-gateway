@@ -20,7 +20,6 @@ package org.eclipse.ecsp.gateway.service;
 
 import io.micrometer.core.instrument.Timer;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
-import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.metrics.PublicKeyMetrics;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.PublicKeyType;
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 

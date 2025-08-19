@@ -74,8 +74,6 @@ public class GatewayMetricsProperties {
     public static class PublicKeyCacheMetrics extends BaseMetrics {
         private CacheSize cacheSize;
         private KeySources keySources;
-        private RefreshCount refreshCount;
-        private RefreshTime refreshTime;
         private RefreshSourceCount refreshSourceCount;
         private RefreshSourceTime refreshSourceTime;
 
@@ -95,24 +93,6 @@ public class GatewayMetricsProperties {
         @Getter
         public static class KeySources {
             private String name = "public_key_sources_count";
-        }
-
-        /**
-         * refresh count metrics configuration.
-         */
-        @Setter
-        @Getter
-        public static class RefreshCount {
-            private String name = "public_key_refresh_count";
-        }
-
-        /**
-         * last refresh time metrics configuration.
-         */
-        @Setter
-        @Getter
-        public static class RefreshTime {
-            private String name = "public_key_refresh_time";
         }
 
         /**

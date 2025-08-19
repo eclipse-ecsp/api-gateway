@@ -50,13 +50,11 @@ class JwtPropertiesTest {
     public static final int FIVE = 5;
     public static final int TEN = 10;
     private JwtProperties jwtProperties;
-    private StandardEnvironment environment;
 
     @BeforeEach
     void setUp() {
         // Given
         jwtProperties = new JwtProperties();
-        environment = new StandardEnvironment();
     }
 
     /**

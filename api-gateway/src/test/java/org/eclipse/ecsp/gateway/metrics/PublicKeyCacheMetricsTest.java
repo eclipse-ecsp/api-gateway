@@ -22,8 +22,6 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
-import org.eclipse.ecsp.gateway.metrics.GatewayMetricsProperties.PublicKeyCacheMetrics.RefreshSourceCount;
-import org.eclipse.ecsp.gateway.metrics.GatewayMetricsProperties.PublicKeyCacheMetrics.RefreshTime;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -33,13 +31,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
@@ -76,6 +75,10 @@ class PublicKeyCacheMetricsTest {
     private GatewayMetricsProperties gatewayMetricsProperties;
     private PublicKeyMetrics publicKeyCacheMetrics;
 
+    // Refactored components
+    private PublicKeyCacheMetricsRegistrar cacheMetricsRegistrar;
+    private PublicKeyRefreshMetricsRecorder refreshMetricsRecorder;
+
     // Test constants to avoid magic numbers
     private static final int CACHE_SIZE_1 = 1;
     private static final int CACHE_SIZE_2 = 2;
@@ -87,7 +90,6 @@ class PublicKeyCacheMetricsTest {
     private static final double CACHE_SIZE_3_DOUBLE = 3.0;
     private static final double CACHE_SIZE_5_DOUBLE = 5.0;
     private static final double CACHE_SIZE_7_DOUBLE = 7.0;
-    private static final double MILLISECONDS_TO_SECONDS = 1000.0;
 
     @BeforeEach
     void setUp() {
@@ -108,12 +110,15 @@ class PublicKeyCacheMetricsTest {
         gatewayMetricsProperties.setPublicKeyCache(config);
 
         List<PublicKeySourceProvider> sourceProviders = Arrays.asList(sourceProvider1, sourceProvider2);
-        publicKeyCacheMetrics = new PublicKeyMetrics(
-                meterRegistry, 
-                publicKeyCache, 
-                sourceProviders, 
-                gatewayMetricsProperties
-        );
+
+        // Create the refactored components
+        cacheMetricsRegistrar = new PublicKeyCacheMetricsRegistrar(
+                meterRegistry, publicKeyCache, sourceProviders, gatewayMetricsProperties);
+        refreshMetricsRecorder = new PublicKeyRefreshMetricsRecorder(
+                meterRegistry, gatewayMetricsProperties);
+
+        // Create PublicKeyMetrics with new constructor
+        publicKeyCacheMetrics = new PublicKeyMetrics(cacheMetricsRegistrar, refreshMetricsRecorder);
     }
 
     @Test
@@ -200,12 +205,14 @@ class PublicKeyCacheMetricsTest {
     void shouldUseDefaultMetricNamesWhenConfigurationIsMissing() {
         // Given
         gatewayMetricsProperties.setPublicKeyCache(null);
-        publicKeyCacheMetrics = new PublicKeyMetrics(
-                meterRegistry, 
-                publicKeyCache, 
-                Arrays.asList(sourceProvider1), 
-                gatewayMetricsProperties
-        );
+
+        // Create new components with null configuration
+        List<PublicKeySourceProvider> sourceProviders = Arrays.asList(sourceProvider1);
+        PublicKeyCacheMetricsRegistrar newCacheRegistrar = new PublicKeyCacheMetricsRegistrar(
+                meterRegistry, publicKeyCache, sourceProviders, gatewayMetricsProperties);
+        PublicKeyRefreshMetricsRecorder newRefreshRecorder = new PublicKeyRefreshMetricsRecorder(
+                meterRegistry, gatewayMetricsProperties);
+        publicKeyCacheMetrics = new PublicKeyMetrics(newCacheRegistrar, newRefreshRecorder);
 
         when(publicKeyCache.size()).thenReturn(CACHE_SIZE_2);
         when(sourceProvider1.keySources()).thenReturn(Arrays.asList(publicKeySource1));
@@ -272,33 +279,6 @@ class PublicKeyCacheMetricsTest {
     }
 
     @Test
-    @DisplayName("Should record full refresh events correctly")
-    void shouldRecordFullRefreshEventsCorrectly() {
-        // Given
-        publicKeyCacheMetrics.initializeMetrics();
-
-        // When
-        final long beforeTime = System.currentTimeMillis();
-        publicKeyCacheMetrics.recordFullRefresh();
-        publicKeyCacheMetrics.recordFullRefresh();
-
-        // Then
-        Gauge refreshCountGauge = meterRegistry.find("public_key_refresh_count").gauge();
-        assertNotNull(refreshCountGauge, "Full refresh count gauge should be registered");
-        assertEquals(CACHE_SIZE_2_DOUBLE, refreshCountGauge.value(), "Should count full refresh events");
-
-        Gauge lastRefreshTimeGauge = meterRegistry.find("public_key_refresh_time").gauge();
-        assertNotNull(lastRefreshTimeGauge, "Last refresh time gauge should be registered");
-        double lastRefreshTimeSeconds = lastRefreshTimeGauge.value();
-        long afterTime = System.currentTimeMillis();
-        
-        // Convert to seconds and check it's within reasonable bounds
-        assertTrue(lastRefreshTimeSeconds >= beforeTime / MILLISECONDS_TO_SECONDS 
-                && lastRefreshTimeSeconds <= afterTime / MILLISECONDS_TO_SECONDS,
-                  "Last refresh time should be recent timestamp in seconds");
-    }
-
-    @Test
     @DisplayName("Should record source refresh events correctly")
     void shouldRecordSourceRefreshEventsCorrectly() {
         // Given
@@ -313,36 +293,5 @@ class PublicKeyCacheMetricsTest {
         // Counter increments should be reflected in the registry
         assertNotNull(meterRegistry.find(GatewayConstants.DEFAULT_SOURCE_REFRESH_COUNT_METRIC).counter(),
                 "Source refresh counter should be registered");
-    }
-
-    @Test
-    @DisplayName("Should use configured refresh metric names")
-    void shouldUseConfiguredRefreshMetricNames() {
-        // Given
-        GatewayMetricsProperties.PublicKeyCacheMetrics.RefreshCount refreshCountConfig = 
-                new GatewayMetricsProperties.PublicKeyCacheMetrics.RefreshCount();
-        refreshCountConfig.setName("custom_refresh_count");
-        
-        RefreshTime lastRefreshTimeConfig =
-                new RefreshTime();
-        lastRefreshTimeConfig.setName("custom_last_refresh_time");
-        
-        RefreshSourceCount refreshDurationConfig =
-                new RefreshSourceCount();
-        refreshDurationConfig.setName("custom_refresh_duration");
-
-        // Setup new configuration
-        GatewayMetricsProperties.PublicKeyCacheMetrics config = gatewayMetricsProperties.getPublicKeyCache();
-        config.setRefreshCount(refreshCountConfig);
-        config.setRefreshTime(lastRefreshTimeConfig);
-
-        // When
-        publicKeyCacheMetrics.initializeMetrics();
-
-        // Then
-        assertNotNull(meterRegistry.find("custom_refresh_count").gauge(),
-                "Should use configured refresh count metric name");
-        assertNotNull(meterRegistry.find("custom_last_refresh_time").gauge(),
-                "Should use configured last refresh time metric name");
     }
 }

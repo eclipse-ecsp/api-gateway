@@ -33,8 +33,8 @@ import java.util.Base64;
  * This class is primarily used for testing and debugging purposes.
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-public class KeyPairGenerator {
-    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(KeyPairGenerator.class);
+public class TestKeyPairGenerator {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(TestKeyPairGenerator.class);
     public static final int KEYSIZE = 2048;
     public static final int INT_64 = 64;
 

@@ -1,10 +1,8 @@
 package org.eclipse.ecsp.gateway.service;
 
 import jakarta.annotation.PostConstruct;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
-import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.PublicKeyType;
 import org.eclipse.ecsp.gateway.plugins.keyloaders.PublicKeyLoader;
@@ -18,7 +16,6 @@ import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -80,13 +77,13 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     @Override
     public Optional<PublicKey> findPublicKey(String keyId, String provider) {
         LOGGER.info("Finding public key for keyId: {} and provider: {}", keyId, provider);
-        if (StringUtils.isEmpty(keyId)) {
+        if (keyId == null || keyId.isEmpty()) {
             LOGGER.warn("Key ID is null or empty, cannot find public key");
             return Optional.empty();
         }
         Optional<PublicKey> publicKey = publicKeyCache.get(keyId);
 
-        // If not found and provider is provided, try with provider prefixed key
+        // If not found and issuer is provided, try with provider-prefixed key
         if (publicKey.isEmpty() && provider != null && !provider.isEmpty()) {
             String prefixedKey = provider + "_" + keyId;
             publicKey = publicKeyCache.get(prefixedKey);
@@ -103,37 +100,42 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     @Override
     public void refreshPublicKeys() {
         LOGGER.info("Refreshing public keys from all available sources, current cache size: {}", publicKeyCache.size());
-        publicKeyCache.clear();
-        for (PublicKeySourceProvider sourceProvider : sourceProviders) {
-            List<PublicKeySource> sources = sourceProvider.keySources();
-            if (sources == null || sources.isEmpty()) {
-                LOGGER.warn("No public key sources available from provider: {}",
-                        sourceProvider.getClass().getSimpleName());
-                continue;
-            }
-
-            LOGGER.info("Found {} public key sources from provider: {}", sources.size(),
-                    sourceProvider.getClass().getSimpleName());
-            for (PublicKeySource source : sources) {
-                PublicKeyLoader loader = keyLoaders.get(source.getType());
-                if (loader == null) {
-                    LOGGER.warn("No loader found for public key type: {}", source.getType());
+        
+        try {
+            publicKeyCache.clear();
+            for (PublicKeySourceProvider sourceProvider : sourceProviders) {
+                List<PublicKeySource> sources = sourceProvider.keySources();
+                if (sources == null || sources.isEmpty()) {
+                    LOGGER.warn("No public key sources available from provider: {}",
+                            sourceProvider.getClass().getSimpleName());
                     continue;
                 }
 
-                LOGGER.info("Loading public key from source: {} with type: {}",
-                        source.getId(), source.getType());
-                loadPublicKeys(source, loader);
+                LOGGER.info("Found {} public key sources from provider: {}", sources.size(),
+                        sourceProvider.getClass().getSimpleName());
+                for (PublicKeySource source : sources) {
+                    PublicKeyLoader loader = keyLoaders.get(source.getType());
+                    if (loader == null) {
+                        LOGGER.warn("No loader found for public key type: {}", source.getType());
+                        continue;
+                    }
 
-                if (loader.getType() == PublicKeyType.JWKS) {
-                    scheduleJwksRefresh(source, loader);
+                    LOGGER.info("Loading public key from source: {} with type: {}",
+                            source.getId(), source.getType());
+                    loadPublicKeys(source, loader);
+
+                    if (loader.getType() == PublicKeyType.JWKS) {
+                        scheduleJwksRefresh(source, loader);
+                    }
                 }
             }
+            
+            LOGGER.info("Public keys refreshed, current cache size: {}", publicKeyCache.size());
+            
+        } catch (Exception e) {
+            LOGGER.error("Error during public key refresh", e);
+            throw e;
         }
-        this.eventPublisher.publishEvent(
-            new PublicKeyRefreshEvent(RefreshType.ALL_KEYS, null)
-        );
-        LOGGER.info("Public keys refreshed, current cache size: {}", publicKeyCache.size());
     }
 
     private void loadPublicKeys(PublicKeySource source, PublicKeyLoader loader) {
@@ -143,13 +145,13 @@ public class PublicKeyServiceImpl implements PublicKeyService {
             for (Entry<String, PublicKey> entry : loadedKeys.entrySet()) {
                 String keyId = entry.getKey();
                 PublicKey publicKey = entry.getValue();
-                if (StringUtils.isBlank(keyId) || Objects.isNull(publicKey)) {
+                if (keyId != null && !keyId.trim().isEmpty() && publicKey != null) {
+                    String cacheKey = generateCacheKey(source, keyId);
+                    publicKeyCache.put(cacheKey, publicKey);
+                    LOGGER.info("Public key with ID: {} added to cache with key: {}", keyId, cacheKey);
+                } else {
                     LOGGER.warn("public key from source {} has null keyId or publicKey, skipping", source.getId());
-                    continue;
                 }
-                String cacheKey = generateCacheKey(source, keyId);
-                publicKeyCache.put(cacheKey, publicKey);
-                LOGGER.info("Public key with ID: {} added to cache with key: {}", keyId, cacheKey);
             }
         }
     }
@@ -164,11 +166,20 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     private void scheduleJwksRefresh(PublicKeySource source, PublicKeyLoader loader) {
         threadPoolExecutor.scheduleAtFixedRate(() -> {
             LOGGER.info("Refreshing JWKS public key from source: {}", source.getId());
-            this.loadPublicKeys(source, loader);
-            LOGGER.info("JWKS public key refresh completed for source: {}", source.getId());
-            this.eventPublisher.publishEvent(
-                new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY, source.getId())
-            );
+            
+            try {
+                this.loadPublicKeys(source, loader);
+                LOGGER.info("JWKS public key refresh completed for source: {}", source.getId());
+                
+                // Publish individual source refresh event
+                eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY, 
+                    source.getId()));
+                
+            } catch (Exception e) {
+                LOGGER.error("Error during JWKS refresh for source: " + source.getId(), e);
+                eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY,
+                    source.getId()));
+            }
         }, source.getRefreshInterval().toMillis(), source.getRefreshInterval().toMillis(), TimeUnit.MILLISECONDS);
     }
 }

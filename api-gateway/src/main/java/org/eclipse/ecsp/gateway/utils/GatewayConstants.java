@@ -246,16 +246,6 @@ public class GatewayConstants {
     public static final String CACHE_SIZE = "cache-size";
 
     /**
-     * Metric label key for tracking the time taken for refresh operations.
-     */
-    public static final String REFRESH_TIME = "last-refresh-time";
-
-    /**
-     * Metric label key for tracking the number of public key refresh operations.
-     */
-    public static final String REFRESH_COUNT = "refresh-count";
-
-    /**
      * Metric label key for tracking the count of source refresh operations.
      */
     public static final String REFRESH_SOURCE_COUNT = "refresh-source-count";
@@ -274,14 +264,6 @@ public class GatewayConstants {
      * Default metric name for public key sources count.
      */
     public static final String DEFAULT_KEY_SOURCES_METRIC = "public_key_sources_count";
-    /**
-     * Default metric name for public key refresh count.
-     */
-    public static final String DEFAULT_REFRESH_COUNT_METRIC = "public_key_refresh_count";
-    /**
-     * Default metric name for last public key refresh time.
-     */
-    public static final String DEFAULT_LAST_REFRESH_TIME_METRIC = "public_key_refresh_time";
     /**
      * Default metric name for public key source refresh count.
      */

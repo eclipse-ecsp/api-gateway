@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.gateway.plugins.filters;
 
-import com.nimbusds.jose.Header;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import io.jsonwebtoken.Claims;

@@ -118,7 +118,7 @@ public class RouteSecurityMetrics {
                 secureRoutes.incrementAndGet();
             } else {
                 // Log unsecured routes and add them to the list
-                LOGGER.warn("Route: {} is not secured", route.getId());
+                LOGGER.debug("Route: {} is not secured", route.getId());
                 unsecuredRoutes.add(route.getId());
             }
             // Log detailed information about each route

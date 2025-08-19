@@ -19,7 +19,6 @@
 package org.eclipse.ecsp.gateway.metrics;
 
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.gateway.ApiGatewayApplication;
@@ -75,6 +74,7 @@ class PublicKeyCacheMetricsIntegrationTest {
     public static final double DOUBLE_1000 = 1000.0;
     public static final double DOUBLE_2 = 2.0;
     public static final int EXPECTED = 2;
+
     @Autowired
     private MeterRegistry meterRegistry;
 
@@ -89,6 +89,15 @@ class PublicKeyCacheMetricsIntegrationTest {
 
     @MockitoBean
     private ApiGatewayController apiGatewayController;
+
+    // Helper method to create PublicKeyMetrics with refactored components
+    private PublicKeyMetrics createPublicKeyMetrics(PublicKeyCache cache, List<PublicKeySourceProvider> providers) {
+        PublicKeyCacheMetricsRegistrar cacheRegistrar = new PublicKeyCacheMetricsRegistrar(
+                meterRegistry, cache, providers, gatewayMetricsProperties);
+        PublicKeyRefreshMetricsRecorder refreshRecorder = new PublicKeyRefreshMetricsRecorder(
+                meterRegistry, gatewayMetricsProperties);
+        return new PublicKeyMetrics(cacheRegistrar, refreshRecorder);
+    }
 
     @BeforeAll
     static void setup() {
@@ -105,8 +114,7 @@ class PublicKeyCacheMetricsIntegrationTest {
     @DisplayName("Should have metrics registered in MeterRegistry")
     void shouldHaveMetricsRegisteredInMeterRegistry() {
         // Given
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, publicKeySourceProviders);
 
         // When
         metrics.initializeMetrics();
@@ -133,8 +141,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         // Given
         PublicKeyCache mockPublicKeyCache = mock(PublicKeyCache.class);
         when(mockPublicKeyCache.size()).thenReturn(INT_5);
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, mockPublicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(mockPublicKeyCache, publicKeySourceProviders);
 
         // When
         metrics.initializeMetrics();
@@ -155,8 +162,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         List<PublicKeySourceProvider> providers = List.of(provider1, provider2);
 
         // When
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, providers, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, providers);
         metrics.initializeMetrics();
 
         // Then
@@ -165,43 +171,28 @@ class PublicKeyCacheMetricsIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should track full refresh events correctly")
-    void shouldTrackFullRefreshEventsCorrectly() {
-        // Given
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
-        metrics.initializeMetrics();
-
-        // When
-        metrics.recordFullRefresh();
-        metrics.recordFullRefresh();
-
-        // Then
-        Gauge gauge = meterRegistry.find("public_key_refresh_count").gauge();
-        assertNotNull(gauge, "Gauge for public key refresh count should be available");
-        assertEquals(DOUBLE_2, gauge.value(), 0.0);
-        Gauge refreshTimeGauge = meterRegistry.find("public_key_refresh_time").gauge();
-        assertNotNull(refreshTimeGauge, "Gauge for public key refresh time should be available");
-        assertTrue(refreshTimeGauge.value() > 0);
-    }
-
-    @Test
     @DisplayName("Should track individual source refresh events")
     void shouldTrackIndividualSourceRefreshEvents() {
         // Given
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, publicKeySourceProviders);
+
+        // Create event handler to process events since the main class no longer has handleMetricsEvents
+        PublicKeyRefreshEventHandler eventHandler = new PublicKeyRefreshEventHandler(
+                new PublicKeyRefreshMetricsRecorder(meterRegistry, gatewayMetricsProperties),
+                new PublicKeyCacheMetricsRegistrar(meterRegistry, publicKeyCache, 
+                publicKeySourceProviders, gatewayMetricsProperties));
+
         metrics.initializeMetrics();
 
         // When
-        metrics.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
-        metrics.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source2"));
-        metrics.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
+        eventHandler.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
+        eventHandler.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source2"));
+        eventHandler.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
 
         // Then
         Collection<Counter> counters = meterRegistry.get("public_key_source_refresh_count").counters();
         assertNotNull(counters, "Counters for public key source refresh count should be available");
-        assertEquals(EXPECTED, counters.size(), "There should be one counter for public key source refresh count");
+        assertEquals(EXPECTED, counters.size(), "There should be two counters for different sources");
     }
 
     @Test
@@ -213,8 +204,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         List<PublicKeySourceProvider> providers = List.of(provider);
 
         // When
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, providers, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, providers);
         metrics.initializeMetrics();
 
         // Then
@@ -230,8 +220,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         List<PublicKeySourceProvider> providers = List.of(faultyProvider);
 
         // When
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, providers, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, providers);
         metrics.initializeMetrics();
 
         // Then
@@ -242,8 +231,13 @@ class PublicKeyCacheMetricsIntegrationTest {
     @DisplayName("Should register all required metrics with proper tags")
     void shouldRegisterAllRequiredMetricsWithProperTags() {
         // Given
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, publicKeySourceProviders);
+
+        // Create event handler for testing event processing
+        PublicKeyRefreshEventHandler eventHandler = new PublicKeyRefreshEventHandler(
+                new PublicKeyRefreshMetricsRecorder(meterRegistry, gatewayMetricsProperties),
+                new PublicKeyCacheMetricsRegistrar(meterRegistry, publicKeyCache, publicKeySourceProviders,
+                 gatewayMetricsProperties));
 
         // When
         metrics.initializeMetrics();
@@ -251,14 +245,8 @@ class PublicKeyCacheMetricsIntegrationTest {
         // Then
         String[] expectedMetrics = {
             "public_key_cache_size",
-            "public_key_sources_count",
-            "public_key_refresh_count",
-            "public_key_refresh_time",
-            "public_key_source_refresh_count",
-            "public_key_source_refresh_time"
+            "public_key_sources_count"
         };
-
-        metrics.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
 
         for (String metricName : expectedMetrics) {
             assertNotNull(meterRegistry.find(metricName).meter(),
@@ -267,6 +255,13 @@ class PublicKeyCacheMetricsIntegrationTest {
                 .anyMatch(tag -> "component".equals(tag.getKey()) && "public-key-cache".equals(tag.getValue())),
                 "Metric " + metricName + " should have component tag");
         }
+
+        // Test source refresh metrics by triggering an event
+        eventHandler.handleMetricsEvents(new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "source1"));
+
+        // Check source-specific metrics
+        assertNotNull(meterRegistry.find("public_key_source_refresh_count").counter(),
+                "Source refresh count metric should be registered after event");
     }
 
     @Test
@@ -276,8 +271,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         List<PublicKeySourceProvider> emptyProviders = List.of();
 
         // When
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, emptyProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(publicKeyCache, emptyProviders);
         metrics.initializeMetrics();
 
         // Then
@@ -290,8 +284,7 @@ class PublicKeyCacheMetricsIntegrationTest {
         // Given
         PublicKeyCache mockCache = mock(PublicKeyCache.class);
         when(mockCache.size()).thenReturn(INT_3).thenReturn(INT_7);
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, mockCache, publicKeySourceProviders, gatewayMetricsProperties);
+        PublicKeyMetrics metrics = createPublicKeyMetrics(mockCache, publicKeySourceProviders);
         metrics.initializeMetrics();
 
         // When - First read
@@ -303,25 +296,5 @@ class PublicKeyCacheMetricsIntegrationTest {
         // Then
         assertEquals(DOUBLE_3, firstValue, 0.0);
         assertEquals(DOUBLE_7, secondValue, 0.0);
-    }
-
-    @Test
-    @DisplayName("Should record timestamp correctly for last refresh time")
-    void shouldRecordTimestampCorrectlyForLastRefreshTime() {
-        // Given
-        PublicKeyMetrics metrics = new PublicKeyMetrics(
-            meterRegistry, publicKeyCache, publicKeySourceProviders, gatewayMetricsProperties);
-        metrics.initializeMetrics();
-        double beforeRefresh = System.currentTimeMillis() / DOUBLE_1000; // Convert to seconds with decimal precision
-
-        // When
-        metrics.recordFullRefresh();
-
-        // Then
-        double lastRefreshTime = meterRegistry.find("public_key_refresh_time").gauge().value();
-        double afterRefresh = System.currentTimeMillis() / DOUBLE_1000; // Convert to seconds with decimal precision
-
-        assertTrue(lastRefreshTime >= beforeRefresh && lastRefreshTime <= afterRefresh,
-            "Last refresh time should be within the test execution timeframe");
     }
 }

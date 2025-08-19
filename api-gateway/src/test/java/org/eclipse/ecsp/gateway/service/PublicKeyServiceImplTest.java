@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.service;
 
 import io.micrometer.core.instrument.Timer;
@@ -31,6 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -244,5 +264,130 @@ class PublicKeyServiceImplTest {
         assertEquals(testPublicKey, result.get());
         verify(publicKeyCache).get(keyId);
         verify(publicKeyCache, never()).get(contains("_"));
+    }
+
+    /**
+     * Test cache key generation with provider prefix.
+     * Verifies that cache keys are generated correctly when provider prefix is enabled.
+     */
+    @Test
+    void generateCacheKey_whenUseProviderPrefixedKeyEnabled_thenGeneratesPrefixedKey() {
+        // Given
+        PublicKeySource source = new PublicKeySource();
+        source.setId("test-provider");
+        source.setUseProviderPrefixedKey(true);
+        String keyId = "test-key-123";
+
+        Map<String, PublicKey> mockKeys = new HashMap<>();
+        mockKeys.put(keyId, testPublicKey);
+
+        when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
+        when(sourceProvider.keySources()).thenReturn(List.of(source));
+        when(keyLoader.loadKeys(any(PublicKeySource.class))).thenReturn(mockKeys);
+
+        // When
+        publicKeyService.refreshPublicKeys();
+
+        // Then
+        verify(publicKeyCache).put("test-provider_test-key-123", testPublicKey);
+    }
+
+    /**
+     * Test cache key generation without provider prefix.
+     * Verifies that cache keys use original key ID when provider prefix is disabled.
+     */
+    @Test
+    void generateCacheKey_whenUseProviderPrefixedKeyDisabled_thenUsesOriginalKeyId() {
+        // Given
+        PublicKeySource source = new PublicKeySource();
+        source.setId("test-provider");
+        source.setUseProviderPrefixedKey(false);
+        String keyId = "test-key-456";
+
+        Map<String, PublicKey> mockKeys = new HashMap<>();
+        mockKeys.put(keyId, testPublicKey);
+
+        when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
+        when(sourceProvider.keySources()).thenReturn(List.of(source));
+        when(keyLoader.loadKeys(any(PublicKeySource.class))).thenReturn(mockKeys);
+
+        // When
+        publicKeyService.refreshPublicKeys();
+
+        // Then
+        verify(publicKeyCache).put("test-key-456", testPublicKey);
+    }
+
+    /**
+     * Test handling of null and empty key IDs in cache key generation.
+     * Verifies proper handling of edge cases in key generation.
+     */
+    @Test
+    void loadPublicKeys_whenNullOrEmptyKeyId_thenSkipsKey() {
+        // Given
+        PublicKeySource source = new PublicKeySource();
+        source.setId("test-provider");
+        source.setUseProviderPrefixedKey(true);
+
+        Map<String, PublicKey> mockKeys = new HashMap<>();
+        mockKeys.put(null, testPublicKey);  // null key ID
+        mockKeys.put("", testPublicKey);    // empty key ID
+        mockKeys.put("valid-key", testPublicKey); // valid key
+
+        when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
+        when(sourceProvider.keySources()).thenReturn(List.of(source));
+        when(keyLoader.loadKeys(any(PublicKeySource.class))).thenReturn(mockKeys);
+
+        // When
+        publicKeyService.refreshPublicKeys();
+
+        // Then
+        // Only the valid key should be cached
+        verify(publicKeyCache).put("test-provider_valid-key", testPublicKey);
+        verify(publicKeyCache, never()).put(eq(null), any(PublicKey.class));
+        verify(publicKeyCache, never()).put(eq(""), any(PublicKey.class));
+        verify(publicKeyCache, never()).put(eq("test-provider_"), any(PublicKey.class));
+    }
+
+    /**
+     * Test event publishing during key refresh operations.
+     * Verifies that appropriate events are published during refresh operations.
+     */
+    @Test
+    void refreshPublicKeys_whenCompleted_thenPublishesRefreshEvent() {
+        // Given
+        when(sourceProvider.keySources()).thenReturn(Collections.emptyList());
+
+        // When
+        publicKeyService.refreshPublicKeys();
+
+        // Then
+        verify(eventPublisher).publishEvent(any(PublicKeyRefreshEvent.class));
+    }
+
+    /**
+     * Test initialization with metrics integration.
+     * Verifies that service initialization works correctly with metrics.
+     */
+    @Test
+    void initialize_whenCalled_thenInitializesWithMetrics() {
+        // Given
+        Map<String, PublicKey> mockKeys = new HashMap<>();
+        mockKeys.put("key1", testPublicKey);
+        when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(any(PublicKeySource.class))).thenReturn(mockKeys);
+        when(publicKeyCache.size()).thenReturn(1);
+
+        // When
+        publicKeyService.initialize();
+
+        // Then
+        verify(sourceProvider).keySources();
+        verify(keyLoader).loadKeys(any(PublicKeySource.class));
+        verify(publicKeyCache).clear();
+        verify(publicKeyCache).put(anyString(), any(PublicKey.class));
+        verify(eventPublisher).publishEvent(any(PublicKeyRefreshEvent.class));
+        verify(publicKeyCache, atLeast(1)).size(); // Called for logging
     }
 }

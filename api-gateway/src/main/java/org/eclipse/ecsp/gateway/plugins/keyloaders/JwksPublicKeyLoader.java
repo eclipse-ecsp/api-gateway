@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.plugins.keyloaders;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,6 +24,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.model.PublicKeyAuthType;
 import org.eclipse.ecsp.gateway.model.PublicKeyCredentials;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
@@ -171,15 +190,13 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
      * @return the access token
      */
     private String generateAccessToken(PublicKeyCredentials credentials) {
-        if (credentials == null || credentials.getClientId() == null
-                || credentials.getClientSecret() == null
-                || credentials.getClientId().trim().isEmpty()
-                || credentials.getClientSecret().trim().isEmpty()) {
+        if (credentials == null || StringUtils.isBlank(credentials.getClientId())
+                || StringUtils.isBlank(credentials.getClientSecret())) {
             throw new IllegalArgumentException(
                     "Client ID and client secret are required for client credentials authentication");
         }
 
-        if (credentials.getTokenEndpoint() == null || credentials.getTokenEndpoint().trim().isEmpty()) {
+        if (StringUtils.isBlank(credentials.getTokenEndpoint())) {
             throw new IllegalArgumentException("Token endpoint is required for client credentials flow");
         }
 
@@ -208,7 +225,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             LOGGER.debug("Successfully generated access token for client: {}", credentials.getClientId());
             return accessToken;
         } catch (Exception e) {
-            LOGGER.error("Failed to obtain access token from {}: {}", credentials.getTokenEndpoint(), e.getMessage());
+            LOGGER.error("Failed to obtain access token from {}: {}", credentials.getTokenEndpoint(), e);
             throw new IllegalStateException("Failed to obtain access token: " + e.getMessage(), e);
         }
     }

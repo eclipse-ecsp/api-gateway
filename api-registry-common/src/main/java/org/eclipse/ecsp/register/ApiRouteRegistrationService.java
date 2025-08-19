@@ -79,7 +79,7 @@ public class ApiRouteRegistrationService {
             try {
                 LOGGER.info("Route : {}", MAPPER.writeValueAsString(route));
             } catch (JsonProcessingException ex) {
-                LOGGER.warn("Failed to register application: {}", ex.getMessage());
+                LOGGER.warn("Failed to register application: {}", ex);
             }
         });
         registerApiRoutes(apiRoutes);

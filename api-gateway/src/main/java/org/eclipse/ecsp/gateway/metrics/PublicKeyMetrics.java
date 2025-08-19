@@ -22,10 +22,12 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
 import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -166,7 +168,7 @@ public class PublicKeyMetrics {
         // Register gauge for full refresh count
         Gauge.builder(refreshCountName, fullRefreshCount, AtomicLong::get)
                 .description("Total number of full public key cache refreshes")
-                .tags(createBaseTags("full-refresh-count"))
+                .tags(createBaseTags(GatewayConstants.REFRESH_COUNT))
                 .register(meterRegistry);
 
         LOGGER.debug("Registered refresh metrics: {}, {}", refreshCountName, lastRefreshTimeName);
@@ -235,7 +237,7 @@ public class PublicKeyMetrics {
             return sources != null ? sources.size() : 0;
         } catch (Exception e) {
             LOGGER.warn("Error getting key sources from provider {}: {}",
-                    provider.getClass().getSimpleName(), e.getMessage());
+                    provider.getClass().getSimpleName(), e);
             return 0;
         }
     }
@@ -270,7 +272,7 @@ public class PublicKeyMetrics {
      * @param sourceId identifier of the refreshed source
      */
     public void recordSourceRefresh(String sourceId) {
-        if (sourceId == null || sourceId.trim().isEmpty()) {
+        if (StringUtils.isBlank(sourceId)) {
             LOGGER.warn("Cannot record source refresh for null or empty source ID");
             return;
         }
@@ -296,7 +298,7 @@ public class PublicKeyMetrics {
                     .increment();
             LOGGER.debug("Recorded source refresh count for: {}", sourceId);
         } catch (Exception e) {
-            LOGGER.warn("Failed to record source refresh count for {}: {}", sourceId, e.getMessage());
+            LOGGER.warn("Failed to record source refresh count for {}: {}", sourceId, e);
         }
     }
 
@@ -318,7 +320,7 @@ public class PublicKeyMetrics {
                     syncTime);
             LOGGER.debug("Recorded source refresh time for: {}", sourceId);
         } catch (Exception e) {
-            LOGGER.warn("Failed to record source refresh time for {}: {}", sourceId, e.getMessage());
+            LOGGER.warn("Failed to record source refresh time for {}: {}", sourceId, e);
         }
     }
 
@@ -417,7 +419,7 @@ public class PublicKeyMetrics {
                     return nameExtractor.apply(config);
                 } catch (Exception e) {
                     LOGGER.warn("Error extracting configured name for metric type {}: {}",
-                            metricType, e.getMessage());
+                            metricType, e);
                 }
             }
 

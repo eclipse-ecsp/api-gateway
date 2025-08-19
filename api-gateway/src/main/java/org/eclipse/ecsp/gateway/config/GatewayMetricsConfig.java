@@ -153,7 +153,7 @@ public class GatewayMetricsConfig {
     @ConditionalOnProperty(name = "api.gateway.metrics.gateway-requests.enabled", havingValue = "true")
     public GatewayTagsProvider tenantIdTagProvider() {
         return (exchange -> {
-            LOGGER.debug("apply tenantId in gateway metrics", exchange.getRequest().getPath());
+            LOGGER.debug("apply tenantId in gateway metrics for endpoint: {}", exchange.getRequest().getPath());
             // Get the route information from the exchange attributes
             String tenantId = exchange.getRequest().getHeaders().getFirst(GatewayConstants.TENANT_ID);
             return Tags.of(Tags.of(GatewayConstants.TENANT_ID,

@@ -72,6 +72,8 @@ class ApiRegistryClientTest {
 
         client = new ApiRegistryClient("http://localhost:" + wireMockServer.port(), WebClient.builder(), mockRouteUtils);
         ReflectionTestUtils.setField(client, "routesEndpoint", "/api/v1/routes");
+        ReflectionTestUtils.setField(client, "routeScopes", "SYSTEM_READ");
+        ReflectionTestUtils.setField(client, "routeUserId", "1");
     }
 
     @AfterEach

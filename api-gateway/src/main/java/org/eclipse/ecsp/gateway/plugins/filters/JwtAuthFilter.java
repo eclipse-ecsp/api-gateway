@@ -23,6 +23,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
@@ -220,10 +221,10 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 }
             }
         } catch (PatternSyntaxException regexException) {
-            LOGGER.error("Error compiling regex : {}, verify the regex-pattern config", regexException.getMessage());
+            LOGGER.error("Error compiling regex : {}, verify the regex-pattern config", regexException);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         } catch (Exception ex) {
-            LOGGER.error("Validation failed with : {}", ex.getMessage());
+            LOGGER.error("Validation failed with : {}", ex);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         }
     }
@@ -246,7 +247,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 boolean validRequestHeader = Pattern.compile(regex).matcher(
                         tokenHeaderValue).matches();
                 if (!validRequestHeader) {
-                    LOGGER.error("Validation Failed! Token header {} is invalid", tokenHeader);
+                    LOGGER.error("Validation Failed! Token header {}={} is invalid", tokenHeader,
+                            tokenHeaderValue);
                     throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
                 }
             }
@@ -258,7 +260,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         try {
             JWT jwt = JWTParser.parse(token);
             Object kidObject = jwt.getHeader().toJSONObject().get("kid");
-            Object tenantIdObject = jwt.getHeader().toJSONObject().get("tenantId");
+            Object tenantIdObject = jwt.getJWTClaimsSet().toJSONObject().get("tenantId");
             String kid = (kidObject == null || StringUtils.isEmpty(kidObject.toString()))
                     ? DEFAULT : kidObject.toString();
             String tenantId = (tenantIdObject == null || StringUtils.isEmpty(tenantIdObject.toString()))
@@ -269,7 +271,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             LOGGER.debug("JWT Token Header 'kid': {}", kid);
             Optional<PublicKey> key = publicKeyService.findPublicKey(kid, tenantId);
             if (key.isEmpty() && !DEFAULT.equals(kid)) {
-                LOGGER.warn("Public Key not found for kid: {}, trying with default", kid);
+                LOGGER.warn("Public Key not found for kid: {}, tenantId: {}, trying with default", kid, tenantId);
                 key = publicKeyService.findPublicKey(DEFAULT, null);
             }
 
@@ -279,15 +281,16 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             }
             LOGGER.debug("Public Key found for kid: {}", kid);
             JwtParser jwtParser = Jwts.parser().verifyWith(key.get()).build();
-            jwtParser.parseSignedClaims(token);
+            Jws<Claims> parsedToken = jwtParser.parseSignedClaims(token);
             LOGGER.debug("JWT Token parsed successfully with kid: {}", kid);
-            return jwtParser.parseSignedClaims(token).getPayload();
+            return parsedToken.getPayload();
         } catch (SecurityException
                  | MalformedJwtException
                  | ExpiredJwtException
                  | UnsupportedJwtException
                  | IllegalArgumentException ex) {
-            LOGGER.warn("Token validation failed with exception: {} of type: {}", ex.getMessage(), ex.getClass());
+            LOGGER.warn("Token validation failed with exception: {} of type: {}, error: {}", ex.getMessage(),
+                    ex.getClass(), ex);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         } catch (ApiGatewayException e) {
             throw e;

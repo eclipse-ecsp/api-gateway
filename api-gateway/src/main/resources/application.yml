@@ -14,8 +14,10 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
+#      cluster:
+#        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -66,8 +68,13 @@ jwt:
   keySources:
   - id: test
     type: PEM
-    location: /opt/api-gateway/pem_files/test-certificate.pem
+    location: C:\Users\AKumar87\codebase\apigw-setup\certificates\uidam-public.pem
     default: true
+  - id: uidam
+    type: JWKS
+    issuer: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com
+    url: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com/oauth2/jwks
+    refreshInterval: "5m"
   tokenHeaderValidationConfig:
     accountId:
       required: false
@@ -112,7 +119,7 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9100
+      port: 9101
       base-path: /gateway
       prometheus:
         enabled: true

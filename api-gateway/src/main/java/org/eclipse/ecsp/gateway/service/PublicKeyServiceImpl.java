@@ -1,6 +1,7 @@
 package org.eclipse.ecsp.gateway.service;
 
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
@@ -17,6 +18,7 @@ import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -61,14 +63,16 @@ public class PublicKeyServiceImpl implements PublicKeyService {
      */
     @PostConstruct
     public void initialize() {
-        LOGGER.info("Initializing PublicKeyServiceImpl with {} source providers [{}] and {} key loaders [{}]",
-                sourceProviders.size(),
-                String.join(",", sourceProviders
-                        .stream()
-                        .map(provider -> provider.getClass().getSimpleName()).toList()),
-                keyLoaders.size(),
-                String.join(",", keyLoaders.values().stream()
-                        .map(loader -> loader.getClass().getSimpleName()).toList()));
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Initializing PublicKeyServiceImpl with {} source providers [{}] and {} key loaders [{}]",
+                    sourceProviders.size(),
+                    String.join(",", sourceProviders
+                            .stream()
+                            .map(provider -> provider.getClass().getSimpleName()).toList()),
+                    keyLoaders.size(),
+                    String.join(",", keyLoaders.values().stream()
+                            .map(loader -> loader.getClass().getSimpleName()).toList()));
+        }
         this.refreshPublicKeys();
         LOGGER.info("PublicKeyServiceImpl initialized with {} public keys loaded", publicKeyCache.size());
     }
@@ -76,13 +80,13 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     @Override
     public Optional<PublicKey> findPublicKey(String keyId, String provider) {
         LOGGER.info("Finding public key for keyId: {} and provider: {}", keyId, provider);
-        if (keyId == null || keyId.isEmpty()) {
+        if (StringUtils.isEmpty(keyId)) {
             LOGGER.warn("Key ID is null or empty, cannot find public key");
             return Optional.empty();
         }
         Optional<PublicKey> publicKey = publicKeyCache.get(keyId);
 
-        // If not found and issuer is provided, try with provider-prefixed key
+        // If not found and provider is provided, try with provider prefixed key
         if (publicKey.isEmpty() && provider != null && !provider.isEmpty()) {
             String prefixedKey = provider + "_" + keyId;
             publicKey = publicKeyCache.get(prefixedKey);
@@ -139,13 +143,13 @@ public class PublicKeyServiceImpl implements PublicKeyService {
             for (Entry<String, PublicKey> entry : loadedKeys.entrySet()) {
                 String keyId = entry.getKey();
                 PublicKey publicKey = entry.getValue();
-                if (keyId != null && publicKey != null) {
-                    String cacheKey = generateCacheKey(source, keyId);
-                    publicKeyCache.put(cacheKey, publicKey);
-                    LOGGER.info("Public key with ID: {} added to cache with key: {}", keyId, cacheKey);
-                } else {
+                if (StringUtils.isBlank(keyId) || Objects.isNull(publicKey)) {
                     LOGGER.warn("public key from source {} has null keyId or publicKey, skipping", source.getId());
+                    continue;
                 }
+                String cacheKey = generateCacheKey(source, keyId);
+                publicKeyCache.put(cacheKey, publicKey);
+                LOGGER.info("Public key with ID: {} added to cache with key: {}", keyId, cacheKey);
             }
         }
     }

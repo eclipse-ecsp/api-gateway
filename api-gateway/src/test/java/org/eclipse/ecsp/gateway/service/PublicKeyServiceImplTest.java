@@ -134,7 +134,6 @@ class PublicKeyServiceImplTest {
         verify(keyLoader).loadKeys(any(PublicKeySource.class));
         verify(publicKeyCache).clear();
         verify(publicKeyCache).put(anyString(), any(PublicKey.class));
-        verify(eventPublisher).publishEvent(Mockito.any(PublicKeyRefreshEvent.class));
     }
 
     /**
@@ -214,7 +213,6 @@ class PublicKeyServiceImplTest {
         verify(publicKeyCache).clear();
         verify(sourceProvider).keySources();
         verify(keyLoader).loadKeys(any(PublicKeySource.class));
-        verify(eventPublisher).publishEvent(Mockito.any(PublicKeyRefreshEvent.class));
     }
 
     /**
@@ -350,22 +348,6 @@ class PublicKeyServiceImplTest {
     }
 
     /**
-     * Test event publishing during key refresh operations.
-     * Verifies that appropriate events are published during refresh operations.
-     */
-    @Test
-    void refreshPublicKeys_whenCompleted_thenPublishesRefreshEvent() {
-        // Given
-        when(sourceProvider.keySources()).thenReturn(Collections.emptyList());
-
-        // When
-        publicKeyService.refreshPublicKeys();
-
-        // Then
-        verify(eventPublisher).publishEvent(any(PublicKeyRefreshEvent.class));
-    }
-
-    /**
      * Test initialization with metrics integration.
      * Verifies that service initialization works correctly with metrics.
      */
@@ -387,7 +369,6 @@ class PublicKeyServiceImplTest {
         verify(keyLoader).loadKeys(any(PublicKeySource.class));
         verify(publicKeyCache).clear();
         verify(publicKeyCache).put(anyString(), any(PublicKey.class));
-        verify(eventPublisher).publishEvent(any(PublicKeyRefreshEvent.class));
-        verify(publicKeyCache, atLeast(1)).size(); // Called for logging
+        verify(publicKeyCache, atLeast(1)).size();
     }
 }

@@ -223,7 +223,6 @@ maven/mavencentral/org.springframework.boot/spring-boot-starter-aop/3.5.4, Apach
 maven/mavencentral/org.springframework.boot/spring-boot-starter-cache/3.5.4, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.springframework.boot/spring-boot-starter-data-jpa/3.5.4, Apache-2.0, approved, #22162
 maven/mavencentral/org.springframework.boot/spring-boot-starter-data-redis-reactive/3.5.4, Apache-2.0, approved, #22203
-maven/mavencentral/org.springframework.boot/spring-boot-starter-data-redis/3.5.4, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.springframework.boot/spring-boot-starter-jdbc/3.5.4, Apache-2.0, approved, #22180
 maven/mavencentral/org.springframework.boot/spring-boot-starter-json/3.5.4, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.springframework.boot/spring-boot-starter-logging/3.5.4, Apache-2.0, approved, #22825

@@ -367,19 +367,18 @@ class JwtAuthValidatorTest {
         claims.put("scope", "SelfManage");
         Method privateMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
                 String.class,
-                String.class, 
                 String.class);
         privateMethod.setAccessible(true);
 
-        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
+        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         List<String> scopesList = Arrays.asList("SelfManage", "IgniteSystem");
         claims.put("scope", scopesList);
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         if (result != null) {
             Assertions.assertTrue(StringUtils.contains(result, "SelfManage"));
         }
         claims.setScope(String.join(",", scopesList));
-        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
+        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         if (resultString != null) {
             Assertions.assertTrue(StringUtils.contains(resultString, "SelfManage"));
         }
@@ -937,10 +936,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with List claim
         try {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class, String.class);
+                String.class, String.class);
             validateScopeMethod.setAccessible(true);
             String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
-                "requestId", "requestPath", "clientIp");
+                "requestId", "requestPath");
 
             // Should handle List properly and return valid scope
             Assertions.assertNotNull(result);
@@ -1376,10 +1375,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with string scope
         try {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class, String.class);
+                String.class, String.class);
             validateScopeMethod.setAccessible(true);
             String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
-                "requestId", "requestPath", "clientIp");
+                "requestId", "requestPath");
 
             // Should handle string scope properly
             Assertions.assertNotNull(result);
@@ -1411,10 +1410,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with comma-separated scope
         try {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class, String.class);
+                String.class, String.class);
             validateScopeMethod.setAccessible(true);
             String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
-                "requestId", "requestPath", "clientIp");
+                "requestId", "requestPath");
 
             // Should handle comma-separated scope properly
             Assertions.assertNotNull(result);
@@ -1447,12 +1446,12 @@ class JwtAuthValidatorTest {
         // Test validateScope method with null scope
         try {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
-                String.class, String.class, String.class);
+                String.class, String.class);
             validateScopeMethod.setAccessible(true);
 
             // Should throw exception due to insufficient scope
             Assertions.assertThrows(Exception.class, () ->
-                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, "requestId", "requestPath", "clientIp"));
+                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, "requestId", "requestPath"));
         } catch (Exception e) {
             // Expected to fail due to missing scope
         }

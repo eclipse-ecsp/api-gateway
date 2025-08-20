@@ -161,45 +161,44 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String requestId = exchange.getRequest().getId();
+        final String routeId = exchange.getAttribute(
+                ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR);
         ServerHttpRequest request = exchange.getRequest();
-        String clientIp = GatewayUtils.getClientIpAddress(request);
         String requestPath = request.getPath() != null ? request.getPath().toString() : "unknown";
-        LOGGER.debug("JWT Auth Validation for Request: {}, requestId: {}, clientIp: {}", 
-                requestPath, requestId, clientIp);
-        
+        LOGGER.debug("JWT Auth Validation for requestUrl: {}, requestId: {}", requestPath, requestId);
+
         String token = request.getHeaders().getFirst(GatewayConstants.AUTHORIZATION);
 
         // authorization header not available in the request
         if (StringUtils.isBlank(token) || !token.startsWith(GatewayConstants.BEARER)) {
             LOGGER.error("Token validation failed - Token missing or invalid format. "
-                    + "Request: {}, requestId: {}, clientIp: {}", 
-                    requestPath, requestId, clientIp);
+                    + "requestUrl: {}, requestId: {}", requestPath, requestId);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
         }
 
         token = token.split(" ")[1];
 
         // Validate JWT
-        LOGGER.debug("Token format validation passed for request: {}, requestId: {}, clientIp: {}", 
-                requestPath, requestId, clientIp);
-        Claims claims = validateToken(token, requestId, requestPath, clientIp);
-        LOGGER.debug("Token validated, validating claims... for request: {}, requestId: {}, clientIp: {},"
-                + " token claims: {}", requestPath, requestId, clientIp, claims);
+        LOGGER.debug("Token format validation passed for request: {}, requestId: {}", 
+                requestPath, requestId);
+        Claims claims = validateToken(token, requestId, requestPath, routeId);
+        LOGGER.debug("Token validated, validating claims... for request: {}, requestId: {},"
+                + " token claims: {}", requestPath, requestId, claims);
 
         //validate token headers
-        validateTokenHeaders(claims, requestId, requestPath, clientIp);
+        validateTokenHeaders(claims, requestId, requestPath, routeId);
 
-        LOGGER.debug("Token claims validated for request: {}, requestId: {}, clientIp: {}, validating route scopes",
-                requestPath, requestId, clientIp);
-        
+        LOGGER.debug("Token claims validated for request: {}, requestId: {}, validating route scopes",
+                requestPath, requestId);
+
         // Validate user scopes against target route scope
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-        String scope = validateScope(route, claims, requestId, requestPath, clientIp);
-        
-        LOGGER.debug("Scope validated for request: {}, requestId: {}, clientIp: {}, scope: {},"
+        String scope = validateScope(route, claims, requestId, requestPath);
+
+        LOGGER.debug("Scope validated for {}, scope: {},"
                         + " appending scope and override-scope headers to request",
-                requestPath, requestId, clientIp, scope);
-        
+                GatewayUtils.getLogMessage(routeId, requestPath, requestId), scope);
+
         Set<String> overrideScopes = new HashSet<>(Arrays.stream(scope.split(",")).map(String::trim).toList());
         overrideScopes = Stream.concat(overrideScopes.stream(), routeScopes.stream()).collect(Collectors.toSet());
 
@@ -208,10 +207,10 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         builder.header(GatewayConstants.SCOPE, scope);
         builder.header(GatewayConstants.OVERRIDE_SCOPE, String.join(",", overrideScopes));
         
-        LOGGER.debug("Added claims to request headers: scope={}, override-scope={}, request: {}, "
-                + "requestId: {}, clientIp: {}",
-                scope, String.join(",", overrideScopes), requestPath, requestId, clientIp);
-        
+        LOGGER.debug("Added claims to request headers: scope={}, override-scope={}, {}",
+                scope, String.join(",", overrideScopes), 
+                GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+
         // Token claims are added to request headers and to be sent to downstream microservices
         for (Entry<String, String> entry : tokenClaimToHeaderMapping.entrySet()) {
             String claimKey = entry.getKey();
@@ -219,23 +218,21 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             String claimValue = getTokenHeaderValue(claims, claimKey);
             if (!StringUtils.isEmpty(claimValue)) {
                 builder.header(headerName, claimValue);
-                LOGGER.debug("Added claim {} to request header: {} with value: {}, request: {}, "
-                        + "requestId: {}, clientIp: {}", 
-                        claimKey, headerName, claimValue, requestPath, requestId, clientIp);
+                LOGGER.debug("Added claim {} to request header: {} with value: {}, {}",
+                        claimKey, headerName, claimValue, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             }
         }
 
-        LOGGER.info("JWT authentication successful for request: {}, requestId: {}, clientIp: {}",
-                requestPath, requestId, clientIp);
-        
+        LOGGER.info("JWT authentication successful for request: {}, requestId: {}",
+                requestPath, requestId);
+
         return chain.filter(exchange.mutate().request(builder.build()).build());
     }
 
-    private void validateTokenHeaders(Claims claims, String requestId, String requestPath, 
-                                      String clientIp) {
+    private void validateTokenHeaders(Claims claims, String requestId, String requestPath, String routeId) {
         try {
-            LOGGER.debug("Starting token header validation for request: {}, requestId: {}, clientIp: {}", 
-                    requestPath, requestId, clientIp);
+            LOGGER.debug("Starting token header validation for request: {}, requestId: {}", 
+                    requestPath, requestId);
             
             //Header Validation
             if (!CollectionUtils.isEmpty(tokenHeaderValidationConfig)) {
@@ -243,87 +240,97 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                     String headerName = entry.getKey();
                     TokenHeaderValidationConfig headerConfigMap = entry.getValue();
                     
-                    LOGGER.debug("Validating token header: {} for request: {}, requestId: {}, clientIp: {}", 
-                            headerName, requestPath, requestId, clientIp);
+                    LOGGER.debug("Validating token header: {} for {}", 
+                            headerName, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+
+                    validateClaims(claims, headerName, headerConfigMap, requestId, requestPath, routeId);
                     
-                    validateClaims(claims, headerName, headerConfigMap, requestId, requestPath, clientIp);
-                    
-                    LOGGER.debug("Token header validation passed for header: {}, request: {}, "
-                            + "requestId: {}, clientIp: {}", 
-                            headerName, requestPath, requestId, clientIp);
+                    LOGGER.debug("Token header validation passed for header: {}, {}", 
+                            headerName, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
                 }
             }
             
-            LOGGER.debug("All token header validations passed for request: {}, requestId: {}, clientIp: {}", 
-                    requestPath, requestId, clientIp);
-            
+            LOGGER.debug("All token header validations passed for {}", 
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+
         } catch (PatternSyntaxException regexException) {
-            LOGGER.error("Token header validation failed - Invalid regex pattern. Request: {}, requestId: {}, "
-                    + "clientIp: {}, error: {}", 
-                    requestPath, requestId, clientIp, regexException.getMessage());
+            LOGGER.error("Token header validation failed - Invalid regex pattern. {}, error: {}", 
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId), regexException.getMessage());
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         } catch (Exception ex) {
-            LOGGER.error("Token header validation failed with unexpected error. Request: {}, requestId: {}, "
-                    + "clientIp: {}, error: {}", 
-                    requestPath, requestId, clientIp, ex.getMessage());
+            LOGGER.error("Token header validation failed with unexpected error.{}, "
+                    + "error: {}", 
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId), ex.getMessage());
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         }
     }
 
     private static void validateClaims(Claims claims, String headerName, 
                                        TokenHeaderValidationConfig headerConfigMap, 
-                                       String requestId, String requestPath, String clientIp) {
+                                       String requestId, String requestPath, String routeId) {
         if (headerConfigMap.isRequired()) {
             String tokenHeader = getTokenHeader(claims, headerName);
             String tokenHeaderValue = getTokenHeaderValue(claims, tokenHeader);
             
             if (StringUtils.isEmpty(tokenHeader) || StringUtils.isEmpty(tokenHeaderValue)) {
-                LOGGER.error("Token claim validation failed - Required token header '{}' is missing. "
-                        + "Request: {}, requestId: {}, clientIp: {}", 
-                        headerName, requestPath, requestId, clientIp);
+                LOGGER.error("Token claim validation failed - Required token header '{}' is missing. {}",
+                        headerName, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
                 throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
             }
             
             if (StringUtils.isEmpty(headerConfigMap.getRegex())) {
-                LOGGER.debug("Token header '{}' validation passed (no regex configured). "
-                        + "Request: {}, requestId: {}, clientIp: {}", 
-                        headerName, requestPath, requestId, clientIp);
+                LOGGER.debug("Token header '{}' validation passed (no regex configured). {}",
+                        headerName, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             } else {
                 String regex = headerConfigMap.getRegex();
                 boolean validRequestHeader = Pattern.compile(regex).matcher(tokenHeaderValue).matches();
                 if (!validRequestHeader) {
                     LOGGER.error("Token claim validation failed - Token header '{}' with value '{}' "
-                            + "does not match regex pattern '{}'. Request: {}, requestId: {}, clientIp: {}", 
-                            tokenHeader, tokenHeaderValue, regex, requestPath, requestId, clientIp);
+                            + "does not match regex pattern '{}'. {}", 
+                            tokenHeader, tokenHeaderValue, regex, 
+                            GatewayUtils.getLogMessage(routeId, requestPath, requestId));
                     throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
                 } else {
-                    LOGGER.debug("Token header '{}' validation passed with regex pattern '{}'. "
-                            + "Request: {}, requestId: {}, clientIp: {}", 
-                            headerName, regex, requestPath, requestId, clientIp);
+                    LOGGER.debug("Token header '{}' validation passed with regex pattern '{}'. {}",
+                            headerName, regex, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
                 }
             }
         } else {
-            LOGGER.debug("Token header '{}' is not required, skipping validation. "
-                    + "Request: {}, requestId: {}, clientIp: {}", 
-                    headerName, requestPath, requestId, clientIp);
+            LOGGER.debug("Token header '{}' is not required, skipping validation. {}", 
+                    headerName, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         }
     }
 
-    private Claims validateToken(final String token, String requestId, String requestPath, 
-                                 String clientIp) {
-        LOGGER.debug("Starting JWT token validation for request: {}, requestId: {}, clientIp: {}", 
-                requestPath, requestId, clientIp);
-        
+    private Claims validateToken(final String token, String requestId, String requestPath, String routeId) {
+        LOGGER.debug("Starting JWT token validation for request: {}, requestId: {}", requestPath, requestId);
+
         try {
+
+            JWT jwt = JWTParser.parse(token);
+            Object kidObject = jwt.getHeader().toJSONObject().get("kid");
+            Object tenantIdObject = jwt.getJWTClaimsSet().toJSONObject().get("tenantId");
+            String kid = (kidObject == null || StringUtils.isEmpty(kidObject.toString()))
+                    ? DEFAULT : kidObject.toString();
+            String tenantId = (tenantIdObject == null || StringUtils.isEmpty(tenantIdObject.toString()))
+                    ? "" : tenantIdObject.toString();
+
+            LOGGER.debug("JWT token parsed successfully. Kid: {}, tenantId: {}, {}", 
+                    kid, tenantId, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+
+            if (DEFAULT.equals(kid)) {
+                LOGGER.warn("JWT Token Header 'kid' is missing or empty, using default key for validation. "
+                        + "tenantId: {}, {}", tenantId, 
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            }
             // Parse token and extract metadata
-            TokenMetadata metadata = parseTokenMetadata(token, requestPath, requestId, clientIp);
-            
+            TokenMetadata metadata = new TokenMetadata(kid, tenantId);
+
             // Get public key for validation
-            PublicKey publicKey = getValidationKey(metadata, requestPath, requestId, clientIp);
-            
+            PublicKey publicKey = getValidationKey(metadata, requestPath, requestId, routeId);
+
             // Validate token signature and claims
-            return validateTokenSignature(token, publicKey, metadata, requestPath, requestId, clientIp);
-            
+            return validateTokenSignature(token, publicKey, metadata, requestPath, requestId, routeId);
+
         } catch (SecurityException
                  | MalformedJwtException
                  | ExpiredJwtException
@@ -331,74 +338,44 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                  | IllegalArgumentException ex) {
             // Token validation failed due to expiration, signature, etc.
             String failureReason = GatewayUtils.getTokenValidationFailureReason(ex);
-            LOGGER.error("Token validation failed - {}. Request: {}, requestId: {}, clientIp: {}, "
-                    + "error: {}", 
-                    failureReason, requestPath, requestId, clientIp, ex.getMessage());
+            LOGGER.error("Token validation failed - {}. {}", failureReason, 
+                GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         } catch (ApiGatewayException e) {
             throw e;
         } catch (Exception ex) {
-            LOGGER.error("Token validation failed - Unexpected parsing error. Request: {}, requestId: {}, "
-                    + "clientIp: {}, error: {}", 
-                    requestPath, requestId, clientIp, ex.getMessage());
+            LOGGER.error("Token validation failed - Unexpected parsing error. {}, "
+                    + "error: {}", GatewayUtils.getLogMessage(routeId, requestPath, requestId), ex.getMessage());
         }
         throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
     }
 
     /**
-     * Parse token metadata including kid and tenantId.
-     */
-    private TokenMetadata parseTokenMetadata(String token, String requestPath, String requestId, 
-                                            String clientIp) throws Exception {
-        // 3. Token parsing
-        JWT jwt = JWTParser.parse(token);
-        Object kidObject = jwt.getHeader().toJSONObject().get("kid");
-        Object tenantIdObject = jwt.getJWTClaimsSet().toJSONObject().get("tenantId");
-        String kid = (kidObject == null || StringUtils.isEmpty(kidObject.toString()))
-                ? DEFAULT : kidObject.toString();
-        String tenantId = (tenantIdObject == null || StringUtils.isEmpty(tenantIdObject.toString()))
-                ? "" : tenantIdObject.toString();
-                
-        LOGGER.debug("JWT token parsed successfully. Kid: {}, tenantId: {}, request: {}, requestId: {}, clientIp: {}", 
-                kid, tenantId, requestPath, requestId, clientIp);
-        
-        if (DEFAULT.equals(kid)) {
-            LOGGER.warn("JWT Token Header 'kid' is missing or empty, using default key for validation. "
-                    + "Request: {}, requestId: {}, clientIp: {}, tenantId: {}", 
-                    requestPath, requestId, clientIp, tenantId);
-        }
-        
-        return new TokenMetadata(kid, tenantId);
-    }
-
-    /**
      * Get the public key for token validation.
      */
-    private PublicKey getValidationKey(TokenMetadata metadata, String requestPath, String requestId, 
-                                      String clientIp) {
+    private PublicKey getValidationKey(TokenMetadata metadata, String requestPath, String requestId, String routeId) {
         // 4. Public key retrieval
-        LOGGER.debug("Fetching public key for kid: {}, tenantId: {}, request: {}, requestId: {}, clientIp: {}", 
-                metadata.kid, metadata.tenantId, requestPath, requestId, clientIp);
+        LOGGER.debug("Fetching public key for kid: {}, tenantId: {}, {}", 
+                metadata.kid, metadata.tenantId, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         
         Optional<PublicKey> key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
         
         if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
             LOGGER.warn("Public key not found for kid: {}, tenantId: {}, attempting fallback to default key. "
-                    + "Request: {}, requestId: {}, clientIp: {}", 
-                    metadata.kid, metadata.tenantId, requestPath, requestId, clientIp);
+                    + "{}", metadata.kid, metadata.tenantId, 
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             key = publicKeyService.findPublicKey(DEFAULT, null);
         }
 
         if (key.isEmpty()) {
             LOGGER.error("Token validation failed - Public key not found. Kid: {}, tenantId: {}, "
-                    + "request: {}, requestId: {}, clientIp: {}", 
-                    metadata.kid, metadata.tenantId, requestPath, requestId, clientIp);
+                    + "{}", metadata.kid, metadata.tenantId, 
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
         }
         
-        LOGGER.debug("Public key found and will be used for validation. for kid: {}, request: {}, "
-                + "requestId: {}, clientIp: {}", 
-                metadata.kid, requestPath, requestId, clientIp);
+        LOGGER.debug("Public key found and will be used for validation. for kid: {}, {}", 
+                metadata.kid, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
 
         return key.get();
     }
@@ -407,15 +384,15 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
      * Validate token signature and return claims.
      */
     private Claims validateTokenSignature(String token, PublicKey publicKey, TokenMetadata metadata,
-                                         String requestPath, String requestId, String clientIp) {
+                                         String requestPath, String requestId, String routeId) {
         JwtParser jwtParser = Jwts.parser().verifyWith(publicKey).build();
         Jws<Claims> parsedToken = jwtParser.parseSignedClaims(token);
         
         // 8. Token validation successful
         String keySource = DEFAULT.equals(metadata.kid) ? "default" : "kid:" + metadata.kid;
         LOGGER.info("JWT token validation successful. Kid: {}, tenantId: {}, keySource: {}, "
-                + "request: {}, requestId: {}, clientIp: {}", 
-                metadata.kid, metadata.tenantId, keySource, requestPath, requestId, clientIp);
+                + "{}", metadata.kid, metadata.tenantId, keySource, 
+                GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         
         return parsedToken.getPayload();
     }
@@ -435,23 +412,23 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
 
     @SuppressWarnings("unchecked")
     private String validateScope(final Route route, final Claims claims, String requestId, 
-                                String requestPath, String clientIp) {
+                                String requestPath) {
         if (route == null || claims == null) {
-            LOGGER.error("Scope validation failed - Invalid route or claims. Request: {}, requestId: {}, "
-                    + "clientIp: {}", 
-                    requestPath, requestId, clientIp);
+            LOGGER.error("Scope validation failed - Invalid route or claims. {}", 
+                    GatewayUtils.getLogMessage("", requestPath, requestId));
             throw new ApiGatewayException(HttpStatus.NOT_FOUND, "api.gateway.error", "Request not found");
         }
 
-        LOGGER.debug("Starting scope validation for route: {}, request: {}, requestId: {}, clientIp: {}", 
-                route.getId(), requestPath, requestId, clientIp);
+        LOGGER.debug("Starting scope validation for route: {}, requestPath: {}, requestId: {}", 
+                route.getId(), requestPath, requestId);
 
         Set<String> userScopes = new HashSet<>();
         Object scopeObj = claims.get(GatewayConstants.SCOPE);
         if (scopeObj != null) {
-            LOGGER.debug("Token scope found, type: {}, value: {}, request: {}, requestId: {}, clientIp: {}", 
-                    scopeObj.getClass().getSimpleName(), scopeObj, requestPath, requestId, clientIp);
-            
+            LOGGER.debug("Token scope found, type: {}, value: {}, {}", 
+                    scopeObj.getClass().getSimpleName(), scopeObj, 
+                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+
             if (scopeObj instanceof List<?>) {
                 // scopes are in the form of List
                 userScopes = new HashSet<>((List<String>) scopeObj);
@@ -460,46 +437,43 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 userScopes = new HashSet<>(Arrays.asList(scopeStr.split(delimiter)));
             }
         } else {
-            LOGGER.debug("No scope claim found in token for request: {}, requestId: {}, clientIp: {}", 
-                    requestPath, requestId, clientIp);
+            LOGGER.debug("No scope claim found in token for {}", 
+                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
         }
 
-        LOGGER.debug("Extracted user scopes: {}, configured route scopes: {}, request: {}, "
-                + "requestId: {}, clientIp: {}", 
-                userScopes, routeScopes, requestPath, requestId, clientIp);
-        
+        LOGGER.debug("Extracted user scopes: {}, configured route scopes: {}, {}", 
+                userScopes, routeScopes, GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+
         boolean valid = false;
         if (routeScopes.isEmpty()) {
             // Scope validation is not defined for the route
-            LOGGER.debug("No route scopes configured, scope validation passed. Route: {}, request: {}, "
-                    + "requestId: {}, clientIp: {}", 
-                    route.getId(), requestPath, requestId, clientIp);
+            LOGGER.debug("No route scopes configured, scope validation passed. {}", 
+                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
             valid = true;
         } else {
             // at minimum one of the routeScopes must match userScopes
             valid = routeScopes.stream().anyMatch(userScopes::contains);
             if (valid) {
                 LOGGER.debug("Scope validation passed - User scopes match route requirements. "
-                        + "Matching scopes: {}, route: {}, request: {}, requestId: {}, clientIp: {}", 
+                        + "Matching scopes: {}, route: {}, requestPath: {}, requestId: {}", 
                         routeScopes.stream().filter(userScopes::contains).collect(Collectors.toSet()), 
-                        route.getId(), requestPath, requestId, clientIp);
+                        route.getId(), requestPath, requestId);
             }
         }
         
         if (!valid) {
             // 5. Token and route scope validation failed
             LOGGER.error("Scope validation failed - User scopes do not match route requirements. "
-                    + "User scopes: {}, required route scopes: {}, route: {}, request: {}, requestId: {}, "
-                    + "clientIp: {}", 
-                    userScopes, routeScopes, route.getId(), requestPath, requestId, clientIp);
+                    + "User scopes: {}, required route scopes: {}, route: {}, requestUrl: {}, requestId: {}", 
+                    userScopes, routeScopes, route.getId(), requestPath, requestId);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, 
                     TOKEN_VERIFICATION_FAILED);
         }
         
-        LOGGER.debug("Scope validation passed successfully. User scopes: {}, route: {}, request: {}, "
-                + "requestId: {}, clientIp: {}", 
-                userScopes, route.getId(), requestPath, requestId, clientIp);
-        
+        LOGGER.debug("Scope validation passed successfully. User scopes: {}, route: {}, requestPath: {}, "
+                + "requestId: {}", 
+                userScopes, route.getId(), requestPath, requestId);
+
         return String.join(",", userScopes);
     }
 

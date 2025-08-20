@@ -107,4 +107,16 @@ public class GatewayUtils {
             return "Unknown token validation error";
         }
     }
+
+    /**
+     * Helper method to create a log message.
+     *
+     * @param routeId the request routeId
+     * @param requestPath the request path
+     * @param requestId   the request ID
+     * @return the formatted log message
+     */
+    public static String getLogMessage(String routeId, String requestPath, String requestId) {
+        return String.format("RouteId: %s, RequestPath: %s, RequestId: %s", routeId, requestPath, requestId);
+    }
 }

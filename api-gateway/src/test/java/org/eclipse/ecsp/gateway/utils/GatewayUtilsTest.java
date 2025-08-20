@@ -23,6 +23,8 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
@@ -117,39 +119,20 @@ class GatewayUtilsTest {
     }
 
     /**
-     * Test getClientIpAddress with X-Forwarded-For header containing single IP.
+     * Test getClientIpAddress with X-Forwarded-For header containing various IP formats.
      */
-    @Test
-    void testGetClientIpAddressWithForwardedForSingleIp() {
+    @ParameterizedTest
+    @CsvSource({
+        "'192.168.1.100', '192.168.1.100'",
+        "'192.168.1.100, 10.0.0.1, 172.16.0.1', '192.168.1.100'",
+        "'  192.168.1.100  , 10.0.0.1', '192.168.1.100'"
+    })
+    void testGetClientIpAddressWithForwardedForVariousFormats(String forwardedForHeader, String expectedIp) {
         when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn("192.168.1.100");
+        when(headers.getFirst("X-Forwarded-For")).thenReturn(forwardedForHeader);
 
         String result = GatewayUtils.getClientIpAddress(request);
-        assertEquals("192.168.1.100", result);
-    }
-
-    /**
-     * Test getClientIpAddress with X-Forwarded-For header containing multiple IPs.
-     */
-    @Test
-    void testGetClientIpAddressWithForwardedForMultipleIps() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn("192.168.1.100, 10.0.0.1, 172.16.0.1");
-
-        String result = GatewayUtils.getClientIpAddress(request);
-        assertEquals("192.168.1.100", result);
-    }
-
-    /**
-     * Test getClientIpAddress with X-Forwarded-For header containing IP with spaces.
-     */
-    @Test
-    void testGetClientIpAddressWithForwardedForIpWithSpaces() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn("  192.168.1.100  , 10.0.0.1");
-
-        String result = GatewayUtils.getClientIpAddress(request);
-        assertEquals("192.168.1.100", result);
+        assertEquals(expectedIp, result);
     }
 
     /**
@@ -297,5 +280,55 @@ class GatewayUtilsTest {
         Exception ex = new Exception("Generic exception");
         String result = GatewayUtils.getTokenValidationFailureReason(ex);
         assertEquals("Unknown token validation error", result);
+    }
+
+    /**
+     * Test getLogMessage with various parameter combinations using parameterized test.
+     */
+    @ParameterizedTest
+    @CsvSource(value = {
+        "user-service|/api/v1/users|12345-abcde|RouteId: user-service, "
+                + "RequestPath: /api/v1/users, RequestId: 12345-abcde",
+        "null|/api/v1/users|12345-abcde|RouteId: null, RequestPath: /api/v1/users, RequestId: 12345-abcde",
+        "user-service|null|12345-abcde|RouteId: user-service, RequestPath: null, RequestId: 12345-abcde",
+        "user-service|/api/v1/users|null|RouteId: user-service, RequestPath: /api/v1/users, RequestId: null",
+        "null|null|null|RouteId: null, RequestPath: null, RequestId: null",
+        "service-name!@#|/api/v1/users?param=value&other=123|req-123-$%^|RouteId: service-name!@#, "
+                + "RequestPath: /api/v1/users?param=value&other=123, RequestId: req-123-$%^"
+    }, delimiter = '|', nullValues = {"null"})
+    void testGetLogMessageWithVariousParameters(String routeId, String requestPath, String requestId, 
+            String expected) {
+        String result = GatewayUtils.getLogMessage(routeId, requestPath, requestId);
+        assertEquals(expected, result);
+    }
+
+    /**
+     * Test getLogMessage with empty strings.
+     */
+    @Test
+    void testGetLogMessageWithEmptyStrings() {
+        String routeId = "";
+        String requestPath = "";
+        String requestId = "";
+        
+        String result = GatewayUtils.getLogMessage(routeId, requestPath, requestId);
+        String expected = "RouteId: , RequestPath: , RequestId: ";
+        
+        assertEquals(expected, result);
+    }
+
+    /**
+     * Test getLogMessage with whitespace in parameters.
+     */
+    @Test
+    void testGetLogMessageWithWhitespace() {
+        String routeId = "  user service  ";
+        String requestPath = "  /api/v1/users  ";
+        String requestId = "  12345-abcde  ";
+        
+        String result = GatewayUtils.getLogMessage(routeId, requestPath, requestId);
+        String expected = "RouteId:   user service  , RequestPath:   /api/v1/users  , RequestId:   12345-abcde  ";
+        
+        assertEquals(expected, result);
     }
 }

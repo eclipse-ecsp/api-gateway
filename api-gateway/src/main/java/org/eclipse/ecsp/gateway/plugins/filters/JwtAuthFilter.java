@@ -164,7 +164,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         final String routeId = exchange.getAttribute(
                 ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR);
         ServerHttpRequest request = exchange.getRequest();
-        String requestPath = request.getPath() != null ? request.getPath().toString() : "unknown";
+        String requestPath = request.getPath() != null && !request.getPath().toString().isEmpty() 
+                ? request.getPath().toString() : "unknown";
         LOGGER.debug("JWT Auth Validation for requestUrl: {}, requestId: {}", requestPath, requestId);
 
         String token = request.getHeaders().getFirst(GatewayConstants.AUTHORIZATION);

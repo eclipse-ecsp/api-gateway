@@ -211,20 +211,22 @@ class ApiRegistryClientTest {
      * Verifies that empty response is handled correctly.
      */
     @Test
-    void getRoutes_whenEmptyResponse_thenReturnsEmpty() {
-        // Given
-        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
-                .willReturn(aResponse()
-                        .withStatus(HttpStatus.OK.value())
-                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .withBody("[]")));
+    void getRoutes_whenEmptyResponse_thenReturnsDummyRoute() {
+    // Given
+    wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+        .willReturn(aResponse()
+            .withStatus(HttpStatus.OK.value())
+            .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .withBody("[]")));
 
-        // When
-        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+    // When
+    Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
 
-        // Then
-        StepVerifier.create(result)
-                .verifyComplete();
+    // Then
+    StepVerifier.create(result)
+        .expectNext(dummyRoute)
+        .verifyComplete();
+    verify(routeUtils).getDummyRoute();
     }
 
     /**

@@ -39,8 +39,12 @@ public class PublicKeyMetrics {
     private final PublicKeyCacheMetricsRegistrar cacheMetricsRegistrar;
     private final PublicKeyRefreshMetricsRecorder refreshMetricsRecorder;
 
+    
     /**
      * Constructor with refactored dependencies.
+     *
+     * @param cacheMetricsRegistrar cache metrics registrar
+     * @param refreshMetricsRecorder refresh metrics recorder
      */
     public PublicKeyMetrics(PublicKeyCacheMetricsRegistrar cacheMetricsRegistrar,
                             PublicKeyRefreshMetricsRecorder refreshMetricsRecorder) {

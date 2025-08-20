@@ -82,7 +82,8 @@ public class ApiRegistryClient {
                 .bodyToFlux(IgniteRouteDefinition.class)
                 .doOnError(throwable -> LOGGER.error("Error while fetching routes from api-registry: {}",
                         throwable))
-                .onErrorReturn(routeUtils.getDummyRoute());
+                .onErrorReturn(routeUtils.getDummyRoute())
+                .switchIfEmpty(Flux.just(routeUtils.getDummyRoute()));
         // @formatter:on
     }
 }

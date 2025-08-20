@@ -29,8 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * In-memory implementation of PublicKeyCache using ConcurrentHashMap.
- * Note: redisTemplate is used to interact with Redis for handling distributed JWKS updates.
- *
+ * 
  * @author Abhishek Kumar
  */
 @Component

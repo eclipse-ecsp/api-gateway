@@ -294,6 +294,12 @@ class JwtAuthValidatorTest {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", JwtTestTokenGenerator.createInvalidToken());
         doReturn(headers).when(mockedRequest).getHeaders();
+        
+        // Mock the path properly
+        org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+        when(mockPath.value()).thenReturn("/test-path");
+        when(mockedRequest.getPath()).thenReturn(mockPath);
+        when(mockedRequest.getId()).thenReturn("test-request-id");
 
         jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
@@ -615,8 +621,9 @@ class JwtAuthValidatorTest {
             // Mock basic request methods
             when(mockRequest.getHeaders()).thenReturn(headers);
             when(mockRequest.getId()).thenReturn("test-request-id");
-            // Mock the path's toString() method to return a proper value
+            // Mock the path's value() method to return a proper value
             org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+            when(mockPath.value()).thenReturn("/test-path");
             when(mockPath.toString()).thenReturn("/test-path");
             when(mockRequest.getPath()).thenReturn(mockPath);
             ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
@@ -717,6 +724,13 @@ class JwtAuthValidatorTest {
             HttpHeaders headers = new HttpHeaders();
             // No Authorization header to simulate invalid token scenario
             when(mockRequest.getHeaders()).thenReturn(headers);
+            
+            // Mock the path properly
+            org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+            when(mockPath.value()).thenReturn("/test-path");
+            when(mockRequest.getPath()).thenReturn(mockPath);
+            when(mockRequest.getId()).thenReturn("test-request-id");
+            
             return mockRequest;
         }
 
@@ -825,8 +839,9 @@ class JwtAuthValidatorTest {
                 ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                // Mock the path's toString() method to return a proper value
+                // Mock the path's value() method to return a proper value
                 org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
                 when(mockRequest.mutate()).thenReturn(mockBuilder);
@@ -865,8 +880,9 @@ class JwtAuthValidatorTest {
                 ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                // Mock the path's toString() method to return a proper value
+                // Mock the path's value() method to return a proper value
                 org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
                 when(mockRequest.mutate()).thenReturn(mockBuilder);
@@ -1129,8 +1145,9 @@ class JwtAuthValidatorTest {
                 // No Authorization header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                // Mock the path's toString() method to return a proper value
+                // Mock the path's value() method to return a proper value
                 org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;
@@ -1161,8 +1178,9 @@ class JwtAuthValidatorTest {
                 headers.set("Authorization", ""); // Empty header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                // Mock the path's toString() method to return a proper value
+                // Mock the path's value() method to return a proper value
                 org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;
@@ -1193,8 +1211,9 @@ class JwtAuthValidatorTest {
                 headers.set("Authorization", "Basic somebasictoken"); // Non-Bearer token
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                // Mock the path's toString() method to return a proper value
+                // Mock the path's value() method to return a proper value
                 org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;

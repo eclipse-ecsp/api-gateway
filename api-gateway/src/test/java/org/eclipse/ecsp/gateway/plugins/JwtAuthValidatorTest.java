@@ -365,18 +365,21 @@ class JwtAuthValidatorTest {
         jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "SelfManage");
-        Method privateMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class);
+        Method privateMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
+                String.class,
+                String.class, 
+                String.class);
         privateMethod.setAccessible(true);
 
-        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims);
+        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
         List<String> scopesList = Arrays.asList("SelfManage", "IgniteSystem");
         claims.put("scope", scopesList);
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims);
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
         if (result != null) {
             Assertions.assertTrue(StringUtils.contains(result, "SelfManage"));
         }
         claims.setScope(String.join(",", scopesList));
-        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims);
+        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath", "clientIp");
         if (resultString != null) {
             Assertions.assertTrue(StringUtils.contains(resultString, "SelfManage"));
         }
@@ -613,7 +616,10 @@ class JwtAuthValidatorTest {
             // Mock basic request methods
             when(mockRequest.getHeaders()).thenReturn(headers);
             when(mockRequest.getId()).thenReturn("test-request-id");
-            when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+            // Mock the path's toString() method to return a proper value
+            org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+            when(mockPath.toString()).thenReturn("/test-path");
+            when(mockRequest.getPath()).thenReturn(mockPath);
             ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
             // Mock the mutate() method to return a proper builder
             when(mockRequest.mutate()).thenReturn(mockBuilder);
@@ -820,7 +826,10 @@ class JwtAuthValidatorTest {
                 ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+                // Mock the path's toString() method to return a proper value
+                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.toString()).thenReturn("/test-path");
+                when(mockRequest.getPath()).thenReturn(mockPath);
                 when(mockRequest.mutate()).thenReturn(mockBuilder);
                 when(mockBuilder.header(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(mockBuilder);
                 when(mockBuilder.build()).thenReturn(mockRequest);
@@ -857,7 +866,10 @@ class JwtAuthValidatorTest {
                 ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+                // Mock the path's toString() method to return a proper value
+                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.toString()).thenReturn("/test-path");
+                when(mockRequest.getPath()).thenReturn(mockPath);
                 when(mockRequest.mutate()).thenReturn(mockBuilder);
                 when(mockBuilder.header(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(mockBuilder);
                 when(mockBuilder.build()).thenReturn(mockRequest);
@@ -924,9 +936,11 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method with List claim
         try {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class);
+            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
+                String.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList);
+            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
+                "requestId", "requestPath", "clientIp");
 
             // Should handle List properly and return valid scope
             Assertions.assertNotNull(result);
@@ -1116,7 +1130,10 @@ class JwtAuthValidatorTest {
                 // No Authorization header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+                // Mock the path's toString() method to return a proper value
+                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.toString()).thenReturn("/test-path");
+                when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;
             }
         };
@@ -1145,7 +1162,10 @@ class JwtAuthValidatorTest {
                 headers.set("Authorization", ""); // Empty header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+                // Mock the path's toString() method to return a proper value
+                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.toString()).thenReturn("/test-path");
+                when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;
             }
         };
@@ -1174,7 +1194,10 @@ class JwtAuthValidatorTest {
                 headers.set("Authorization", "Basic somebasictoken"); // Non-Bearer token
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
-                when(mockRequest.getPath()).thenReturn(Mockito.mock(org.springframework.http.server.RequestPath.class));
+                // Mock the path's toString() method to return a proper value
+                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                when(mockPath.toString()).thenReturn("/test-path");
+                when(mockRequest.getPath()).thenReturn(mockPath);
                 return mockRequest;
             }
         };
@@ -1352,9 +1375,11 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method with string scope
         try {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class);
+            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
+                String.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope);
+            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
+                "requestId", "requestPath", "clientIp");
 
             // Should handle string scope properly
             Assertions.assertNotNull(result);
@@ -1385,9 +1410,11 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method with comma-separated scope
         try {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class);
+            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
+                String.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope);
+            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
+                "requestId", "requestPath", "clientIp");
 
             // Should handle comma-separated scope properly
             Assertions.assertNotNull(result);
@@ -1419,12 +1446,13 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method with null scope
         try {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class);
+            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
+                String.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
 
             // Should throw exception due to insufficient scope
             Assertions.assertThrows(Exception.class, () ->
-                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope));
+                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, "requestId", "requestPath", "clientIp"));
         } catch (Exception e) {
             // Expected to fail due to missing scope
         }

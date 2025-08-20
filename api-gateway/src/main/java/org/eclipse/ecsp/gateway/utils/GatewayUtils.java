@@ -18,15 +18,23 @@
 
 package org.eclipse.ecsp.gateway.utils;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 
 /**
  * GatewayUtils.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GatewayUtils {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(GatewayUtils.class);
 
     /**
      * Get the outcome from the HTTP status code.
@@ -49,5 +57,54 @@ public class GatewayUtils {
             status = "ERROR";
         }
         return status;
+    }
+
+    /**
+     * Helper method to extract client IP address from the request.
+     *
+     * @param request the ServerHttpRequest
+     * @return client IP address
+     */
+    public static String getClientIpAddress(ServerHttpRequest request) {
+        String clientIp = "unknown";
+        try {
+            // Check X-Forwarded-For header first (common in proxy setups)
+            String forwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
+            if (StringUtils.isNotEmpty(forwardedFor)) {
+                // X-Forwarded-For can contain multiple IPs, take the first one
+                clientIp = forwardedFor.split(",")[0].trim();
+            } else {
+                // Fallback to remote address
+                if (request.getRemoteAddress() != null 
+                        && request.getRemoteAddress().getAddress() != null) {
+                    clientIp = request.getRemoteAddress().getAddress().getHostAddress();
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.debug("Unable to extract client IP address: {}", ex.getMessage());
+        }
+        return clientIp;
+    }
+
+    /**
+     * Helper method to determine the specific reason for token validation failure.
+     *
+     * @param ex the exception thrown during token validation
+     * @return a human-readable failure reason
+     */
+    public static String getTokenValidationFailureReason(Exception ex) {
+        if (ex instanceof ExpiredJwtException) {
+            return "Token expired";
+        } else if (ex instanceof MalformedJwtException) {
+            return "Malformed token";
+        } else if (ex instanceof UnsupportedJwtException) {
+            return "Unsupported token format";
+        } else if (ex instanceof SecurityException) {
+            return "Token signature verification failed";
+        } else if (ex instanceof IllegalArgumentException) {
+            return "Invalid token argument";
+        } else {
+            return "Unknown token validation error";
+        }
     }
 }

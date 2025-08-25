@@ -137,7 +137,7 @@
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
         <wiremock.version>3.13.1</wiremock.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+        <maven-javadoc-plugin.version>3.11.3</maven-javadoc-plugin.version>
         <license-tool-plugin.version>1.1.0</license-tool-plugin.version>
         <skipDash>true</skipDash>
         <failWhenReviewNeeded>false</failWhenReviewNeeded>

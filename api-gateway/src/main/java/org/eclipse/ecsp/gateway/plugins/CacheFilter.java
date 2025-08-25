@@ -148,7 +148,7 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
                 LOGGER.debug("cacheResponse {} ", cache.get(cachedRequestKey));
                 cacheResponse = cache.get(cachedRequestKey);
             } catch (Exception e) {
-                LOGGER.error("exception while getting data from redis {} ", e.getMessage());
+                LOGGER.error("exception while getting data from redis {} ", e);
             }
 
             LOGGER.debug("Cached response available :{} ", !Objects.isNull(cacheResponse));

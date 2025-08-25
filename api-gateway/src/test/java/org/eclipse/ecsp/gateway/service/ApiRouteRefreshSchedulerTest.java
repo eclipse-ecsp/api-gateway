@@ -27,7 +27,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
- * Test class for ApiRouteRefreshScheduler.
+ * Test class for {@link ApiRoutesRefreshScheduler} functionality.
  */
 @ExtendWith(SpringExtension.class)
 class ApiRouteRefreshSchedulerTest {

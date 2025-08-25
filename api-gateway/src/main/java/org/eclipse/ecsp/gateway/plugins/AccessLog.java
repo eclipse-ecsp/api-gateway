@@ -251,7 +251,7 @@ public class AccessLog implements GlobalFilter, Ordered {
                                                 outputStream.write(responseContent);
                                             } catch (IOException e) {
                                                 LOGGER.error("accesslog: Error while reading api {} response stream {}",
-                                                    exchange.getRequest().getPath(), e.getMessage());
+                                                    exchange.getRequest().getPath(), e);
                                             }
                                         });
                                         accesslog(exchange, startTime, statusCode,

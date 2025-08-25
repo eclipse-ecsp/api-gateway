@@ -18,49 +18,38 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
-import lombok.Getter;
-import lombok.Setter;
+import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter.Config;
-import org.eclipse.ecsp.gateway.utils.JwtPublicKeyLoader;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
-import java.util.Map;
 
 /**
  * Filter to validate JWT Token.
  */
 @Component
-@ConfigurationProperties(prefix = "jwt")
 public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthFilter.Config> {
-
-    @Getter
-    @Setter
-    private Map<String, Map<String, String>> tokenHeaderValidationConfig;
-
-    private final JwtPublicKeyLoader jwtPublicKeyLoader;
-
-    @Value("${api.userId.field}")
-    private String userIdField;
+    private final PublicKeyService publicKeyService;
+    private final JwtProperties jwtProperties;
 
     /**
      * Constructor to initialize the JwtAuthValidator.
      *
-     * @param jwtPublicKeyLoader the JWT public key loader
+     * @param publicKeyService Service to load JWT public keys.
+     * @param jwtProperties properties containing JWT configuration.
      */
-    public JwtAuthValidator(JwtPublicKeyLoader jwtPublicKeyLoader) {
+    public JwtAuthValidator(PublicKeyService publicKeyService, JwtProperties jwtProperties) {
         super(Config.class);
-        this.jwtPublicKeyLoader = jwtPublicKeyLoader;
+        this.publicKeyService = publicKeyService;
+        this.jwtProperties = jwtProperties;
     }
 
     @Override
     public GatewayFilter apply(Config config) {
-        return new JwtAuthFilter(config, jwtPublicKeyLoader.getJwtParsers(), tokenHeaderValidationConfig, userIdField);
+        return new JwtAuthFilter(config, publicKeyService, jwtProperties);
     }
-
 
 }
 

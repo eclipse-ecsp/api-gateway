@@ -35,3 +35,4 @@ replay_pid*
 **/.project
 **/.settings
 **/*.java.bak
+.sonarlint/

@@ -145,6 +145,23 @@ public class GatewayMetricsConfig {
     }
 
     /**
+     * add tenantId tag in api gateway metrics using {@link GatewayTagsProvider}.
+     *
+     * @return instance of {@link GatewayTagsProvider}
+     */
+    @Bean
+    @ConditionalOnProperty(name = "api.gateway.metrics.gateway-requests.enabled", havingValue = "true")
+    public GatewayTagsProvider tenantIdTagProvider() {
+        return (exchange -> {
+            LOGGER.debug("apply tenantId in gateway metrics for endpoint: {}", exchange.getRequest().getPath());
+            // Get the route information from the exchange attributes
+            String tenantId = exchange.getRequest().getHeaders().getFirst(GatewayConstants.TENANT_ID);
+            return Tags.of(Tags.of(GatewayConstants.TENANT_ID,
+                    StringUtils.isNotBlank(tenantId) ? tenantId : ""));
+        });
+    }
+
+    /**
      * Creates a GatewayRequestMetricsFilter bean.
      *
      * <p>This filter captures all requests early in the filter chain to ensure
@@ -169,7 +186,7 @@ public class GatewayMetricsConfig {
             LOGGER.info("Gateway metrics prefix is set to: {}", prefix);
         }
         LOGGER.info("GatewayMetricsFilter is enabled with prefix: {}",
-                gatewayMetricsProperties.getGatewayRequests().getPrefix());
+                prefix);
         return new GatewayRequestMetricsFilter(meterRegistry,
                 tagsProviders, prefix);
     }
@@ -183,7 +200,13 @@ public class GatewayMetricsConfig {
     @ConditionalOnProperty("api.gateway.metrics.server-requests.enabled")
     public ServerRequestObservationConvention httpServerObservationConvention() {
         LOGGER.info("HttpServerObservationConvention is enabled");
-        return new HttpServerObservationConvention(gatewayMetricsProperties.getServerRequests().getPrefix());
+        String prefix = "http.server.requests";
+        if (gatewayMetricsProperties.getServerRequests() != null
+                && !StringUtils.isEmpty(gatewayMetricsProperties.getServerRequests().getPrefix())) {
+            prefix = gatewayMetricsProperties.getServerRequests().getPrefix();
+            LOGGER.info("Server metrics prefix is set to: {}", prefix);
+        }
+        return new HttpServerObservationConvention(prefix);
     }
 
     /**
@@ -195,7 +218,12 @@ public class GatewayMetricsConfig {
     @ConditionalOnProperty("api.gateway.metrics.http-client-requests.enabled")
     ClientRequestObservationConvention httpClientObservationConvention() {
         LOGGER.info("HttpClientObservationConvention is enabled");
-        return new HttpClientObservationConvention(gatewayMetricsProperties.getHttpClientRequests().getPrefix());
+        String prefix = "http.client.requests";
+        if (gatewayMetricsProperties.getHttpClientRequests() != null
+                && !StringUtils.isEmpty(gatewayMetricsProperties.getHttpClientRequests().getPrefix())) {
+            prefix = gatewayMetricsProperties.getHttpClientRequests().getPrefix();
+        }
+        return new HttpClientObservationConvention(prefix);
     }
 
     /**
@@ -207,7 +235,13 @@ public class GatewayMetricsConfig {
     @ConditionalOnProperty("api.gateway.metrics.backend-requests.enabled")
     GatewayObservationConvention apiGatewayObservationConvention() {
         LOGGER.info("ApiGatewayObservationConvention is enabled");
-        return new ApiGatewayObservationConvention(gatewayMetricsProperties.getBackendRequests().getPrefix());
+        String prefix = "http.downstream.requests";
+        if (gatewayMetricsProperties.getBackendRequests() != null
+                && !StringUtils.isEmpty(gatewayMetricsProperties.getBackendRequests().getPrefix())) {
+            prefix = gatewayMetricsProperties.getBackendRequests().getPrefix();
+            LOGGER.info("Backend metrics prefix is set to: {}", prefix);
+        }
+        return new ApiGatewayObservationConvention(prefix);
     }
 
     /**

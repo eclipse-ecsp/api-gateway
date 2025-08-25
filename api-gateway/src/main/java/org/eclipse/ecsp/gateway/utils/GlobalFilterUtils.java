@@ -89,7 +89,7 @@ public class GlobalFilterUtils {
                                         outputStream.write(responseContent);
                                     } catch (IOException e) {
                                         LOGGER.error("RequestCache | Error while reading api {} response stream {}",
-                                                exchange.getRequest().getPath(), e.getMessage());
+                                                exchange.getRequest().getPath(), e);
                                         throw new ApiGatewayException(HttpStatus.INTERNAL_SERVER_ERROR,
                                                 "api.gateway.request.error",
                                                 "Error occurred while processing the request");
@@ -108,13 +108,13 @@ public class GlobalFilterUtils {
                             }));
                         }
                     } catch (Exception e) {
-                        LOGGER.error("RequestCache | error saving response for cache, {}", e.getMessage());
+                        LOGGER.error("RequestCache | error saving response for cache, {}", e);
                     }
                     return super.writeWith(body);
                 }
             };
         } catch (Exception e) {
-            LOGGER.error("ERROR {}:", e.getMessage());
+            LOGGER.error("ERROR {}:", e);
 
         }
         return decorator;
@@ -140,7 +140,7 @@ public class GlobalFilterUtils {
             decompressedString = resultStringBuilder.toString();
 
         } catch (IOException e) {
-            LOGGER.error("Error while reading the cached Byte Response {}", e.getMessage());
+            LOGGER.error("Error while reading the cached Byte Response {}", e);
         }
         return decompressedString;
     }

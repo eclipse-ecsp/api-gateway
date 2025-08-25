@@ -21,7 +21,6 @@ package org.eclipse.ecsp.gateway.rest;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.Health;
 import org.eclipse.ecsp.gateway.service.IgniteRouteLocator;
-import org.eclipse.ecsp.gateway.service.RegistryRouteLoader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,9 +46,6 @@ class ApiGatewayControllerTest {
 
     @Mock
     private IgniteRouteLocator igniteRouteLocator;
-
-    @Mock
-    private RegistryRouteLoader registryRouteLoader;
 
     @BeforeEach
     void beforeEach() {

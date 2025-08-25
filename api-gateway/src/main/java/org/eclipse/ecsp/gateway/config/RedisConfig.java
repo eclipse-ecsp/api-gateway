@@ -36,6 +36,8 @@ import java.util.Map;
 
 /**
  * Configuration class for Redis caching.
+ *
+ * @author Abhishek Kumar
  */
 @Configuration
 @EnableCaching

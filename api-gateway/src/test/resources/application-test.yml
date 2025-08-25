@@ -59,8 +59,11 @@ main:
   web-application-type: reactive
 
 jwt:
-  publicKeyFileBasePath: /opt/api-gateway/pem_files/
-  publicKeyFiles: test-certificate.pem
+  keySources:
+    - id: test
+      type: PEM
+      location: ./src/test/resources/test-certificate.pem
+      default: true
 requestBody:
   validation: true
 
@@ -68,7 +71,7 @@ requestBody:
 api:
   registry:
     enabled: ${api_registry_enabled:false}
-    uri: ${api_registry_uri:http://api-registry-int-svc:7000}
+    base-url: ${api_registry_base-url:http://api-registry-int-svc:7000}
     route-path: /api/v1/routes
   isFilterOverrideEnabled: false
   overrideFilterConfig:

@@ -218,4 +218,58 @@ public class GatewayConstants {
      * Gateway metrics filter order.
      */
     public static final int GATEWAY_METRICS_FILTER_ORDER = -100;
+
+    // Metric type constants - Used for categorizing and labeling metrics in monitoring systems
+    /**
+     * Metric label key for identifying the component being monitored.
+     */
+    public static final String COMPONENT = "component";
+
+    /**
+     * Metric label value for public key cache component identification.
+     */
+    public static final String PUBLIC_KEY_CACHE = "public-key-cache";
+
+    /**
+     * Metric label key for specifying the type of metric being recorded.
+     */
+    public static final String TYPE = "type";
+
+    /**
+     * Metric label key for tracking the number of key sources configured.
+     */
+    public static final String KEY_SOURCES = "key-sources";
+
+    /**
+     *  Metric label key for tracking cache size information.
+     */
+    public static final String CACHE_SIZE = "cache-size";
+
+    /**
+     * Metric label key for tracking the count of source refresh operations.
+     */
+    public static final String REFRESH_SOURCE_COUNT = "refresh-source-count";
+
+    /**
+     * Metric label key for tracking the timestamp for source refresh operations.
+     */
+    public static final String REFRESH_SOURCE_TIME = "refresh-source-time";
+
+    // Default metric names - Standard metric identifiers used in monitoring dashboards
+    /**
+     * Default metric name for public key cache size.
+     */
+    public static final String DEFAULT_CACHE_SIZE_METRIC = "public_key_cache_size";
+    /**
+     * Default metric name for public key sources count.
+     */
+    public static final String DEFAULT_KEY_SOURCES_METRIC = "public_key_sources_count";
+    /**
+     * Default metric name for public key source refresh count.
+     */
+    public static final String DEFAULT_SOURCE_REFRESH_COUNT_METRIC = "public_key_source_refresh_count";
+    /**
+     * Default metric name for public key source refresh time.
+     */
+    public static final String DEFAULT_SOURCE_REFRESH_TIME_METRIC = "public_key_source_refresh_time";
 }

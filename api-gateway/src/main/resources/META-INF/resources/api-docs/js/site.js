@@ -30,11 +30,17 @@ $(document).ready(function () {
     $.ajaxSetup({
         beforeSend: function (xhr) {
             xhr.setRequestHeader("Accept", "application/json");
-            xhr.setRequestHeader("Authorization", "Bearer " + localStorage.access_token);
+            // Set the Authorization header with the access token
+            if (localStorage.access_token) {
+                 xhr.setRequestHeader("Authorization", "Bearer " + localStorage.access_token);
+            }
         }
     });
     $("openapi-explorer").on('request', function (event) {
-        event.detail.request.headers.append('Authorization', `Bearer ${localStorage.access_token}`);
+        if(localStorage.access_token) {
+            event.detail.request.headers.append('Authorization', `Bearer ${localStorage.access_token}`);
+        }
+
     });
     $("#api-group").change(function () {
         var url = $("#api-group option:selected").attr('value');

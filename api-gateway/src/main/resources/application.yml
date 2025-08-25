@@ -14,8 +14,10 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
+#      cluster:
+#        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -63,8 +65,30 @@ spring:
                 regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
 
 jwt:
-  publicKeyFileBasePath: /opt/api-gateway/pem_files/
-  publicKeyFiles: test-certificate.pem
+  keySources:
+  - id: test
+    type: PEM
+    location: C:\Users\AKumar87\codebase\apigw-setup\certificates\uidam-public.pem
+    default: true
+  - id: uidam
+    type: JWKS
+    issuer: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com
+    url: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com/oauth2/jwks
+    refreshInterval: "5m"
+  tokenHeaderValidationConfig:
+    accountId:
+      required: false
+      regex: "^[a-zA-Z0-9]+$"
+    tenantId:
+      required: false
+      regex: "^[a-zA-Z0-9]+$"
+  # token claim to request header mapping
+  tokenClaimToHeaderMapping:
+    sub: "x-user-id"
+    email: "user-email"
+    user_id: "user-id"
+    tenantId: "tenantId"
+    accountId: "accountId"
 requestBody:
   validation: true
 
@@ -72,7 +96,7 @@ requestBody:
 api:
   registry:
     enabled: ${api_registry_enabled:true}
-    uri: ${api_registry_uri:http://api-registry-int-svc:7000}
+    base-url: ${api_registry_base-url:http://api-registry-int-svc:7000}
     route-path: /api/v1/routes
   isFilterOverrideEnabled: false
   overrideFilterConfig:
@@ -95,7 +119,7 @@ api:
   gateway:
     metrics:
       enabled: true
-      port: 9100
+      port: 9101
       base-path: /gateway
       prometheus:
         enabled: true
@@ -118,6 +142,12 @@ api:
         prefix: api.gateway
         ignoreTags: [ "exception" ]
         security-filter-name: JwtAuthFilter
+      public-key-cache:
+        enabled: true
+        cache-size:
+          name: public_key_cache_size
+        key-sources:
+          name: public_key_sources_count
       gateway-requests:
         enabled: true
         prefix: api.gateway

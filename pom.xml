@@ -63,7 +63,7 @@
         <jackson-bom.version>2.19.2</jackson-bom.version>
         <jjwt.version>0.12.6</jjwt.version>
         <lombok.version>1.18.38</lombok.version>
-        <spring-boot.version>3.5.3</spring-boot.version>
+        <spring-boot.version>3.5.4</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-resilience4j.version>3.3.0</spring-cloud-resilience4j.version>
         <spring-cloud-starter-gateway.version>4.3.0</spring-cloud-starter-gateway.version>
@@ -81,7 +81,7 @@
         <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
 
         <!--Checkstyle plugin properties -->
-        <checkstyle.version>10.26.1</checkstyle.version>
+        <checkstyle.version>11.0.0</checkstyle.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <checkstyle.suppressions.location>checkstyle-suppressions.xml</checkstyle.suppressions.location>
@@ -131,7 +131,7 @@
         </jacoco.ut.execution.data.file>
         <spring-security.version>6.5.2</spring-security.version>
         <bouncycastle.version>1.81</bouncycastle.version>
-        <nimbus-jose-jwt.version>10.4</nimbus-jose-jwt.version>
+        <nimbus-jose-jwt.version>10.4.1</nimbus-jose-jwt.version>
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
         <junit-platform-launcher.version>1.12.1</junit-platform-launcher.version>
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>

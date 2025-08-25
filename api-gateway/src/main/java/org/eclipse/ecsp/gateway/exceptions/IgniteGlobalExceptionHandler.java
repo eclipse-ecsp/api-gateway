@@ -102,7 +102,7 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
         errorPropertiesMap.clear();
         errorPropertiesMap.putAll(prepareResponse(throwable));
         HttpStatusCode httpStatus = determineHttpStatus(throwable);
-        LOGGER.error("Error occurred while processing request: {}, ", errorPropertiesMap.get(MESSAGE), throwable);
+        LOGGER.error("Error occurred while processing request: {}", errorPropertiesMap.get(MESSAGE), throwable);
         return ServerResponse.status(httpStatus)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(errorPropertiesMap);

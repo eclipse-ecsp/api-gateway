@@ -321,4 +321,64 @@ class ApiRoutesLoaderTest {
         Assertions.assertTrue(route.isPresent());
         Assertions.assertFalse(route.get().getMetadata().containsKey("headers"));
     }
+
+    @Test
+    void testRouteWithNoFiltersConfigured() {
+        // Create an operation without any filters (no security, no request body, no caching, no custom filters)
+        Operation operation = new Operation();
+        operation.setTags(List.of("test-controller"));
+        operation.setOperationId("no-filters-route");
+        operation.setRequestBody(null); // No request body to avoid request body filters
+        operation.setSecurity(null); // No security to avoid security filters
+        operation.setExtensions(null); // No extensions to avoid caching and custom filters
+        operation.setParameters(null); // No parameters
+        
+        // Set contextPath to null to avoid rewrite path filter
+        ReflectionTestUtils.setField(apiRoutesLoader, "contextPath", null);
+        
+        // Set required fields for route creation
+        try {
+            ReflectionTestUtils.setField(apiRoutesLoader, "serviceUrl", 
+                    new java.net.URI("http://test-service:8080/"));
+        } catch (java.net.URISyntaxException e) {
+            Assertions.fail("Failed to set serviceUrl: " + e.getMessage());
+        }
+        ReflectionTestUtils.setField(apiRoutesLoader, "appName", "test-app");
+        
+        // Get initial route count
+        @SuppressWarnings("unchecked")
+        List<RouteDefinition> apiRoutesBefore = (List<RouteDefinition>)
+                ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
+        int initialRouteCount = apiRoutesBefore.size();
+        
+        // Invoke setOperation method
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/no-filters", operation);
+        
+        // Verify the route was added despite having no filters
+        @SuppressWarnings("unchecked")
+        List<RouteDefinition> apiRoutesAfter = (List<RouteDefinition>)
+                ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
+        Assertions.assertEquals(initialRouteCount + 1, apiRoutesAfter.size());
+        
+        // Find the specific route that was added
+        Optional<RouteDefinition> route = apiRoutesAfter.stream()
+                .filter(r -> r.getId().equals("test-controller-no-filters-route"))
+                .findFirst();
+        
+        Assertions.assertTrue(route.isPresent());
+        
+        // Verify that the route has no filters configured
+        RouteDefinition routeDefinition = route.get();
+        Assertions.assertTrue(routeDefinition.getFilters().isEmpty(), 
+                "Route should have no filters configured");
+        
+        // Verify route has the correct predicates (method and path)
+        final int expectedPredicateCount = 2;
+        Assertions.assertEquals(expectedPredicateCount, routeDefinition.getPredicates().size(), 
+                "Route should have method and path predicates");
+        
+        // Verify the route has correct basic properties
+        Assertions.assertEquals("test-controller-no-filters-route", routeDefinition.getId());
+        Assertions.assertNotNull(routeDefinition.getUri());
+    }
 }

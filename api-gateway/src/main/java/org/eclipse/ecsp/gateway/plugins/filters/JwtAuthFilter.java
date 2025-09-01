@@ -500,7 +500,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             .map(scope -> {
                 // Check if scope starts with any configured prefix
                 for (String prefix : tokenScopePrefixes) {
-                    if (StringUtils.isNotBlank(prefix) && scope.startsWith(prefix)) {
+                    if (StringUtils.isNotBlank(scope) && StringUtils.isNotBlank(prefix) && scope.startsWith(prefix)) {
                         LOGGER.debug("removing scope prefix {} from the token scope: {} for {}", 
                                 prefix, scope,
                                 GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));

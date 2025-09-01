@@ -175,6 +175,7 @@ class JwtAuthValidatorTest {
         when(jwtProperties.getTokenHeaderValidationConfig()).thenReturn(tokenHeaderValidationConfig);
         when(jwtProperties.getKeySources()).thenReturn(publicKeySources);
         when(jwtProperties.getTokenClaimToHeaderMapping()).thenReturn(claimToHeaderMapping);
+        when(jwtProperties.getScopePrefixes()).thenReturn(Set.of("ProviderPrefix/", "ScopePrefix/"));
     }
 
     private PublicKeySource createTestPublicKeySource(String id, String location) {
@@ -1592,6 +1593,202 @@ class JwtAuthValidatorTest {
 
         int order = jwtAuthFilter.getOrder();
         Assertions.assertEquals(GatewayConstants.JWT_AUTH_FILTER_ORDER, order);
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_PositiveCase_PrefixRemovedAndMatched() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage,AdminAccess"); // Route requires these scopes
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with scopes that have prefixes that should be removed
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("ProviderPrefix/SelfManage", "ScopePrefix/AdminAccess", "OtherScope"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should succeed after prefix removal
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        
+        // Verify that prefixes were removed and scopes matched
+        Assertions.assertNotNull(result);
+        Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
+        Assertions.assertTrue(resultScopes.contains("SelfManage"), "Should contain SelfManage after prefix removal");
+        Assertions.assertTrue(resultScopes.contains("AdminAccess"), "Should contain AdminAccess after prefix removal");
+        Assertions.assertTrue(resultScopes.contains("OtherScope"), "Should contain OtherScope without prefix");
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_PositiveCase_PartialPrefixMatch() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("ReadAccess"); // Route requires this scope
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with mixed scopes - some with prefix, some without
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("ProviderPrefix/ReadAccess", "WriteAccess", "ScopePrefix/DeleteAccess"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should succeed as ReadAccess matches after prefix removal
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        
+        // Verify that prefixes were removed correctly
+        Assertions.assertNotNull(result);
+        Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
+        Assertions.assertTrue(resultScopes.contains("ReadAccess"), "Should contain ReadAccess after prefix removal");
+        Assertions.assertTrue(resultScopes.contains("WriteAccess"), "Should contain WriteAccess without prefix");
+        Assertions.assertTrue(resultScopes.contains("DeleteAccess"), "Should contain DeleteAccess after prefix removal");
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_PositiveCase_StringScopeWithPrefix() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("UserManage"); // Route requires this scope
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with string scope containing comma-separated values with prefixes
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", "ProviderPrefix/UserManage,ScopePrefix/DataAccess,PublicRead");
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should succeed after prefix removal
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        
+        // Verify that prefixes were removed correctly
+        Assertions.assertNotNull(result);
+        Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
+        Assertions.assertTrue(resultScopes.contains("UserManage"), "Should contain UserManage after prefix removal");
+        Assertions.assertTrue(resultScopes.contains("DataAccess"), "Should contain DataAccess after prefix removal");
+        Assertions.assertTrue(resultScopes.contains("PublicRead"), "Should contain PublicRead without prefix");
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_NegativeCase_NoMatchAfterPrefixRemoval() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("RequiredScope"); // Route requires this specific scope
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with scopes that don't match route scope even after prefix removal
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("ProviderPrefix/DifferentScope", "ScopePrefix/AnotherScope", "ThirdScope"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should fail as no scope matches after prefix removal
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        });
+        
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_NegativeCase_EmptyScopeAfterPrefixProcessing() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("NeededScope"); // Route requires this scope
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with scopes that become empty or null after prefix processing
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("ProviderPrefix/", "ScopePrefix/", "   ", null));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should fail as no valid scopes remain
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        });
+        
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_NegativeCase_NonMatchingPrefix() throws Exception {
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("TargetScope"); // Route requires this scope
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with scopes that have non-configured prefixes
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("DifferentPrefix/TargetScope", "AnotherPrefix/SomeScope", "UnknownPrefix/TestScope"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should fail as prefixes don't match configured ones
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        });
+        
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_EdgeCase_NullTokenScopePrefixes() throws Exception {
+        // Setup JWT properties with null scope prefixes
+        when(jwtProperties.getScopePrefixes()).thenReturn(null);
+        
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("TestScope");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with scopes containing prefixes
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("ProviderPrefix/TestScope", "ScopePrefix/OtherScope"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should fail as prefixes are not removed when config is null
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        });
+        
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
+    }
+
+    @Test
+    void testTokenScopeWithPrefixes_EdgeCase_EmptyTokenScopePrefixes() throws Exception {
+        // Setup JWT properties with empty scope prefixes
+        when(jwtProperties.getScopePrefixes()).thenReturn(new HashSet<>());
+        
+        // Setup configuration with route scope
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("DirectScope");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims with direct scope match (no prefixes to remove)
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", Arrays.asList("DirectScope", "OtherScope"));
+        claims.put("sub", "testuser");
+        claims.put("aud", "test-audience");
+
+        // Test validateScope method - should succeed as direct match works
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        
+        Assertions.assertNotNull(result);
+        Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
+        Assertions.assertTrue(resultScopes.contains("DirectScope"), "Should contain DirectScope");
+        Assertions.assertTrue(resultScopes.contains("OtherScope"), "Should contain OtherScope");
     }
 }
 

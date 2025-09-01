@@ -66,12 +66,12 @@ jwt:
   keySources:
   - id: test
     type: PEM
-    location: C:\Users\AKumar87\codebase\apigw-setup\certificates\uidam-public.pem
+    location: /api-gateway/test.pem
     default: true
   - id: uidam
     type: JWKS
-    issuer: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com
-    url: https://uidam-authorization-server.eks-ignite-qa.kqa.ignite.harman.com/oauth2/jwks
+    issuer: https://uidam-authorization-server
+    url: https://uidam-authorization-server:9443/oauth2/jwks
     refreshInterval: "5m"
   tokenHeaderValidationConfig:
     accountId:

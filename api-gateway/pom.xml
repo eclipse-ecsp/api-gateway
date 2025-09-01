@@ -22,7 +22,7 @@
         </sonar.coverage.jacoco.xmlReportPaths>
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec
         </jacoco.ut.execution.data.file>
-        <reactor-test.version>3.7.8</reactor-test.version>
+        <reactor-test.version>3.7.9</reactor-test.version>
     </properties>
     <dependencies>
         <dependency>

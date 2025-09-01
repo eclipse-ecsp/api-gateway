@@ -119,10 +119,10 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
 
         if (!CollectionUtils.isEmpty(jwtProperties.getScopePrefixes())) {
             this.tokenScopePrefixes = jwtProperties.getScopePrefixes();
-            LOGGER.info("Token scope prefixes: {}", tokenScopePrefixes);
+            LOGGER.debug("Token scope prefixes: {}", tokenScopePrefixes);
         } else {
             this.tokenScopePrefixes = new HashSet<>();
-            LOGGER.info("No token scope prefixes configured");
+            LOGGER.debug("No token scope prefixes configured");
         }
     }
 
@@ -226,7 +226,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             String claimKey = entry.getKey();
             String headerName = entry.getValue();
             String claimValue = getTokenHeaderValue(claims, claimKey);
-            if (!StringUtils.isEmpty(claimValue)) {
+            if (!StringUtils.isBlank(claimValue)) {
                 builder.header(headerName, claimValue);
                 LOGGER.debug("Added claim {} to request header: {} with value: {}, {}",
                         claimKey, headerName, claimValue, GatewayUtils.getLogMessage(routeId, requestPath, requestId));

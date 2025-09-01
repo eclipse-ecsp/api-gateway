@@ -285,9 +285,10 @@ public class ApiRoutesLoader extends OpenApiResource {
             setHeaderMetadata(operation, route);
             setRewritePathFilter(route);
             setCustomGatewayFilters(operation, route);
-            if (!route.getFilters().isEmpty()) {
-                apiRoutes.add(route);
+            if (route.getFilters().isEmpty()) {
+                LOGGER.warn("API Route has no filter configured");
             }
+            apiRoutes.add(route);
 
             LOGGER.debug("API Route : {}", route);
         } catch (Exception ex) {

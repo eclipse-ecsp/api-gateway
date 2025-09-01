@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Configuration properties for JWT authentication and validation.
@@ -58,4 +59,9 @@ public class JwtProperties {
      * Key: JWT claim name, Value: HTTP header name
      */
     private Map<String, String> tokenClaimToHeaderMapping;
+
+    /**
+     * A set of prefixes used to filter or match JWT scope claims.
+     */
+    private Set<String> scopePrefixes;
 }

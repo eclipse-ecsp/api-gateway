@@ -58,6 +58,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -85,6 +86,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     private final Map<String, TokenHeaderValidationConfig> tokenHeaderValidationConfig;
     private final PublicKeyService publicKeyService;
     Map<String, String> tokenClaimToHeaderMapping;
+    private Set<String> tokenScopePrefixes;
 
     /**
      * Constructor to initialize the JwtAuthFilter.
@@ -113,6 +115,14 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         if (!this.tokenClaimToHeaderMapping.containsKey("user_id")) {
             LOGGER.debug("UserId claim is configured in token claim to header mapping");
             this.tokenClaimToHeaderMapping.put("sub", "user-id");
+        }
+
+        if (!CollectionUtils.isEmpty(jwtProperties.getScopePrefixes())) {
+            this.tokenScopePrefixes = jwtProperties.getScopePrefixes();
+            LOGGER.debug("Token scope prefixes: {}", tokenScopePrefixes);
+        } else {
+            this.tokenScopePrefixes = new HashSet<>();
+            LOGGER.debug("No token scope prefixes configured");
         }
     }
 
@@ -216,7 +226,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             String claimKey = entry.getKey();
             String headerName = entry.getValue();
             String claimValue = getTokenHeaderValue(claims, claimKey);
-            if (!StringUtils.isEmpty(claimValue)) {
+            if (!StringUtils.isBlank(claimValue)) {
                 builder.header(headerName, claimValue);
                 LOGGER.debug("Added claim {} to request header: {} with value: {}, {}",
                         claimKey, headerName, claimValue, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
@@ -422,27 +432,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         LOGGER.debug("Starting scope validation for route: {}, requestPath: {}, requestId: {}", 
                 route.getId(), requestPath, requestId);
 
-        Set<String> userScopes = new HashSet<>();
-        Object scopeObj = claims.get(GatewayConstants.SCOPE);
-        if (scopeObj != null) {
-            LOGGER.debug("Token scope found, type: {}, value: {}, {}", 
-                    scopeObj.getClass().getSimpleName(), scopeObj, 
-                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
-
-            if (scopeObj instanceof List<?>) {
-                // scopes are in the form of List
-                userScopes = new HashSet<>((List<String>) scopeObj);
-            } else if (scopeObj instanceof String scopeStr) {
-                String delimiter = scopeStr.contains(",") ? "," : StringUtils.SPACE;
-                userScopes = new HashSet<>(Arrays.asList(scopeStr.split(delimiter)));
-            }
-        } else {
-            LOGGER.debug("No scope claim found in token for {}", 
-                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
-        }
-
-        LOGGER.debug("Extracted user scopes: {}, configured route scopes: {}, {}", 
-                userScopes, routeScopes, GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+        Set<String> userScopes = extractUserScopes(route, claims, requestId, requestPath);
 
         boolean valid = false;
         if (routeScopes.isEmpty()) {
@@ -451,6 +441,11 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                     GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
             valid = true;
         } else {
+            // Process scopes to remove configured prefixes if present
+            if (!CollectionUtils.isEmpty(tokenScopePrefixes) && !CollectionUtils.isEmpty(userScopes)) {
+                userScopes = sanitizeUserScopes(route, requestId, requestPath, userScopes);
+                LOGGER.debug("user scope after prefixes are removed : {}", userScopes);
+            }
             // at minimum one of the routeScopes must match userScopes
             valid = routeScopes.stream().anyMatch(userScopes::contains);
             if (valid) {
@@ -475,6 +470,56 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 userScopes, route.getId(), requestPath, requestId);
 
         return String.join(",", userScopes);
+    }
+
+    private Set<String> extractUserScopes(final Route route, 
+                                          final Claims claims, 
+                                          String requestId, 
+                                          String requestPath) {
+        Set<String> userScopes = new HashSet<>();
+        Object scopeObj = claims.get(GatewayConstants.SCOPE);
+        if (scopeObj != null) {
+            LOGGER.debug("Token scope found, type: {}, value: {}, {}", 
+                    scopeObj.getClass().getSimpleName(), scopeObj, 
+                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+
+            if (scopeObj instanceof List<?>) {
+                // scopes are in the form of List
+                userScopes = new HashSet<>((List<String>) scopeObj);
+            } else if (scopeObj instanceof String scopeStr) {
+                String delimiter = scopeStr.contains(",") ? "," : StringUtils.SPACE;
+                userScopes = new HashSet<>(Arrays.asList(scopeStr.split(delimiter)));
+            }
+        } else {
+            LOGGER.debug("No scope claim found in token for {}", 
+                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+        }
+
+        LOGGER.debug("Extracted user scopes: {}, configured route scopes: {}, {}", 
+                userScopes, routeScopes, GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+        return userScopes;
+    }
+
+    private Set<String> sanitizeUserScopes(final Route route, 
+                                        String requestId, 
+                                        String requestPath, 
+                                        Set<String> userScopes) {
+        userScopes = userScopes.stream()
+            .map(scope -> {
+                // Check if scope starts with any configured prefix
+                for (String prefix : tokenScopePrefixes) {
+                    if (StringUtils.isNotBlank(scope) && StringUtils.isNotBlank(prefix) && scope.startsWith(prefix)) {
+                        LOGGER.debug("removing scope prefix {} from the token scope: {} for {}", 
+                                prefix, scope,
+                                GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+                        return scope.substring(prefix.length());
+                    }
+                }
+                return scope;
+            })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+        return userScopes;
     }
 
     @Override

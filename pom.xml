@@ -63,7 +63,7 @@
         <jackson-bom.version>2.19.2</jackson-bom.version>
         <jjwt.version>0.12.6</jjwt.version>
         <lombok.version>1.18.38</lombok.version>
-        <spring-boot.version>3.5.4</spring-boot.version>
+        <spring-boot.version>3.5.5</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-resilience4j.version>3.3.0</spring-cloud-resilience4j.version>
         <spring-cloud-starter-gateway.version>4.3.0</spring-cloud-starter-gateway.version>

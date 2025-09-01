@@ -365,7 +365,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testPrivateMethodValidateScope() throws Exception {
+    void testPrivateMethodValidateScope() throws NoSuchMethodException {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
@@ -1596,7 +1596,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_PrefixRemovedAndMatched() throws Exception {
+    void testTokenScopeWithPrefixes_PositiveCase_PrefixRemovedAndMatched() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage,AdminAccess"); // Route requires these scopes
@@ -1621,7 +1621,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_PartialPrefixMatch() throws Exception {
+    void testTokenScopeWithPrefixes_PositiveCase_PartialPrefixMatch() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("ReadAccess"); // Route requires this scope
@@ -1646,7 +1646,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_StringScopeWithPrefix() throws Exception {
+    void testTokenScopeWithPrefixes_PositiveCase_StringScopeWithPrefix() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("UserManage"); // Route requires this scope
@@ -1671,7 +1671,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_NoMatchAfterPrefixRemoval() throws Exception {
+    void testTokenScopeWithPrefixes_NegativeCase_NoMatchAfterPrefixRemoval() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("RequiredScope"); // Route requires this specific scope
@@ -1694,7 +1694,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_EmptyScopeAfterPrefixProcessing() throws Exception {
+    void testTokenScopeWithPrefixes_NegativeCase_EmptyScopeAfterPrefixProcessing() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("NeededScope"); // Route requires this scope
@@ -1717,7 +1717,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_NonMatchingPrefix() throws Exception {
+    void testTokenScopeWithPrefixes_NegativeCase_NonMatchingPrefix() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("TargetScope"); // Route requires this scope
@@ -1740,7 +1740,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_EdgeCase_NullTokenScopePrefixes() throws Exception {
+    void testTokenScopeWithPrefixes_EdgeCase_NullTokenScopePrefixes() {
         // Setup JWT properties with null scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(null);
         
@@ -1766,7 +1766,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_EdgeCase_EmptyTokenScopePrefixes() throws Exception {
+    void testTokenScopeWithPrefixes_EdgeCase_EmptyTokenScopePrefixes() {
         // Setup JWT properties with empty scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(new HashSet<>());
         

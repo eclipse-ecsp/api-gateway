@@ -57,8 +57,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -117,7 +117,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             this.tokenClaimToHeaderMapping.put("sub", "user-id");
         }
 
-        if(!CollectionUtils.isEmpty(jwtProperties.getScopePrefixes())) {
+        if (!CollectionUtils.isEmpty(jwtProperties.getScopePrefixes())) {
             this.tokenScopePrefixes = jwtProperties.getScopePrefixes();
             LOGGER.info("Token scope prefixes: {}", tokenScopePrefixes);
         } else {
@@ -463,23 +463,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         } else {
             // Process scopes to remove configured prefixes if present
             if (!CollectionUtils.isEmpty(tokenScopePrefixes) && !CollectionUtils.isEmpty(userScopes)) {
-                userScopes = userScopes.stream()
-                    .map(scope -> {
-                        if (scope == null) return null;
-                        
-                        // Check if scope starts with any configured prefix
-                        for (String prefix : tokenScopePrefixes) {
-                            if (StringUtils.isNotBlank(prefix) && scope.startsWith(prefix)) {
-                                LOGGER.debug("removing scope prefix {} from the token scope: {} for {}", 
-                                        prefix, scope,
-                                        GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
-                                return scope.substring(prefix.length());
-                            }
-                        }
-                        return scope;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+                userScopes = extractUserScopes(route, requestId, requestPath, userScopes);
                 LOGGER.debug("user scope after prefixes are removed : {}", userScopes);
             }
             // at minimum one of the routeScopes must match userScopes
@@ -506,6 +490,28 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 userScopes, route.getId(), requestPath, requestId);
 
         return String.join(",", userScopes);
+    }
+
+    private Set<String> extractUserScopes(final Route route, 
+                                        String requestId, 
+                                        String requestPath, 
+                                        Set<String> userScopes) {
+        userScopes = userScopes.stream()
+            .map(scope -> {
+                // Check if scope starts with any configured prefix
+                for (String prefix : tokenScopePrefixes) {
+                    if (StringUtils.isNotBlank(prefix) && scope.startsWith(prefix)) {
+                        LOGGER.debug("removing scope prefix {} from the token scope: {} for {}", 
+                                prefix, scope,
+                                GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
+                        return scope.substring(prefix.length());
+                    }
+                }
+                return scope;
+            })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+        return userScopes;
     }
 
     @Override

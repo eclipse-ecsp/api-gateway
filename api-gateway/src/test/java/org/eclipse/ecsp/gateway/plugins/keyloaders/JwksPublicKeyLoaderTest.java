@@ -748,6 +748,190 @@ class JwksPublicKeyLoaderTest {
         Assertions.assertEquals("EC", result.get("ec-mixed-supported-1").getAlgorithm());
     }
 
+    @Test
+    void shouldIncludeBasicAuthHeaderInTokenRequest() {
+        String expectedClientAuth = Base64.getEncoder().encodeToString("test-client:test-secret".getBytes());
+
+        stubFor(post(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
+                .withRequestBody(containing("grant_type=client_credentials"))
+                .withRequestBody(containing("client_id=test-client"))
+                .withRequestBody(containing("client_secret=test-secret"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(OAUTH_TOKEN_RESPONSE)));
+
+        stubFor(get(urlEqualTo("/jwks"))
+                .withHeader("Authorization", equalTo("Bearer test-access-token-12345"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(VALID_JWKS_RESPONSE)));
+
+        PublicKeyCredentials credentials = new PublicKeyCredentials();
+        credentials.setClientId("test-client");
+        credentials.setClientSecret("test-secret");
+        credentials.setTokenEndpoint(baseUrl + "/oauth/token");
+
+        PublicKeySource config = createPublicKeySource(baseUrl + "/jwks",
+                PublicKeyAuthType.CLIENT_CREDENTIALS, credentials);
+        Map<String, PublicKey> result = jwksPublicKeyLoader.loadKeys(config);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(TWO, result.size());
+
+        // Verify that the token request included the Basic Auth header
+        verify(postRequestedFor(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth)));
+    }
+
+    @Test
+    void shouldIncludeBasicAuthHeaderInTokenRequestWithScopes() {
+        String expectedClientAuth = Base64.getEncoder().encodeToString("test-client:test-secret".getBytes());
+
+        stubFor(post(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
+                .withRequestBody(containing("grant_type=client_credentials"))
+                .withRequestBody(containing("client_id=test-client"))
+                .withRequestBody(containing("client_secret=test-secret"))
+                .withRequestBody(containing("scope=read+write"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(OAUTH_TOKEN_RESPONSE)));
+
+        stubFor(get(urlEqualTo("/jwks"))
+                .withHeader("Authorization", equalTo("Bearer test-access-token-12345"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(VALID_JWKS_RESPONSE)));
+
+        PublicKeyCredentials credentials = new PublicKeyCredentials();
+        credentials.setClientId("test-client");
+        credentials.setClientSecret("test-secret");
+        credentials.setScopes(List.of("read", "write"));
+        credentials.setTokenEndpoint(baseUrl + "/oauth/token");
+
+        PublicKeySource config = createPublicKeySource(baseUrl + "/jwks",
+                PublicKeyAuthType.CLIENT_CREDENTIALS, credentials);
+        Map<String, PublicKey> result = jwksPublicKeyLoader.loadKeys(config);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(TWO, result.size());
+
+        // Verify that the token request included the Basic Auth header and scopes
+        verify(postRequestedFor(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .withRequestBody(containing("scope=read+write")));
+    }
+
+    @Test
+    void shouldHandleTokenRequestWithDifferentCredentials() {
+        String expectedClientAuth = Base64.getEncoder().encodeToString("different-client:different-secret".getBytes());
+
+        stubFor(post(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(OAUTH_TOKEN_RESPONSE)));
+
+        stubFor(get(urlEqualTo("/jwks"))
+                .withHeader("Authorization", equalTo("Bearer test-access-token-12345"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(VALID_JWKS_RESPONSE)));
+
+        PublicKeyCredentials credentials = new PublicKeyCredentials();
+        credentials.setClientId("different-client");
+        credentials.setClientSecret("different-secret");
+        credentials.setTokenEndpoint(baseUrl + "/oauth/token");
+
+        PublicKeySource config = createPublicKeySource(baseUrl + "/jwks",
+                PublicKeyAuthType.CLIENT_CREDENTIALS, credentials);
+        Map<String, PublicKey> result = jwksPublicKeyLoader.loadKeys(config);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(TWO, result.size());
+
+        // Verify that the token request included the correct Basic Auth header for different credentials
+        verify(postRequestedFor(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth)));
+    }
+
+    @Test
+    void shouldHandleTokenRequestAuthenticationFailure() {
+        String expectedClientAuth = Base64.getEncoder().encodeToString("wrong-client:wrong-secret".getBytes());
+
+        stubFor(post(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.UNAUTHORIZED.value())
+                        .withBody("{\"error\":\"invalid_client\","
+                        + "\"error_description\":\"Client authentication failed\"}")));
+
+        PublicKeyCredentials credentials = new PublicKeyCredentials();
+        credentials.setClientId("wrong-client");
+        credentials.setClientSecret("wrong-secret");
+        credentials.setTokenEndpoint(baseUrl + "/oauth/token");
+
+        PublicKeySource config = createPublicKeySource(baseUrl + "/jwks",
+                PublicKeyAuthType.CLIENT_CREDENTIALS, credentials);
+
+        Map<String, PublicKey> result = jwksPublicKeyLoader.loadKeys(config);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.isEmpty());
+
+        // Verify that the token request was made with Basic Auth header even though it failed
+        verify(postRequestedFor(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth)));
+    }
+
+    @Test
+    void shouldHandleSpecialCharactersInClientCredentials() {
+        String clientId = "client@domain.com";
+        String clientSecret = "secret!@#$%^&*()";
+        String expectedClientAuth = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
+
+        stubFor(post(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth))
+                .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(OAUTH_TOKEN_RESPONSE)));
+
+        stubFor(get(urlEqualTo("/jwks"))
+                .withHeader("Authorization", equalTo("Bearer test-access-token-12345"))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(VALID_JWKS_RESPONSE)));
+
+        PublicKeyCredentials credentials = new PublicKeyCredentials();
+        credentials.setClientId(clientId);
+        credentials.setClientSecret(clientSecret);
+        credentials.setTokenEndpoint(baseUrl + "/oauth/token");
+
+        PublicKeySource config = createPublicKeySource(baseUrl + "/jwks",
+                PublicKeyAuthType.CLIENT_CREDENTIALS, credentials);
+        Map<String, PublicKey> result = jwksPublicKeyLoader.loadKeys(config);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(TWO, result.size());
+
+        // Verify that special characters in credentials are properly encoded in Basic Auth header
+        verify(postRequestedFor(urlEqualTo("/oauth/token"))
+                .withHeader("Authorization", equalTo("Basic " + expectedClientAuth)));
+    }
+
     /**
      * Helper method to create PublicKeySource configuration for testing.
      */

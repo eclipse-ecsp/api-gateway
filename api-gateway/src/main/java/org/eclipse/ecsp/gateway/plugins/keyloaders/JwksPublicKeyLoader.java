@@ -210,8 +210,11 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
         }
 
         try {
+            String authValue = credentials.getClientId() + ":" + credentials.getClientSecret();
+            String encodedAuth = Base64.getEncoder().encodeToString(authValue.getBytes(StandardCharsets.UTF_8));
             String responseBody = webClient.post()
                     .uri(credentials.getTokenEndpoint())
+                    .header("Authorization", "Basic " + encodedAuth)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(BodyInserters.fromFormData(formData))
                     .retrieve()

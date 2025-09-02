@@ -52,6 +52,7 @@ import java.util.Map;
  */
 @Component
 public class JwksPublicKeyLoader implements PublicKeyLoader {
+    private static final String AUTHORIZATION = "Authorization";
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(JwksPublicKeyLoader.class);
     private static final int THIRTY_SECONDS = 30;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -145,7 +146,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
                     break;
                 case CLIENT_CREDENTIALS:
                     String accessToken = generateAccessToken(credentials);
-                    requestSpec = requestSpec.header("Authorization", "Bearer " + accessToken);
+                    requestSpec = requestSpec.header(AUTHORIZATION, "Bearer " + accessToken);
                     break;
                 default:
                     // No authentication needed
@@ -180,7 +181,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
 
         LOGGER.debug("Added Basic authentication header for user: {}", credentials.getUsername());
-        return requestSpec.header("Authorization", "Basic " + encodedAuth);
+        return requestSpec.header(AUTHORIZATION, "Basic " + encodedAuth);
     }
 
     /**
@@ -214,7 +215,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             String encodedAuth = Base64.getEncoder().encodeToString(authValue.getBytes(StandardCharsets.UTF_8));
             String responseBody = webClient.post()
                     .uri(credentials.getTokenEndpoint())
-                    .header("Authorization", "Basic " + encodedAuth)
+                    .header(AUTHORIZATION, "Basic " + encodedAuth)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(BodyInserters.fromFormData(formData))
                     .retrieve()

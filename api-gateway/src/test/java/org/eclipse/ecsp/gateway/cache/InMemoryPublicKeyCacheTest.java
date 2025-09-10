@@ -22,6 +22,7 @@
 package org.eclipse.ecsp.gateway.cache;
 
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
+import org.eclipse.ecsp.gateway.model.PublicKeyType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,7 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -77,6 +79,36 @@ class InMemoryPublicKeyCacheTest {
     }
 
     /**
+     * Helper method to create fully initialized PublicKeyInfo objects for testing.
+     *
+     * @param kid the key identifier
+     * @param publicKey the public key
+     * @return a fully initialized PublicKeyInfo object
+     */
+    private PublicKeyInfo createTestPublicKeyInfo(String kid, PublicKey publicKey) {
+        return createTestPublicKeyInfo(kid, publicKey, "test-source-" + kid);
+    }
+
+    /**
+     * Helper method to create fully initialized PublicKeyInfo objects for testing.
+     *
+     * @param kid the key identifier
+     * @param publicKey the public key
+     * @param sourceId the source identifier
+     * @return a fully initialized PublicKeyInfo object
+     */
+    private PublicKeyInfo createTestPublicKeyInfo(String kid, PublicKey publicKey, String sourceId) {
+        PublicKeyInfo info = new PublicKeyInfo();
+        info.setKid(kid);
+        info.setPublicKey(publicKey);
+        info.setType(PublicKeyType.JWKS);
+        info.setIssuer("test-issuer");
+        info.setSourceId(sourceId);
+        info.setAdditionalMetaData(Map.of("test-key", "test-value"));
+        return info;
+    }
+
+    /**
      * Test successful put and get operations.
      * Verifies that keys can be stored and retrieved correctly.
      */
@@ -84,9 +116,7 @@ class InMemoryPublicKeyCacheTest {
     void put_whenValidKeyAndValue_thenStoresSuccessfully() {
         // Given
         String keyId = "test-key-1";
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid(keyId);
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
         // When
         cache.put(keyId, testPublicKeyInfo1);
         Optional<PublicKeyInfo> result = cache.get(keyId);
@@ -123,13 +153,8 @@ class InMemoryPublicKeyCacheTest {
         // Given
         String keyId1 = "test-key-1";
         String keyId2 = "test-key-2";
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid(keyId1);
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
-
-        PublicKeyInfo testPublicKeyInfo2 = new PublicKeyInfo();
-        testPublicKeyInfo2.setKid(keyId2);
-        testPublicKeyInfo2.setPublicKey(this.testPublicKey2);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId1, this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo2 = createTestPublicKeyInfo(keyId2, this.testPublicKey2);
         // When
         cache.put(keyId1, testPublicKeyInfo1);
         cache.put(keyId2, testPublicKeyInfo2);
@@ -153,15 +178,11 @@ class InMemoryPublicKeyCacheTest {
     void put_whenKeyAlreadyExists_thenOverwritesValue() {
         // Given
         String keyId = "test-key";
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid(keyId);
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
         cache.put(keyId, testPublicKeyInfo1);
 
         // When
-        PublicKeyInfo testPublicKeyInfo2 = new PublicKeyInfo();
-        testPublicKeyInfo2.setKid(keyId);
-        testPublicKeyInfo2.setPublicKey(this.testPublicKey2);
+        PublicKeyInfo testPublicKeyInfo2 = createTestPublicKeyInfo(keyId, this.testPublicKey2);
         cache.put(keyId, testPublicKeyInfo2);
         Optional<PublicKeyInfo> result = cache.get(keyId);
 
@@ -179,9 +200,7 @@ class InMemoryPublicKeyCacheTest {
     void remove_whenKeyExists_thenRemovesSuccessfully() {
         // Given
         String keyId = "test-key";
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid(keyId);
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
         cache.put(keyId, testPublicKeyInfo1);
 
         // When
@@ -219,13 +238,8 @@ class InMemoryPublicKeyCacheTest {
     @Test
     void clear_whenCacheHasKeys_thenRemovesAllKeys() {
         // Given
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid("key1");
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
-
-        PublicKeyInfo testPublicKeyInfo2 = new PublicKeyInfo();
-        testPublicKeyInfo2.setKid("key2");
-        testPublicKeyInfo2.setPublicKey(this.testPublicKey2);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("key1", this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo2 = createTestPublicKeyInfo("key2", this.testPublicKey2);
         cache.put("key1", testPublicKeyInfo1);
         cache.put("key2", testPublicKeyInfo2);
         assertEquals(EXPECTED, cache.size());
@@ -249,15 +263,11 @@ class InMemoryPublicKeyCacheTest {
         assertEquals(0, cache.size());
 
         // When adding keys
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid("key1");
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("key1", this.testPublicKey1);
         cache.put("key1", testPublicKeyInfo1);
         assertEquals(1, cache.size());
 
-        PublicKeyInfo testPublicKeyInfo2 = new PublicKeyInfo();
-        testPublicKeyInfo2.setKid("key2");
-        testPublicKeyInfo2.setPublicKey(this.testPublicKey2);
+        PublicKeyInfo testPublicKeyInfo2 = createTestPublicKeyInfo("key2", this.testPublicKey2);
         cache.put("key2", testPublicKeyInfo2);
         assertEquals(EXPECTED, cache.size());
 
@@ -278,9 +288,7 @@ class InMemoryPublicKeyCacheTest {
     void put_whenNullKey_thenHandlesCorrectly() {
         // When & Then
         try {
-            PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-            testPublicKeyInfo1.setKid("test-key");
-            testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+            PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("test-key", this.testPublicKey1);
             cache.put(null, testPublicKeyInfo1);
         } catch (NullPointerException e) {
             fail("Should not throw exception for null key: " + e.getMessage());
@@ -329,9 +337,7 @@ class InMemoryPublicKeyCacheTest {
                     for (int j = 0; j < operationsPerThread; j++) {
                         String key = "thread-" + threadId + "-key-" + j;
                         
-                        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-                        testPublicKeyInfo1.setKid(key);
-                        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+                        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(key, this.testPublicKey1);
                         cache.put(key, testPublicKeyInfo1);
                         Optional<PublicKeyInfo> retrieved = cache.get(key);
                         if (retrieved.isPresent()) {
@@ -734,5 +740,26 @@ class InMemoryPublicKeyCacheTest {
         // Then
         assertEquals(0, cache.size());
         assertEquals(EXPECTED, removedCount.get());
+    }
+
+    /**
+     * Test put operation with PublicKeyInfo having null required fields.
+     * Verifies that proper validation exceptions are thrown.
+     */
+    @Test
+    void put_whenPublicKeyInfoHasNullRequiredFields_thenThrowsException() {
+        PublicKeyInfo invalidInfo = new PublicKeyInfo();
+        
+        // Test null kid
+        assertThrows(IllegalArgumentException.class, () -> invalidInfo.setKid(null));
+
+        // Test null publicKey  
+        assertThrows(IllegalArgumentException.class, () -> invalidInfo.setPublicKey(null));
+
+        // Test null type
+        assertThrows(IllegalArgumentException.class, () -> invalidInfo.setType(null));
+
+        // Test null sourceId
+        assertThrows(IllegalArgumentException.class, () -> invalidInfo.setSourceId(null));
     }
 }

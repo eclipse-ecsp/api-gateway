@@ -232,7 +232,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             JsonNode response = objectMapper.readTree(responseBody);
             String accessToken = response.get("access_token").asText();
 
-            LOGGER.info("Successfully generated access token for client: {}", credentials.getClientId());
+            LOGGER.debug("Successfully generated access token for client: {}", credentials.getClientId());
             return accessToken;
         } catch (Exception e) {
             LOGGER.error("Failed to obtain access token from {}: {}", credentials.getTokenEndpoint(), e);

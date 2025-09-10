@@ -19,22 +19,92 @@
 package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
-import lombok.Setter;
 import java.security.PublicKey;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * Configuration class for a public key info.
+ * Data model representing public key information with associated metadata.
+ * This class encapsulates a public key and its related information used for JWT token validation.
+ * Instances are typically cached and should be treated as immutable after creation.
  *
  * @author Abhishek Kumar
  */
-@Setter
 @Getter
 public class PublicKeyInfo {
+    /** The key identifier (kid) from JWT header used to locate the correct public key. */
     private String kid;
+    
+    /** The actual public key used for JWT signature verification. */
     private PublicKey publicKey;
+    
+    /** The type of public key source (JWKS, PEM, etc.). */
     private PublicKeyType type;
+    
+    /** The issuer that provided this public key. */
     private String issuer;
+    
+    /** Unique identifier of the source that loaded this key. */
     private String sourceId;
+    
+    /** Additional metadata associated with this public key. */
     private Map<String, Object> additionalMetaData;
+
+    /**
+     * Sets the key identifier with null validation.
+     *
+     * @param kid the key identifier, cannot be null
+     * @throws IllegalArgumentException if kid is null
+     */
+    public void setKid(String kid) {
+        this.kid = Objects.requireNonNull(kid, "Kid cannot be null");
+    }
+
+    /**
+     * Sets the public key with null validation.
+     *
+     * @param publicKey the public key, cannot be null
+     * @throws IllegalArgumentException if publicKey is null
+     */
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = Objects.requireNonNull(publicKey, "PublicKey cannot be null");
+    }
+
+    /**
+     * Sets the public key type with null validation.
+     *
+     * @param type the public key type, cannot be null
+     * @throws IllegalArgumentException if type is null
+     */
+    public void setType(PublicKeyType type) {
+        this.type = Objects.requireNonNull(type, "Type cannot be null");
+    }
+
+    /**
+     * Sets the issuer (nullable).
+     *
+     * @param issuer the issuer
+     */
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
+    }
+
+    /**
+     * Sets the source identifier with null validation.
+     *
+     * @param sourceId the source identifier, cannot be null
+     * @throws IllegalArgumentException if sourceId is null
+     */
+    public void setSourceId(String sourceId) {
+        this.sourceId = Objects.requireNonNull(sourceId, "SourceId cannot be null");
+    }
+
+    /**
+     * Sets the additional metadata (nullable).
+     *
+     * @param additionalMetaData the additional metadata
+     */
+    public void setAdditionalMetaData(Map<String, Object> additionalMetaData) {
+        this.additionalMetaData = additionalMetaData;
+    }
 }

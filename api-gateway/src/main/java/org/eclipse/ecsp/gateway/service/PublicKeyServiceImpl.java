@@ -197,29 +197,32 @@ public class PublicKeyServiceImpl implements PublicKeyService {
 
     /**
      * Removes all public keys from cache that belong to the specified sourceId.
-    *
-    * @param sourceId the source ID to remove keys for
-    * @return number of keys removed
-    */
+     * Uses the cache's removeIf operation for optimal performance.
+     *
+     * @param sourceId the source ID to remove keys for
+     * @return number of keys removed
+     */
     private int removePublicKeysBySourceId(String sourceId) {
         if (sourceId == null || sourceId.trim().isEmpty()) {
             LOGGER.warn("SourceId is null or empty, cannot remove public keys");
             return 0;
         }
-    
-        // Get keys to remove using stream
-        List<String> keysToRemove = publicKeyCache.entrySet()
+
+        // Count removed entries before removal for logging
+        long removedCount = publicKeyCache.entrySet()
             .stream()
             .filter(entry -> sourceId.equals(entry.getValue().getSourceId()))
-            .map(Map.Entry::getKey)
-            .toList();
-        
-        // Remove the keys
-        keysToRemove.forEach(publicKeyCache::remove);
+            .count();
 
-        LOGGER.info("Removed {} public key(s) {} for sourceId: {}", 
-                    keysToRemove.size(), keysToRemove.toArray(), sourceId);
-        return keysToRemove.size();
+        // Use removeIf for efficient single-pass removal
+        boolean removed = publicKeyCache.remove(entry -> 
+            sourceId.equals(entry.getValue().getSourceId()));
+
+        int count = (int) removedCount;
+        if (removed && count > 0) {
+            LOGGER.info("Removed {} public key(s) for sourceId: {}", count, sourceId);
+        }
+        return count;
     }
 }
 

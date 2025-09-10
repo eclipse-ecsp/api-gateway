@@ -91,21 +91,20 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
 
     /**
      * Removes all entries matching the given predicate.
+     * This operation is atomic and thread-safe.
      *
      * @param predicate the condition to match for removal
-     *
      * @return true if any entries were removed
+     * @throws IllegalArgumentException if predicate is null
      */
     @Override
     public boolean remove(Predicate<java.util.Map.Entry<String, PublicKeyInfo>> predicate) {
-        boolean removed = false;
-        for (var entry : keyCache.entrySet()) {
-            if (predicate.test(entry)) {
-                keyCache.remove(entry.getKey());
-                removed = true;
-            }
+        if (predicate == null) {
+            throw new IllegalArgumentException("Predicate cannot be null");
         }
-        return removed;
+        
+        // Use removeIf which is atomic and thread-safe for ConcurrentHashMap
+        return keyCache.entrySet().removeIf(predicate);
     }
 
     /**

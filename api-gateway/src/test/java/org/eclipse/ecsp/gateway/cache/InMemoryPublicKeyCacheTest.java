@@ -475,26 +475,21 @@ class InMemoryPublicKeyCacheTest {
 
     /**
      * Test removing entries with predicate - null predicate handling.
-     * Verifies proper handling of null predicate.
+     * Verifies that IllegalArgumentException is thrown for null predicate.
      */
     @Test
-    void remove_whenPredicateIsNull_thenHandlesGracefully() {
+    void remove_whenPredicateIsNull_thenThrowsException() {
         // Given
-        PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
-        testPublicKeyInfo1.setKid("key1");
-        testPublicKeyInfo1.setPublicKey(this.testPublicKey1);
+        PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("key1", this.testPublicKey1);
         cache.put("key1", testPublicKeyInfo1);
 
         // When & Then
-        try {
-            boolean result = cache.remove((Predicate<Map.Entry<String, PublicKeyInfo>>) null);
-            // If implementation allows null, it should return false
-            assertFalse(result);
-            assertEquals(1, cache.size());
-        } catch (NullPointerException e) {
-            // If implementation throws NPE for null predicate, that's also acceptable
-            assertEquals(1, cache.size());
-        }
+        assertThrows(IllegalArgumentException.class, () -> {
+            cache.remove((Predicate<Map.Entry<String, PublicKeyInfo>>) null);
+        });
+        
+        // Verify cache is unchanged
+        assertEquals(1, cache.size());
     }
 
     /**

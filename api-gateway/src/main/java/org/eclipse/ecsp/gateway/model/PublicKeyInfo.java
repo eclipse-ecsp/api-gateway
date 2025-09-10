@@ -21,7 +21,6 @@ package org.eclipse.ecsp.gateway.model;
 import lombok.Getter;
 import java.security.PublicKey;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Data model representing public key information with associated metadata.
@@ -57,7 +56,10 @@ public class PublicKeyInfo {
      * @throws IllegalArgumentException if kid is null
      */
     public void setKid(String kid) {
-        this.kid = Objects.requireNonNull(kid, "Kid cannot be null");
+        if (kid == null) {
+            throw new IllegalArgumentException("Kid cannot be null");
+        }
+        this.kid = kid;
     }
 
     /**
@@ -67,7 +69,10 @@ public class PublicKeyInfo {
      * @throws IllegalArgumentException if publicKey is null
      */
     public void setPublicKey(PublicKey publicKey) {
-        this.publicKey = Objects.requireNonNull(publicKey, "PublicKey cannot be null");
+        if (publicKey == null) {
+            throw new IllegalArgumentException("PublicKey cannot be null");
+        }
+        this.publicKey = publicKey;
     }
 
     /**
@@ -77,7 +82,10 @@ public class PublicKeyInfo {
      * @throws IllegalArgumentException if type is null
      */
     public void setType(PublicKeyType type) {
-        this.type = Objects.requireNonNull(type, "Type cannot be null");
+        if (type == null) {
+            throw new IllegalArgumentException("Type cannot be null");
+        }
+        this.type = type;
     }
 
     /**
@@ -96,7 +104,10 @@ public class PublicKeyInfo {
      * @throws IllegalArgumentException if sourceId is null
      */
     public void setSourceId(String sourceId) {
-        this.sourceId = Objects.requireNonNull(sourceId, "SourceId cannot be null");
+        if (sourceId == null) {
+            throw new IllegalArgumentException("SourceId cannot be null");
+        }
+        this.sourceId = sourceId;
     }
 
     /**

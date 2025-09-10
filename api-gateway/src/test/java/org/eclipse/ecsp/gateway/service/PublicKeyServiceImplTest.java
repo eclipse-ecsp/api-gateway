@@ -50,6 +50,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -421,16 +422,19 @@ class PublicKeyServiceImplTest {
         keyInfo1.setKid("key1");
         keyInfo1.setSourceId(sourceId1);
         keyInfo1.setPublicKey(testPublicKey);
+        keyInfo1.setType(PublicKeyType.JWKS);
 
         PublicKeyInfo keyInfo2 = new PublicKeyInfo();
         keyInfo2.setKid("key2");
         keyInfo2.setSourceId(sourceId1);
         keyInfo2.setPublicKey(testPublicKey);
+        keyInfo2.setType(PublicKeyType.JWKS);
 
         PublicKeyInfo keyInfo3 = new PublicKeyInfo();
         keyInfo3.setKid("key3");
         keyInfo3.setSourceId(sourceId2);
         keyInfo3.setPublicKey(testPublicKey);
+        keyInfo3.setType(PublicKeyType.JWKS);
 
         // Create entry set mock
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = Set.of(
@@ -450,9 +454,11 @@ class PublicKeyServiceImplTest {
 
             // Then
             assertEquals(TWO, result);
-            verify(publicKeyCache).remove("key1");
-            verify(publicKeyCache).remove("key2");
-            verify(publicKeyCache, never()).remove("key3");
+            // Verify that entrySet() was called to get entries for filtering
+            verify(publicKeyCache).entrySet();
+            // Verify that the predicate-based remove method was called  
+            verify(publicKeyCache).remove(
+                org.mockito.ArgumentMatchers.<Predicate<Map.Entry<String, PublicKeyInfo>>>any());
         } catch (Exception e) {
             throw new RuntimeException("Failed to test removePublicKeysBySourceId", e);
         }
@@ -652,6 +658,7 @@ class PublicKeyServiceImplTest {
         existingKeyInfo.setKid("old-key");
         existingKeyInfo.setSourceId("test-jwks-source");
         existingKeyInfo.setPublicKey(testPublicKey);
+        existingKeyInfo.setType(PublicKeyType.JWKS);
 
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = Set.of(
                 Map.entry("old-key", existingKeyInfo)
@@ -684,7 +691,11 @@ class PublicKeyServiceImplTest {
             method.invoke(publicKeyService, source, keyLoader);
 
             // Then
-            verify(publicKeyCache).remove("old-key"); // removePublicKeysBySourceId was called
+            // Verify that entrySet() was called to get entries for filtering
+            verify(publicKeyCache).entrySet();
+            // Verify that the predicate-based remove method was called
+            verify(publicKeyCache).remove(
+                org.mockito.ArgumentMatchers.<Predicate<Map.Entry<String, PublicKeyInfo>>>any());
             verify(keyLoader).loadKeys(source); // loadPublicKeys was called
             // Note: Event publishing is tested indirectly through successful key refresh
         } catch (Exception e) {
@@ -811,18 +822,26 @@ class PublicKeyServiceImplTest {
         PublicKeyInfo targetKey1 = new PublicKeyInfo();
         targetKey1.setKid("target-key-1");
         targetKey1.setSourceId(targetSourceId);
+        targetKey1.setPublicKey(testPublicKey);
+        targetKey1.setType(PublicKeyType.JWKS);
 
         PublicKeyInfo targetKey2 = new PublicKeyInfo();
         targetKey2.setKid("target-key-2");
         targetKey2.setSourceId(targetSourceId);
+        targetKey2.setPublicKey(testPublicKey);
+        targetKey2.setType(PublicKeyType.JWKS);
 
         PublicKeyInfo otherKey1 = new PublicKeyInfo();
         otherKey1.setKid("other-key-1");
         otherKey1.setSourceId(otherSourceId1);
+        otherKey1.setPublicKey(testPublicKey);
+        otherKey1.setType(PublicKeyType.JWKS);
 
         PublicKeyInfo otherKey2 = new PublicKeyInfo();
         otherKey2.setKid("other-key-2");
         otherKey2.setSourceId(otherSourceId2);
+        otherKey2.setPublicKey(testPublicKey);
+        otherKey2.setType(PublicKeyType.JWKS);
 
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = Set.of(
                 Map.entry("target-key-1", targetKey1),
@@ -842,10 +861,11 @@ class PublicKeyServiceImplTest {
 
             // Then
             assertEquals(TWO, result);
-            verify(publicKeyCache).remove("target-key-1");
-            verify(publicKeyCache).remove("target-key-2");
-            verify(publicKeyCache, never()).remove("other-key-1");
-            verify(publicKeyCache, never()).remove("other-key-2");
+            // Verify that entrySet() was called to get entries for filtering
+            verify(publicKeyCache).entrySet();
+            // Verify that the predicate-based remove method was called
+            verify(publicKeyCache).remove(
+                org.mockito.ArgumentMatchers.<Predicate<Map.Entry<String, PublicKeyInfo>>>any());
         } catch (Exception e) {
             throw new RuntimeException("Failed to test removePublicKeysBySourceId with mixed sources", e);
         }

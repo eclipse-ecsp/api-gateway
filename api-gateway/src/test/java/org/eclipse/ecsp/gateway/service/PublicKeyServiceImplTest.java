@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.service;
 import io.micrometer.core.instrument.Timer;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
 import org.eclipse.ecsp.gateway.metrics.PublicKeyMetrics;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.PublicKeyType;
 import org.eclipse.ecsp.gateway.plugins.keyloaders.PublicKeyLoader;
@@ -104,11 +105,10 @@ class PublicKeyServiceImplTest {
         when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
         // Initialize service with mocks
         publicKeyService = new PublicKeyServiceImpl(
-            List.of(sourceProvider),
-            List.of(keyLoader),
-            publicKeyCache,
-            eventPublisher
-        );
+                List.of(sourceProvider),
+                List.of(keyLoader),
+                publicKeyCache,
+                eventPublisher);
     }
 
     /**
@@ -131,7 +131,7 @@ class PublicKeyServiceImplTest {
         verify(sourceProvider).keySources();
         verify(keyLoader).loadKeys(any(PublicKeySource.class));
         verify(publicKeyCache).clear();
-        verify(publicKeyCache).put(anyString(), any(PublicKey.class));
+        verify(publicKeyCache).put(anyString(), any(PublicKeyInfo.class));
     }
 
     /**
@@ -141,14 +141,19 @@ class PublicKeyServiceImplTest {
     void findPublicKey_whenKeyExists_thenReturnsKey() {
         // Given
         String keyId = "test-key";
-        when(publicKeyCache.get(keyId)).thenReturn(Optional.of(testPublicKey));
+        PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
+        testPublicKeyInfo.setKid(keyId);
+        testPublicKeyInfo.setPublicKey(testPublicKey);
+        testPublicKeyInfo.setSourceId("test");
+
+        when(publicKeyCache.get(keyId)).thenReturn(Optional.of(testPublicKeyInfo));
 
         // When
-        Optional<PublicKey> result = publicKeyService.findPublicKey(keyId, null);
+        Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(keyId, null);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(testPublicKey, result.get());
+        assertEquals(testPublicKey, result.get().getPublicKey());
         verify(publicKeyCache).get(keyId);
     }
 
@@ -161,16 +166,19 @@ class PublicKeyServiceImplTest {
         String keyId = "test-key";
         String provider = "test-provider";
         String prefixedKey = provider + "_" + keyId;
-        
+
+        PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
+        testPublicKeyInfo.setKid(prefixedKey);
+        testPublicKeyInfo.setPublicKey(testPublicKey);
         when(publicKeyCache.get(keyId)).thenReturn(Optional.empty());
-        when(publicKeyCache.get(prefixedKey)).thenReturn(Optional.of(testPublicKey));
+        when(publicKeyCache.get(prefixedKey)).thenReturn(Optional.of(testPublicKeyInfo));
 
         // When
-        Optional<PublicKey> result = publicKeyService.findPublicKey(keyId, provider);
+        Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(keyId, provider);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(testPublicKey, result.get());
+        assertEquals(testPublicKey, result.get().getPublicKey());
         verify(publicKeyCache).get(keyId);
         verify(publicKeyCache).get(prefixedKey);
     }
@@ -185,7 +193,7 @@ class PublicKeyServiceImplTest {
         when(publicKeyCache.get(anyString())).thenReturn(Optional.empty());
 
         // When
-        Optional<PublicKey> result = publicKeyService.findPublicKey(keyId, null);
+        Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(keyId, null);
 
         // Then
         assertFalse(result.isPresent());
@@ -236,7 +244,7 @@ class PublicKeyServiceImplTest {
     @Test
     void findPublicKey_whenKeyIdIsNull_thenReturnsEmpty() {
         // When
-        Optional<PublicKey> result = publicKeyService.findPublicKey(null, "provider");
+        Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(null, "provider");
 
         // Then
         assertFalse(result.isPresent());
@@ -250,21 +258,26 @@ class PublicKeyServiceImplTest {
     void findPublicKey_whenProviderIsNull_thenSearchesWithoutPrefix() {
         // Given
         String keyId = "test-key";
-        when(publicKeyCache.get(keyId)).thenReturn(Optional.of(testPublicKey));
+        PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
+        testPublicKeyInfo.setKid(keyId);
+        testPublicKeyInfo.setPublicKey(testPublicKey);
+        testPublicKeyInfo.setSourceId("test");
+        when(publicKeyCache.get(keyId)).thenReturn(Optional.of(testPublicKeyInfo));
 
         // When
-        Optional<PublicKey> result = publicKeyService.findPublicKey(keyId, null);
+        Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(keyId, null);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(testPublicKey, result.get());
+        assertEquals(testPublicKey, result.get().getPublicKey());
         verify(publicKeyCache).get(keyId);
         verify(publicKeyCache, never()).get(contains("_"));
     }
 
     /**
      * Test cache key generation with provider prefix.
-     * Verifies that cache keys are generated correctly when provider prefix is enabled.
+     * Verifies that cache keys are generated correctly when provider prefix is
+     * enabled.
      */
     @Test
     void generateCacheKey_whenUseProviderPrefixedKeyEnabled_thenGeneratesPrefixedKey() {
@@ -285,12 +298,18 @@ class PublicKeyServiceImplTest {
         publicKeyService.refreshPublicKeys();
 
         // Then
-        verify(publicKeyCache).put("test-provider_test-key-123", testPublicKey);
+        PublicKeyInfo publicKeyInfo = new PublicKeyInfo();
+        publicKeyInfo.setKid("test-provider_test-key-123");
+        publicKeyInfo.setSourceId("test-provider");
+        publicKeyInfo.setPublicKey(testPublicKey);
+
+        verify(publicKeyCache).put(eq("test-provider_test-key-123"), any(PublicKeyInfo.class));
     }
 
     /**
      * Test cache key generation without provider prefix.
-     * Verifies that cache keys use original key ID when provider prefix is disabled.
+     * Verifies that cache keys use original key ID when provider prefix is
+     * disabled.
      */
     @Test
     void generateCacheKey_whenUseProviderPrefixedKeyDisabled_thenUsesOriginalKeyId() {
@@ -311,7 +330,7 @@ class PublicKeyServiceImplTest {
         publicKeyService.refreshPublicKeys();
 
         // Then
-        verify(publicKeyCache).put("test-key-456", testPublicKey);
+        verify(publicKeyCache).put(eq("test-key-456"), any(PublicKeyInfo.class));
     }
 
     /**
@@ -326,8 +345,8 @@ class PublicKeyServiceImplTest {
         source.setUseProviderPrefixedKey(true);
 
         Map<String, PublicKey> mockKeys = new HashMap<>();
-        mockKeys.put(null, testPublicKey);  // null key ID
-        mockKeys.put("", testPublicKey);    // empty key ID
+        mockKeys.put(null, testPublicKey); // null key ID
+        mockKeys.put("", testPublicKey); // empty key ID
         mockKeys.put("valid-key", testPublicKey); // valid key
 
         when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
@@ -339,10 +358,15 @@ class PublicKeyServiceImplTest {
 
         // Then
         // Only the valid key should be cached
-        verify(publicKeyCache).put("test-provider_valid-key", testPublicKey);
-        verify(publicKeyCache, never()).put(eq(null), any(PublicKey.class));
-        verify(publicKeyCache, never()).put(eq(""), any(PublicKey.class));
-        verify(publicKeyCache, never()).put(eq("test-provider_"), any(PublicKey.class));
+        PublicKeyInfo publicKeyInfo = new PublicKeyInfo();
+        publicKeyInfo.setKid("valid-key");
+        publicKeyInfo.setSourceId("test-provider");
+        publicKeyInfo.setPublicKey(testPublicKey);
+
+        verify(publicKeyCache).put(eq("test-provider_valid-key"), any(PublicKeyInfo.class));
+        verify(publicKeyCache, never()).put(eq(null), any(PublicKeyInfo.class));
+        verify(publicKeyCache, never()).put(eq(""), any(PublicKeyInfo.class));
+        verify(publicKeyCache, never()).put(eq("test-provider_"), any(PublicKeyInfo.class));
     }
 
     /**
@@ -366,7 +390,7 @@ class PublicKeyServiceImplTest {
         verify(sourceProvider).keySources();
         verify(keyLoader).loadKeys(any(PublicKeySource.class));
         verify(publicKeyCache).clear();
-        verify(publicKeyCache).put(anyString(), any(PublicKey.class));
+        verify(publicKeyCache).put(anyString(), any(PublicKeyInfo.class));
         verify(publicKeyCache, atLeast(1)).size();
     }
 }

@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.cache;
 
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,10 +74,12 @@ class InMemoryPublicKeyCacheTest {
     void put_whenValidKeyAndValue_thenStoresSuccessfully() {
         // Given
         String keyId = "test-key-1";
-
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid(keyId);
+        testPublicKey1.setPublicKey(this.testPublicKey1);
         // When
         cache.put(keyId, testPublicKey1);
-        Optional<PublicKey> result = cache.get(keyId);
+        Optional<PublicKeyInfo> result = cache.get(keyId);
 
         // Then
         assertTrue(result.isPresent());
@@ -94,7 +97,7 @@ class InMemoryPublicKeyCacheTest {
         String nonExistentKey = "non-existent-key";
 
         // When
-        Optional<PublicKey> result = cache.get(nonExistentKey);
+        Optional<PublicKeyInfo> result = cache.get(nonExistentKey);
 
         // Then
         assertFalse(result.isPresent());
@@ -110,14 +113,20 @@ class InMemoryPublicKeyCacheTest {
         // Given
         String keyId1 = "test-key-1";
         String keyId2 = "test-key-2";
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid(keyId1);
+        testPublicKey1.setPublicKey(this.testPublicKey1);
 
+        PublicKeyInfo testPublicKey2 = new PublicKeyInfo();
+        testPublicKey2.setKid(keyId2);
+        testPublicKey2.setPublicKey(this.testPublicKey2);
         // When
         cache.put(keyId1, testPublicKey1);
         cache.put(keyId2, testPublicKey2);
 
         // Then
-        Optional<PublicKey> result1 = cache.get(keyId1);
-        Optional<PublicKey> result2 = cache.get(keyId2);
+        Optional<PublicKeyInfo> result1 = cache.get(keyId1);
+        Optional<PublicKeyInfo> result2 = cache.get(keyId2);
 
         assertTrue(result1.isPresent());
         assertTrue(result2.isPresent());
@@ -134,11 +143,17 @@ class InMemoryPublicKeyCacheTest {
     void put_whenKeyAlreadyExists_thenOverwritesValue() {
         // Given
         String keyId = "test-key";
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid(keyId);
+        testPublicKey1.setPublicKey(this.testPublicKey1);
         cache.put(keyId, testPublicKey1);
 
         // When
+        PublicKeyInfo testPublicKey2 = new PublicKeyInfo();
+        testPublicKey2.setKid(keyId);
+        testPublicKey2.setPublicKey(this.testPublicKey2);
         cache.put(keyId, testPublicKey2);
-        Optional<PublicKey> result = cache.get(keyId);
+        Optional<PublicKeyInfo> result = cache.get(keyId);
 
         // Then
         assertTrue(result.isPresent());
@@ -154,11 +169,15 @@ class InMemoryPublicKeyCacheTest {
     void remove_whenKeyExists_thenRemovesSuccessfully() {
         // Given
         String keyId = "test-key";
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid(keyId);
+        testPublicKey1.setPublicKey(this.testPublicKey1);
         cache.put(keyId, testPublicKey1);
 
         // When
         cache.remove(keyId);
-        Optional<PublicKey> result = cache.get(keyId);
+
+        Optional<PublicKeyInfo> result = cache.get(keyId);
 
         // Then
         assertFalse(result.isPresent());
@@ -190,6 +209,13 @@ class InMemoryPublicKeyCacheTest {
     @Test
     void clear_whenCacheHasKeys_thenRemovesAllKeys() {
         // Given
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid("key1");
+        testPublicKey1.setPublicKey(this.testPublicKey1);
+
+        PublicKeyInfo testPublicKey2 = new PublicKeyInfo();
+        testPublicKey2.setKid("key2");
+        testPublicKey2.setPublicKey(this.testPublicKey2);
         cache.put("key1", testPublicKey1);
         cache.put("key2", testPublicKey2);
         assertEquals(EXPECTED, cache.size());
@@ -213,9 +239,15 @@ class InMemoryPublicKeyCacheTest {
         assertEquals(0, cache.size());
 
         // When adding keys
+        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+        testPublicKey1.setKid("key1");
+        testPublicKey1.setPublicKey(this.testPublicKey1);
         cache.put("key1", testPublicKey1);
         assertEquals(1, cache.size());
 
+        PublicKeyInfo testPublicKey2 = new PublicKeyInfo();
+        testPublicKey2.setKid("key2");
+        testPublicKey2.setPublicKey(this.testPublicKey2);
         cache.put("key2", testPublicKey2);
         assertEquals(EXPECTED, cache.size());
 
@@ -236,6 +268,9 @@ class InMemoryPublicKeyCacheTest {
     void put_whenNullKey_thenHandlesCorrectly() {
         // When & Then
         try {
+            PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+            testPublicKey1.setKid("test-key");
+            testPublicKey1.setPublicKey(this.testPublicKey1);
             cache.put(null, testPublicKey1);
         } catch (NullPointerException e) {
             fail("Should not throw exception for null key: " + e.getMessage());
@@ -258,7 +293,8 @@ class InMemoryPublicKeyCacheTest {
             fail("Should not throw exception for null value: " + e.getMessage());
         }
 
-        Optional<PublicKey> result = cache.get(keyId);
+
+        Optional<PublicKeyInfo> result = cache.get(keyId);
         assertFalse(result.isPresent());
     }
 
@@ -282,9 +318,12 @@ class InMemoryPublicKeyCacheTest {
                 try {
                     for (int j = 0; j < operationsPerThread; j++) {
                         String key = "thread-" + threadId + "-key-" + j;
+                        
+                        PublicKeyInfo testPublicKey1 = new PublicKeyInfo();
+                        testPublicKey1.setKid(key);
+                        testPublicKey1.setPublicKey(this.testPublicKey1);
                         cache.put(key, testPublicKey1);
-
-                        Optional<PublicKey> retrieved = cache.get(key);
+                        Optional<PublicKeyInfo> retrieved = cache.get(key);
                         if (retrieved.isPresent()) {
                             successfulOperations.incrementAndGet();
                         }

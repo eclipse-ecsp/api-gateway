@@ -81,6 +81,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
 
         Map<String, PublicKey> publicKeys = new HashMap<>();
         try {
+            LOGGER.info("Fetching JWKS from URL: {}", config.getUrl());
             String jwksResponse = fetchJwksWithAuthentication(config);
             JWKSet jwkSet = JWKSet.parse(jwksResponse);
             List<JWK> jwkList = jwkSet.getKeys();
@@ -90,6 +91,8 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
                     processJwk(jwk, publicKeys);
                 }
             }
+            LOGGER.info("Successfully fetched {} key(s) {} from JWKS URL: {}", 
+                                publicKeys.size(), publicKeys.keySet().toArray(), config.getUrl());
         } catch (Exception e) {
             LOGGER.error("Failed to load JWKS from URL: {}", config.getUrl(), e);
             return publicKeys; // Return empty map on failure
@@ -112,7 +115,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             // Check if the public key is valid before adding it
             if (publicKey != null) {
                 publicKeys.put(jwk.getKeyID(), publicKey);
-                LOGGER.info("Loaded public key with ID: {}", jwk.getKeyID());
+                LOGGER.info("Processed public key with ID: {}", jwk.getKeyID());
             } else {
                 LOGGER.warn("JWK with ID {} does not contain a valid public key", jwk.getKeyID());
             }
@@ -154,6 +157,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             }
         }
 
+        LOGGER.debug("fetchJwksWithAuthentication - Fetching JWKS from URL: {}", config.getUrl());
         return requestSpec.retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(THIRTY_SECONDS))
@@ -193,11 +197,13 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
     private String generateAccessToken(PublicKeyCredentials credentials) {
         if (credentials == null || StringUtils.isBlank(credentials.getClientId())
                 || StringUtils.isBlank(credentials.getClientSecret())) {
+            LOGGER.error("Client ID and client secret are required for client credentials authentication");
             throw new IllegalArgumentException(
                     "Client ID and client secret are required for client credentials authentication");
         }
 
         if (StringUtils.isBlank(credentials.getTokenEndpoint())) {
+            LOGGER.error("Token endpoint is required for client credentials flow");
             throw new IllegalArgumentException("Token endpoint is required for client credentials flow");
         }
 
@@ -226,7 +232,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
             JsonNode response = objectMapper.readTree(responseBody);
             String accessToken = response.get("access_token").asText();
 
-            LOGGER.debug("Successfully generated access token for client: {}", credentials.getClientId());
+            LOGGER.info("Successfully generated access token for client: {}", credentials.getClientId());
             return accessToken;
         } catch (Exception e) {
             LOGGER.error("Failed to obtain access token from {}: {}", credentials.getTokenEndpoint(), e);

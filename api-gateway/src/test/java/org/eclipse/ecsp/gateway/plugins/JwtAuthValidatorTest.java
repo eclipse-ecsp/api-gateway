@@ -29,6 +29,7 @@ import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
@@ -193,16 +194,20 @@ class JwtAuthValidatorTest {
         PublicKey testPublicKey = JwtTestTokenGenerator.getTestPublicKey();
 
         // Mock for specific key ID used in test tokens
+        PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
+        testPublicKeyInfo.setKid("test-key-id");
+        testPublicKeyInfo.setSourceId("test-source-1");
+        testPublicKeyInfo.setPublicKey(testPublicKey);
         when(publicKeyService.findPublicKey("test-key-id", null))
-                .thenReturn(Optional.of(testPublicKey));
+                .thenReturn(Optional.of(testPublicKeyInfo));
 
         // Mock for DEFAULT key (fallback case)
         when(publicKeyService.findPublicKey("DEFAULT", null))
-                .thenReturn(Optional.of(testPublicKey));
+                .thenReturn(Optional.of(testPublicKeyInfo));
 
         // Mock for any other key ID calls
         when(publicKeyService.findPublicKey(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(Optional.of(testPublicKey));
+                .thenReturn(Optional.of(testPublicKeyInfo));
 
         // Mock refresh functionality
         Mockito.doNothing().when(publicKeyService).refreshPublicKeys();
@@ -228,7 +233,7 @@ class JwtAuthValidatorTest {
     @Test
     void testPublicKeyServiceIntegration() {
         // Test that public key service is properly integrated
-        Optional<PublicKey> publicKey = publicKeyService.findPublicKey("test-key-id", "test-issuer");
+        Optional<PublicKeyInfo> publicKey = publicKeyService.findPublicKey("test-key-id", "test-issuer");
         Assertions.assertTrue(publicKey.isPresent());
 
         // Verify refresh functionality
@@ -895,8 +900,13 @@ class JwtAuthValidatorTest {
         };
 
         // Mock public key service to handle token without kid (should fallback to DEFAULT)
+        PublicKey publicKey = JwtTestTokenGenerator.getTestPublicKey();
+        PublicKeyInfo defaultPublicKeyInfo = new PublicKeyInfo();
+        defaultPublicKeyInfo.setKid("DEFAULT");
+        defaultPublicKeyInfo.setSourceId("test-source-1");
+        defaultPublicKeyInfo.setPublicKey(publicKey);
         when(publicKeyService.findPublicKey("DEFAULT", null))
-                .thenReturn(Optional.of(JwtTestTokenGenerator.getTestPublicKey()));
+                .thenReturn(Optional.of(defaultPublicKeyInfo));
 
         // Test that token without kid should be handled properly (either success or specific error)
         try {

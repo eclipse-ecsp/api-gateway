@@ -19,13 +19,17 @@
 package org.eclipse.ecsp.gateway.cache;
 
 import com.google.common.base.Strings;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import java.security.PublicKey;
+
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * In-memory implementation of PublicKeyCache using ConcurrentHashMap.
@@ -36,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ConditionalOnProperty(name = "jwt.cache.type", havingValue = "in-memory", matchIfMissing = true)
 public class InMemoryPublicKeyCache implements PublicKeyCache {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(InMemoryPublicKeyCache.class);
-    private final ConcurrentHashMap<String, PublicKey> keyCache;
+    private final ConcurrentHashMap<String, PublicKeyInfo> keyCache;
 
     /**
      * Constructor initializes the cache.
@@ -49,10 +53,10 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
      * Puts a public key into the cache.
      *
      * @param key cache key
-     * @param value public key
+     * @param value public key info
      */
     @Override
-    public void put(String key, PublicKey value) {
+    public void put(String key, PublicKeyInfo value) {
         if (Strings.isNullOrEmpty(key) || value == null) {
             LOGGER.warn("Cannot put null or empty key/value into cache. Key: {}, Value: {}", key, value);
             return;
@@ -67,7 +71,7 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
      * @return optional public key
      */
     @Override
-    public Optional<PublicKey> get(String key) {
+    public Optional<PublicKeyInfo> get(String key) {
         return Optional.ofNullable(keyCache.get(key));
     }
 
@@ -86,6 +90,24 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
     }
 
     /**
+     * Removes all entries matching the given predicate.
+     * This operation is atomic and thread-safe.
+     *
+     * @param predicate the condition to match for removal
+     * @return true if any entries were removed
+     * @throws IllegalArgumentException if predicate is null
+     */
+    @Override
+    public boolean remove(Predicate<java.util.Map.Entry<String, PublicKeyInfo>> predicate) {
+        if (predicate == null) {
+            throw new IllegalArgumentException("Predicate cannot be null");
+        }
+        
+        // Use removeIf which is atomic and thread-safe for ConcurrentHashMap
+        return keyCache.entrySet().removeIf(predicate);
+    }
+
+    /**
      * Clears the cache.
      */
     @Override
@@ -101,5 +123,15 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
     @Override
     public int size() {
         return keyCache.size();
+    }
+    
+    /**
+     * Returns entry set for iteration.
+     *
+     * @return set of cache entries
+     */    
+    @Override
+    public Set<Map.Entry<String, PublicKeyInfo>> entrySet() {
+        return keyCache.entrySet();
     }
 }

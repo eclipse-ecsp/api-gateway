@@ -1,6 +1,6 @@
 package org.eclipse.ecsp.gateway.service;
 
-import java.security.PublicKey;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import java.util.Optional;
 
 /**
@@ -17,7 +17,7 @@ public interface PublicKeyService {
      * @param provider the provider of the JWT
      * @return an Optional containing the PublicKey if found, otherwise empty
      */
-    Optional<PublicKey> findPublicKey(String keyId, String provider);
+    Optional<PublicKeyInfo> findPublicKey(String keyId, String provider);
 
     /**
      * Refreshes the public keys from all configured sources.

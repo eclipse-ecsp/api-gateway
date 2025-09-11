@@ -18,8 +18,12 @@
 
 package org.eclipse.ecsp.gateway.cache;
 
-import java.security.PublicKey;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
+
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Caching interface for public keys used in JWT validation.
@@ -31,9 +35,9 @@ public interface PublicKeyCache {
      * Puts a public key into the cache.
      *
      * @param key cache key
-     * @param value public key
+     * @param value public key info
      */
-    void put(String key, PublicKey value);
+    void put(String key, PublicKeyInfo value);
 
     /**
      * Gets a public key from the cache.
@@ -41,7 +45,7 @@ public interface PublicKeyCache {
      * @param key cache key
      * @return optional public key
      */
-    Optional<PublicKey> get(String key);
+    Optional<PublicKeyInfo> get(String key);
 
     /**
      * Removes a public key from the cache.
@@ -49,6 +53,15 @@ public interface PublicKeyCache {
      * @param key cache key
      */
     void remove(String key);
+
+    /**
+     * Removes all entries matching the given predicate.
+     *
+     * @param predicate the condition to match for removal
+     *
+     * @return true if any entries were removed
+     */
+    boolean remove(Predicate<Map.Entry<String, PublicKeyInfo>> predicate);
 
     /**
      * Clears the cache.
@@ -61,5 +74,12 @@ public interface PublicKeyCache {
      * @return cache size
      */
     int size();
+    
+    /**
+     * Returns entry set for iteration.
+     *
+     * @return set of cache entries
+     */
+    Set<Map.Entry<String, PublicKeyInfo>> entrySet();
 }
 

@@ -34,6 +34,7 @@ import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -51,7 +52,6 @@ import org.springframework.http.server.reactive.ServerHttpRequest.Builder;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -336,10 +336,10 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             TokenMetadata metadata = new TokenMetadata(kid, tenantId);
 
             // Get public key for validation
-            PublicKey publicKey = getValidationKey(metadata, requestPath, requestId, routeId);
+            PublicKeyInfo publicKeyInfo = getValidationKey(metadata, requestPath, requestId, routeId);
 
             // Validate token signature and claims
-            return validateTokenSignature(token, publicKey, metadata, requestPath, requestId, routeId);
+            return validateTokenSignature(token, publicKeyInfo, metadata, requestPath, requestId, routeId);
 
         } catch (SecurityException
                  | MalformedJwtException
@@ -363,12 +363,15 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     /**
      * Get the public key for token validation.
      */
-    private PublicKey getValidationKey(TokenMetadata metadata, String requestPath, String requestId, String routeId) {
+    private PublicKeyInfo getValidationKey(TokenMetadata metadata, 
+                                        String requestPath, 
+                                        String requestId, 
+                                        String routeId) {
         // 4. Public key retrieval
         LOGGER.debug("Fetching public key for kid: {}, tenantId: {}, {}", 
                 metadata.kid, metadata.tenantId, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         
-        Optional<PublicKey> key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
+        Optional<PublicKeyInfo> key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
         
         if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
             LOGGER.warn("Public key not found for kid: {}, tenantId: {}, attempting fallback to default key. "
@@ -383,25 +386,24 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                     GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
         }
-        
-        LOGGER.debug("Public key found and will be used for validation. for kid: {}, {}", 
-                metadata.kid, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+        PublicKeyInfo publicKeyInfo = key.get();
+        LOGGER.debug("Public key found and will be used for validation. for kid: {}, sourceId: {}, {}", 
+                publicKeyInfo.getKid(), publicKeyInfo.getSourceId(), 
+                GatewayUtils.getLogMessage(routeId, requestPath, requestId));
 
-        return key.get();
+        return publicKeyInfo;
     }
 
     /**
      * Validate token signature and return claims.
      */
-    private Claims validateTokenSignature(String token, PublicKey publicKey, TokenMetadata metadata,
+    private Claims validateTokenSignature(String token, PublicKeyInfo publicKey, TokenMetadata metadata,
                                          String requestPath, String requestId, String routeId) {
-        JwtParser jwtParser = Jwts.parser().verifyWith(publicKey).build();
+        JwtParser jwtParser = Jwts.parser().verifyWith(publicKey.getPublicKey()).build();
         Jws<Claims> parsedToken = jwtParser.parseSignedClaims(token);
         
-        // 8. Token validation successful
-        String keySource = DEFAULT.equals(metadata.kid) ? "default" : "kid:" + metadata.kid;
         LOGGER.info("JWT token validation successful. Kid: {}, tenantId: {}, keySource: {}, "
-                + "{}", metadata.kid, metadata.tenantId, keySource, 
+                + "{}", metadata.kid, metadata.tenantId, publicKey.getSourceId(),
                 GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         
         return parsedToken.getPayload();

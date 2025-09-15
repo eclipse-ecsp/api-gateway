@@ -227,32 +227,30 @@ jobs:
                       }
                       break
           
-          with open('eol_dependencies.json', 'w') as f:
-              json.dump(eol_deps, f, indent=2)
-          
-          print(f"Found {len(deps)} total dependencies")
-          print(f"Mapped {len(eol_deps)} dependencies to EOL products")
-          
-          print(f"Found {len(deps)} dependencies with explicit versions")
-          
           # Use Maven to get dependency list which includes resolved versions
+          print(f"Found {len(deps)} dependencies with explicit versions")
           print("\nUsing Maven to get effective dependency list...")
           try:
               import subprocess
               
-              # Get dependency list for the main project (aggregates all modules)
-              result = subprocess.run(['mvn', 'dependency:list', '-DexcludeTransitive=false'], 
-                                    capture_output=True, text=True, cwd='.')
+              # Get dependency list for the api-gateway module (has most dependencies)
+              result = subprocess.run(['mvn', 'dependency:list'], 
+                                    capture_output=True, text=True, cwd='api-gateway')
               
               if result.returncode == 0:
                   maven_deps = 0
                   # Parse Maven output
                   for line in result.stdout.splitlines():
                       line = line.strip()
-                      if line.startswith('[INFO]') and ':' in line:
+                      if line.startswith('[INFO]    ') and ':' in line and 'jar:' in line:
                           # Extract dependency info from Maven output
-                          # Format: [INFO]    groupId:artifactId:packaging:version:scope
-                          parts = line.replace('[INFO]', '').strip()
+                          # Format: [INFO]    groupId:artifactId:type:version:scope -- module info
+                          parts = line.replace('[INFO]    ', '').strip()
+                          
+                          # Split by '--' to get just the dependency part
+                          if '--' in parts:
+                              parts = parts.split('--')[0].strip()
+                          
                           if parts.count(':') >= 4:
                               try:
                                   dep_parts = parts.split(':')
@@ -262,7 +260,7 @@ jobs:
                                   version = dep_parts[3].strip()
                                   scope = dep_parts[4].strip() if len(dep_parts) > 4 else 'compile'
                                   
-                                  # Skip test dependencies and non-jar types
+                                  # Skip test dependencies
                                   if scope.lower() in ['test', 'provided']:
                                       continue
                                   
@@ -280,17 +278,27 @@ jobs:
                                   print(f"Error parsing Maven output line: {line} - {e}")
                                   continue
                   
-                  print(f"Maven added {maven_deps} additional dependencies")
+                  print(f"Maven resolved {maven_deps} additional dependencies")
                   
               else:
                   print(f"Maven dependency:list failed: {result.stderr}")
               
           except Exception as e:
               print(f"Maven resolution failed: {e}")
-              
-          print(f"Found {len(deps)} total dependencies")
           
-          print(f"Found {len(deps)} total dependencies")
+          # Re-map dependencies to EOL products with complete dependency list
+          eol_deps = {}
+          for dep_key, dep_info in deps.items():
+              group_id = dep_info['groupId']
+              for group_prefix, eol_product in eol_mappings.items():
+                  if group_id.startswith(group_prefix):
+                      eol_deps[eol_product] = {
+                          'version': dep_info['version'],
+                          'dependency': dep_key
+                      }
+                      break
+          
+          print(f"\nFound {len(deps)} total dependencies")
           print(f"Mapped {len(eol_deps)} dependencies to EOL products")
           
           # Save results (even if empty)

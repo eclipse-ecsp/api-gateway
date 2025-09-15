@@ -210,8 +210,9 @@ jobs:
           
           if not eol_deps:
               exit(1)  # Fail if no dependencies found
-          EOF    - name: Check EOL status for dependencies
-    - id: eol-check
+          EOF    
+    - name: Check EOL status for dependencies
+      id: eol-check
       run: |
         echo "Checking EOL status using endoflife.date API..."
         

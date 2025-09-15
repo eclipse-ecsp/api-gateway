@@ -472,24 +472,8 @@ jobs:
           THRESHOLD_DAYS="$THRESHOLD_DAYS" python3 check_eol.py
           
           # Set GitHub environment variables from Python output
-          EOL_COUNT=$(python3 -c "
-          import json
-          try:
-              with open('eol_results.json', 'r') as f:
-                  results = json.load(f)
-              print(len(results['eol']))
-          except:
-              print('0')
-          ")
-          APPROACHING_COUNT=$(python3 -c "
-          import json
-          try:
-              with open('eol_results.json', 'r') as f:
-                  results = json.load(f)
-              print(len(results['approaching_eol']))
-          except:
-              print('0')
-          ")
+          EOL_COUNT=$(python3 -c 'import json; f=open("eol_results.json"); r=json.load(f); f.close(); print(len(r["eol"]))' 2>/dev/null || echo 0)
+          APPROACHING_COUNT=$(python3 -c 'import json; f=open("eol_results.json"); r=json.load(f); f.close(); print(len(r["approaching_eol"]))' 2>/dev/null || echo 0)
         else
           echo "No dependencies found to check - creating empty results"
           EOL_COUNT=0

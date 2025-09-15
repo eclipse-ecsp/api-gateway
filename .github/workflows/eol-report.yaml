@@ -496,14 +496,7 @@ jobs:
           APPROACHING_COUNT=0
           
           # Create empty results file
-          cat > eol_results.json << 'EOLEOF'
-          {
-            "eol": [],
-            "approaching_eol": [],
-            "supported": [],
-            "unknown": []
-          }
-          EOLEOF
+          echo '{"eol":[],"approaching_eol":[],"supported":[],"unknown":[]}' > eol_results.json
         fi
         
         TOTAL_ISSUES=$((EOL_COUNT + APPROACHING_COUNT))

@@ -35,131 +35,182 @@ jobs:
         distribution: zulu
         cache: maven
         
-    - name: Extract dependencies from pom.xml files
-      id: extract-deps
-      run: |
-        echo "Extracting dependencies from Maven projects..."
-        
-        # Create dependencies list
-        cat > extract_deps.py << 'EOF'
-        import xml.etree.ElementTree as ET
-        import os
-        import json
-        from pathlib import Path
-        
-        def extract_maven_deps():
-            dependencies = {}
-            
-            # Find all pom.xml files
-            for pom_file in Path('.').rglob('pom.xml'):
-                try:
-                    tree = ET.parse(pom_file)
-                    root = tree.getroot()
-                    
-                    # Handle XML namespaces
-                    ns = {'maven': 'http://maven.apache.org/POM/4.0.0'}
-                    if root.tag.startswith('{'):
-                        ns_uri = root.tag.split('}')[0][1:]
-                        ns = {'maven': ns_uri}
-                    
-                    # Extract dependencies
-                    deps = root.findall('.//maven:dependency', ns) or root.findall('.//dependency')
-                    parent = root.find('.//maven:parent', ns) or root.find('.//parent')
-                    
-                    # Add parent dependency
-                    if parent is not None:
-                        group_id = parent.find('.//maven:groupId', ns) or parent.find('.//groupId')
-                        artifact_id = parent.find('.//maven:artifactId', ns) or parent.find('.//artifactId')
-                        version = parent.find('.//maven:version', ns) or parent.find('.//version')
-                        
-                        if group_id is not None and artifact_id is not None and version is not None:
-                            key = f"{group_id.text}:{artifact_id.text}"
-                            dependencies[key] = {
-                                'groupId': group_id.text,
-                                'artifactId': artifact_id.text,
-                                'version': version.text,
-                                'type': 'parent'
-                            }
-                    
-                    # Add regular dependencies
-                    for dep in deps:
-                        group_id = dep.find('.//maven:groupId', ns) or dep.find('.//groupId')
-                        artifact_id = dep.find('.//maven:artifactId', ns) or dep.find('.//artifactId')
-                        version = dep.find('.//maven:version', ns) or dep.find('.//version')
-                        
-                        if group_id is not None and artifact_id is not None and version is not None:
-                            # Skip test and provided scope dependencies
-                            scope = dep.find('.//maven:scope', ns) or dep.find('.//scope')
-                            if scope is not None and scope.text in ['test', 'provided']:
-                                continue
-                                
-                            key = f"{group_id.text}:{artifact_id.text}"
-                            dependencies[key] = {
-                                'groupId': group_id.text,
-                                'artifactId': artifact_id.text,
-                                'version': version.text,
-                                'type': 'dependency'
-                            }
-                            
-                except Exception as e:
-                    print(f"Error parsing {pom_file}: {e}")
-                    continue
-            
-            return dependencies
-        
-        # Extract dependencies
-        deps = extract_maven_deps()
-        
-        # Map common dependencies to EOL products
-        eol_mappings = {
-            'org.springframework.boot': 'spring-boot',
-            'org.springframework': 'spring-framework',
-            'org.springframework.cloud': 'spring-cloud',
-            'com.fasterxml.jackson.core': 'jackson',
-            'org.postgresql': 'postgresql',
-            'redis.clients': 'redis',
-            'org.mongodb': 'mongodb',
-            'io.swagger.core.v3': 'openapi',
-            'org.apache.tomcat': 'tomcat',
-            'org.eclipse.jetty': 'jetty',
-            'org.apache.httpcomponents': 'apache-http-server',
-            'junit': 'junit',
-            'org.mockito': 'mockito',
-            'ch.qos.logback': 'logback',
-            'org.slf4j': 'slf4j',
-            'com.zaxxer': 'hikaricp',
-            'org.hibernate': 'hibernate',
-            'org.apache.maven': 'maven',
-            'org.testcontainers': 'testcontainers'
-        }
-        
-        # Create mapped dependencies for EOL check
-        eol_deps = {}
-        for dep_key, dep_info in deps.items():
-            group_id = dep_info['groupId']
-            for group_prefix, eol_product in eol_mappings.items():
-                if group_id.startswith(group_prefix):
-                    eol_deps[eol_product] = {
-                        'version': dep_info['version'],
-                        'dependency': dep_key
-                    }
-                    break
-        
-        # Output results
-        print(f"Found {len(deps)} total dependencies")
-        print(f"Mapped {len(eol_deps)} dependencies to EOL products")
-        
-        with open('eol_dependencies.json', 'w') as f:
-            json.dump(eol_deps, f, indent=2)
-            
-        print("EOL-mapped dependencies:")
-        for product, info in eol_deps.items():
-            print(f"  {product}: {info['dependency']} ({info['version']})")
-        EOF
-        
-        python3 extract_deps.py
-        
-    - name: Check EOL status for dependencies
+      - name: Extract Maven dependencies
+        run: |
+          python3 << 'EOF'
+          import xml.etree.ElementTree as ET
+          import os
+          import json
+          from pathlib import Path
+          import re
+          
+          def extract_maven_deps():
+              dependencies = {}
+              all_properties = {}  # Global properties from parent
+              
+              # First pass: collect all properties from parent POM
+              for pom_file in Path('.').rglob('pom.xml'):
+                  # Skip if not the root pom.xml
+                  if str(pom_file) != './pom.xml':
+                      continue
+                      
+                  try:
+                      print(f"Loading properties from parent POM: {pom_file}")
+                      tree = ET.parse(pom_file)
+                      root = tree.getroot()
+                      
+                      ns = {}
+                      if root.tag.startswith('{'):
+                          ns_uri = root.tag.split('}')[0][1:]
+                          ns = {'m': ns_uri}
+                      
+                      def find_element(parent, tag_name):
+                          if ns:
+                              elem = parent.find(f'.//m:{tag_name}', ns)
+                              if elem is not None:
+                                  return elem
+                          return parent.find(f'.//{tag_name}')
+                      
+                      # Extract properties from parent POM
+                      properties_elem = find_element(root, 'properties')
+                      if properties_elem is not None:
+                          for prop in properties_elem:
+                              prop_name = prop.tag
+                              if '}' in prop_name:
+                                  prop_name = prop_name.split('}')[1]
+                              if prop.text:
+                                  all_properties[prop_name] = prop.text.strip()
+                                  
+                      print(f"Collected {len(all_properties)} properties from parent POM")
+                      break
+                  except Exception as e:
+                      print(f"Error reading parent POM: {e}")
+                      continue
+              
+              # Second pass: process all POMs
+              for pom_file in Path('.').rglob('pom.xml'):
+                  try:
+                      print(f"Processing {pom_file}")
+                      tree = ET.parse(pom_file)
+                      root = tree.getroot()
+                      
+                      ns = {}
+                      if root.tag.startswith('{'):
+                          ns_uri = root.tag.split('}')[0][1:]
+                          ns = {'m': ns_uri}
+                      
+                      def find_element(parent, tag_name):
+                          if ns:
+                              elem = parent.find(f'.//m:{tag_name}', ns)
+                              if elem is not None:
+                                  return elem
+                          return parent.find(f'.//{tag_name}')
+                      
+                      def get_text_safe(elem):
+                          return elem.text.strip() if elem is not None and elem.text else None
+                      
+                      def resolve_version(version_str):
+                          if not version_str:
+                              return None
+                          if version_str.startswith('${') and version_str.endswith('}'):
+                              prop_name = version_str[2:-1]
+                              resolved = all_properties.get(prop_name)
+                              if resolved:
+                                  return resolved
+                              else:
+                                  return version_str
+                          return version_str
+                      
+                      # Extract dependencies
+                      deps_elements = []
+                      if ns:
+                          deps_elements = root.findall('.//m:dependency', ns)
+                      else:
+                          deps_elements = root.findall('.//dependency')
+                      
+                      for dep in deps_elements:
+                          group_id_elem = find_element(dep, 'groupId')
+                          artifact_id_elem = find_element(dep, 'artifactId')
+                          version_elem = find_element(dep, 'version')
+                          scope_elem = find_element(dep, 'scope')
+                          
+                          group_id = get_text_safe(group_id_elem)
+                          artifact_id = get_text_safe(artifact_id_elem)
+                          version = get_text_safe(version_elem)
+                          scope = get_text_safe(scope_elem)
+                          
+                          if not group_id or not artifact_id:
+                              continue
+                              
+                          if scope and scope.lower() in ['test', 'provided']:
+                              continue
+                          
+                          # Resolve version
+                          version = resolve_version(version)
+                          
+                          if version and not version.startswith('${'):
+                              key = f"{group_id}:{artifact_id}"
+                              dependencies[key] = {
+                                  'groupId': group_id,
+                                  'artifactId': artifact_id,
+                                  'version': version,
+                                  'type': 'dependency',
+                                  'scope': scope or 'compile'
+                              }
+                              
+                  except Exception as e:
+                      print(f"Error parsing {pom_file}: {e}")
+                      continue
+              
+              return dependencies
+          
+          # Extract dependencies
+          deps = extract_maven_deps()
+          
+          # Map to EOL products
+          eol_mappings = {
+              'org.springframework.boot': 'spring-boot',
+              'org.springframework': 'spring-framework',
+              'org.springframework.cloud': 'spring-cloud',
+              'com.fasterxml.jackson.core': 'jackson',
+              'com.fasterxml.jackson': 'jackson',
+              'org.postgresql': 'postgresql',
+              'redis.clients': 'redis',
+              'org.mongodb': 'mongodb',
+              'io.swagger.core.v3': 'openapi',
+              'io.swagger.v3': 'openapi',
+              'org.springdoc': 'openapi',
+              'org.apache.tomcat': 'tomcat',
+              'org.apache.tomcat.embed': 'tomcat',
+              'org.eclipse.jetty': 'jetty',
+              'junit': 'junit',
+              'org.junit': 'junit',
+              'org.mockito': 'mockito',
+              'ch.qos.logback': 'logback',
+              'org.slf4j': 'slf4j',
+              'org.hibernate': 'hibernate'
+          }
+          
+          eol_deps = {}
+          for dep_key, dep_info in deps.items():
+              group_id = dep_info['groupId']
+              for group_prefix, eol_product in eol_mappings.items():
+                  if group_id.startswith(group_prefix):
+                      eol_deps[eol_product] = {
+                          'version': dep_info['version'],
+                          'dependency': dep_key
+                      }
+                      break
+          
+          with open('eol_dependencies.json', 'w') as f:
+              json.dump(eol_deps, f, indent=2)
+          
+          print(f"Found {len(deps)} total dependencies")
+          print(f"Mapped {len(eol_deps)} dependencies to EOL products")
+          
+          if not eol_deps:
+              exit(1)  # Fail if no dependencies found
+          EOF    - name: Check EOL status for dependencies
       id: eol-check
       run: |
         echo "Checking EOL status using endoflife.date API..."
@@ -515,10 +566,6 @@ jobs:
         echo "❌ Failing workflow due to $EOL_COUNT EOL dependencies found"
         echo "Use the generated report to update these dependencies"
         exit 1
-        
-    - name: Slack Notification (if configured)
-      if: env.EOL_COUNT > 0 && vars.SLACK_WEBHOOK_URL != ''
-      run: |
         curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"🔍 EOL Dependencies Alert: Found $EOL_COUNT EOL and $APPROACHING_COUNT approaching EOL dependencies in ${{ github.repository }}. Check the workflow run for details.\"}" \
           ${{ vars.SLACK_WEBHOOK_URL }}

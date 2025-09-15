@@ -603,11 +603,6 @@ jobs:
         with open('eol_report.md', 'w') as f:
             f.write(markdown_report)
         
-        # Output to GitHub summary
-        print("EOL_REPORT<<EOF" >> $GITHUB_OUTPUT)
-        print(markdown_report >> $GITHUB_OUTPUT)
-        print("EOF" >> $GITHUB_OUTPUT)
-        
         print("Report generated successfully!")
         EOF
         

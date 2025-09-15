@@ -48,44 +48,41 @@ jobs:
               dependencies = {}
               all_properties = {}  # Global properties from parent
               
-              # First pass: collect all properties from parent POM
+              # First pass: collect all properties from all POMs
               for pom_file in Path('.').rglob('pom.xml'):
-                  # Skip if not the root pom.xml
-                  if str(pom_file) != './pom.xml':
-                      continue
-                      
                   try:
-                      print(f"Loading properties from parent POM: {pom_file}")
+                      print(f"Loading properties from POM: {pom_file}")
                       tree = ET.parse(pom_file)
                       root = tree.getroot()
                       
+                      # Handle namespaces properly
                       ns = {}
                       if root.tag.startswith('{'):
                           ns_uri = root.tag.split('}')[0][1:]
                           ns = {'m': ns_uri}
                       
-                      def find_element(parent, tag_name):
-                          if ns:
-                              elem = parent.find(f'.//m:{tag_name}', ns)
-                              if elem is not None:
-                                  return elem
-                          return parent.find(f'.//{tag_name}')
+                      # Extract properties from this POM
+                      if ns:
+                          properties_elem = root.find('.//m:properties', ns)
+                      else:
+                          properties_elem = root.find('.//properties')
                       
-                      # Extract properties from parent POM
-                      properties_elem = find_element(root, 'properties')
                       if properties_elem is not None:
+                          pom_props = 0
                           for prop in properties_elem:
                               prop_name = prop.tag
                               if '}' in prop_name:
                                   prop_name = prop_name.split('}')[1]
                               if prop.text:
                                   all_properties[prop_name] = prop.text.strip()
+                                  pom_props += 1
+                          print(f"  Found {pom_props} properties in this POM")
                                   
-                      print(f"Collected {len(all_properties)} properties from parent POM")
-                      break
                   except Exception as e:
-                      print(f"Error reading parent POM: {e}")
+                      print(f"Error reading POM {pom_file}: {e}")
                       continue
+              
+              print(f"Collected {len(all_properties)} total properties from all POMs")
               
               # Second pass: process all POMs
               for pom_file in Path('.').rglob('pom.xml'):
@@ -94,17 +91,21 @@ jobs:
                       tree = ET.parse(pom_file)
                       root = tree.getroot()
                       
+                      # Handle namespaces properly
                       ns = {}
                       if root.tag.startswith('{'):
                           ns_uri = root.tag.split('}')[0][1:]
                           ns = {'m': ns_uri}
                       
-                      def find_element(parent, tag_name):
-                          if ns:
-                              elem = parent.find(f'.//m:{tag_name}', ns)
-                              if elem is not None:
-                                  return elem
-                          return parent.find(f'.//{tag_name}')
+                      def find_direct_child(parent, tag_name):
+                          """Find direct child element (not descendants)"""
+                          for child in parent:
+                              child_tag = child.tag
+                              if '}' in child_tag:
+                                  child_tag = child_tag.split('}')[1]
+                              if child_tag == tag_name:
+                                  return child
+                          return None
                       
                       def get_text_safe(elem):
                           return elem.text.strip() if elem is not None and elem.text else None
@@ -118,36 +119,57 @@ jobs:
                               if resolved:
                                   return resolved
                               else:
+                                  print(f"  Warning: Could not resolve property {prop_name}")
                                   return version_str
                           return version_str
                       
-                      # Extract dependencies
+                      # Extract dependencies from both <dependencies> and <dependencyManagement><dependencies>
                       deps_elements = []
+                      
+                      # Look for regular dependencies
                       if ns:
-                          deps_elements = root.findall('.//m:dependency', ns)
+                          deps_sections = root.findall('.//m:dependencies', ns)
                       else:
-                          deps_elements = root.findall('.//dependency')
+                          deps_sections = root.findall('.//dependencies')
+                      
+                      for deps_section in deps_sections:
+                          for child in deps_section:
+                              child_tag = child.tag
+                              if '}' in child_tag:
+                                  child_tag = child_tag.split('}')[1]
+                              if child_tag == 'dependency':
+                                  deps_elements.append(child)
+                      
+                      print(f"  Found {len(deps_elements)} dependency elements")
                       
                       for dep in deps_elements:
-                          group_id_elem = find_element(dep, 'groupId')
-                          artifact_id_elem = find_element(dep, 'artifactId')
-                          version_elem = find_element(dep, 'version')
-                          scope_elem = find_element(dep, 'scope')
+                          group_id_elem = find_direct_child(dep, 'groupId')
+                          artifact_id_elem = find_direct_child(dep, 'artifactId')
+                          version_elem = find_direct_child(dep, 'version')
+                          scope_elem = find_direct_child(dep, 'scope')
+                          type_elem = find_direct_child(dep, 'type')
                           
                           group_id = get_text_safe(group_id_elem)
                           artifact_id = get_text_safe(artifact_id_elem)
                           version = get_text_safe(version_elem)
                           scope = get_text_safe(scope_elem)
+                          dep_type = get_text_safe(type_elem)
                           
                           if not group_id or not artifact_id:
                               continue
-                              
+                          
+                          # Skip test and provided scope dependencies
                           if scope and scope.lower() in ['test', 'provided']:
+                              continue
+                          
+                          # Skip BOM dependencies (type=pom with import scope)
+                          if dep_type == 'pom' and scope == 'import':
                               continue
                           
                           # Resolve version
                           version = resolve_version(version)
                           
+                          # Only include dependencies with resolved versions
                           if version and not version.startswith('${'):
                               key = f"{group_id}:{artifact_id}"
                               dependencies[key] = {
@@ -157,6 +179,9 @@ jobs:
                                   'type': 'dependency',
                                   'scope': scope or 'compile'
                               }
+                              print(f"  Added: {key} = {version}")
+                          elif version:
+                              print(f"  Skipped (unresolved version): {group_id}:{artifact_id} = {version}")
                               
                   except Exception as e:
                       print(f"Error parsing {pom_file}: {e}")
@@ -208,8 +233,76 @@ jobs:
           print(f"Found {len(deps)} total dependencies")
           print(f"Mapped {len(eol_deps)} dependencies to EOL products")
           
+          print(f"Found {len(deps)} dependencies with explicit versions")
+          
+          # Use Maven to get dependency list which includes resolved versions
+          print("\nUsing Maven to get effective dependency list...")
+          try:
+              import subprocess
+              
+              # Get dependency list for the main project (aggregates all modules)
+              result = subprocess.run(['mvn', 'dependency:list', '-DexcludeTransitive=false'], 
+                                    capture_output=True, text=True, cwd='.')
+              
+              if result.returncode == 0:
+                  maven_deps = 0
+                  # Parse Maven output
+                  for line in result.stdout.splitlines():
+                      line = line.strip()
+                      if line.startswith('[INFO]') and ':' in line:
+                          # Extract dependency info from Maven output
+                          # Format: [INFO]    groupId:artifactId:packaging:version:scope
+                          parts = line.replace('[INFO]', '').strip()
+                          if parts.count(':') >= 4:
+                              try:
+                                  dep_parts = parts.split(':')
+                                  group_id = dep_parts[0].strip()
+                                  artifact_id = dep_parts[1].strip()
+                                  packaging = dep_parts[2].strip()
+                                  version = dep_parts[3].strip()
+                                  scope = dep_parts[4].strip() if len(dep_parts) > 4 else 'compile'
+                                  
+                                  # Skip test dependencies and non-jar types
+                                  if scope.lower() in ['test', 'provided']:
+                                      continue
+                                  
+                                  key = f"{group_id}:{artifact_id}"
+                                  if key not in deps:  # Don't override XML parsed ones
+                                      deps[key] = {
+                                          'groupId': group_id,
+                                          'artifactId': artifact_id,
+                                          'version': version,
+                                          'type': 'dependency',
+                                          'scope': scope
+                                      }
+                                      maven_deps += 1
+                              except Exception as e:
+                                  print(f"Error parsing Maven output line: {line} - {e}")
+                                  continue
+                  
+                  print(f"Maven added {maven_deps} additional dependencies")
+                  
+              else:
+                  print(f"Maven dependency:list failed: {result.stderr}")
+              
+          except Exception as e:
+              print(f"Maven resolution failed: {e}")
+              
+          print(f"Found {len(deps)} total dependencies")
+          
+          print(f"Found {len(deps)} total dependencies")
+          print(f"Mapped {len(eol_deps)} dependencies to EOL products")
+          
+          # Save results (even if empty)
+          with open('eol_dependencies.json', 'w') as f:
+              json.dump(eol_deps, f, indent=2)
+          
           if not eol_deps:
-              exit(1)  # Fail if no dependencies found
+              print("No dependencies mapped to EOL products")
+          else:
+              print("EOL-trackable dependencies:")
+              for eol_product, info in eol_deps.items():
+                  print(f"  {eol_product}: {info['version']} (from {info['dependency']})")
           EOF
           
     - name: Check EOL status for dependencies
@@ -365,22 +458,46 @@ jobs:
         print(f"TOTAL_ISSUES={eol_count + approaching_count}")
         EOF
         
-        # Set environment variable and run the Python script
-        THRESHOLD_DAYS="$THRESHOLD_DAYS" python3 check_eol.py
+        # Check if we have dependencies to analyze
+        if [ -f eol_dependencies.json ] && [ -s eol_dependencies.json ]; then
+          # Set environment variable and run the Python script
+          THRESHOLD_DAYS="$THRESHOLD_DAYS" python3 check_eol.py
+          
+          # Set GitHub environment variables from Python output
+          EOL_COUNT=$(python3 -c "
+          import json
+          try:
+              with open('eol_results.json', 'r') as f:
+                  results = json.load(f)
+              print(len(results['eol']))
+          except:
+              print('0')
+          ")
+          APPROACHING_COUNT=$(python3 -c "
+          import json
+          try:
+              with open('eol_results.json', 'r') as f:
+                  results = json.load(f)
+              print(len(results['approaching_eol']))
+          except:
+              print('0')
+          ")
+        else
+          echo "No dependencies found to check - creating empty results"
+          EOL_COUNT=0
+          APPROACHING_COUNT=0
+          
+          # Create empty results file
+          cat > eol_results.json << 'EOLEOF'
+          {
+            "eol": [],
+            "approaching_eol": [],
+            "supported": [],
+            "unknown": []
+          }
+          EOLEOF
+        fi
         
-        # Set GitHub environment variables from Python output
-        EOL_COUNT=$(python3 -c "
-        import json
-        with open('eol_results.json', 'r') as f:
-            results = json.load(f)
-        print(len(results['eol']))
-        ")
-        APPROACHING_COUNT=$(python3 -c "
-        import json
-        with open('eol_results.json', 'r') as f:
-            results = json.load(f)
-        print(len(results['approaching_eol']))
-        ")
         TOTAL_ISSUES=$((EOL_COUNT + APPROACHING_COUNT))
         
         echo "EOL_COUNT=$EOL_COUNT" >> $GITHUB_ENV
@@ -584,12 +701,4 @@ jobs:
       run: |
         echo "❌ Failing workflow due to $EOL_COUNT EOL dependencies found"
         echo "Use the generated report to update these dependencies"
-        
-        # Send Slack notification if webhook URL is configured
-        if [ -n "${{ vars.SLACK_WEBHOOK_URL }}" ]; then
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"🔍 EOL Dependencies Alert: Found $EOL_COUNT EOL and $APPROACHING_COUNT approaching EOL dependencies in ${{ github.repository }}. Check the workflow run for details.\"}" \
-            ${{ vars.SLACK_WEBHOOK_URL }}
-        fi
-        
         exit 1

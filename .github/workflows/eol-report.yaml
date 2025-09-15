@@ -1,6 +1,8 @@
 name: EOL Dependencies Check
 
 on:
+  pull_request: 
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
     inputs:
       fail_on_eol:

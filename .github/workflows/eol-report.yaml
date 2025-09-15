@@ -210,7 +210,8 @@ jobs:
           
           if not eol_deps:
               exit(1)  # Fail if no dependencies found
-          EOF    
+          EOF
+          
     - name: Check EOL status for dependencies
       id: eol-check
       run: |
@@ -339,9 +340,6 @@ jobs:
             
             return results
         
-        # Set environment variable for the script
-        export THRESHOLD_DAYS="$THRESHOLD_DAYS"
-        
         # Run EOL check
         results = check_eol_status()
         
@@ -362,12 +360,32 @@ jobs:
         eol_count = len(results['eol'])
         approaching_count = len(results['approaching_eol'])
         
-        print(f"EOL_COUNT={eol_count}" >> $GITHUB_ENV)
-        print(f"APPROACHING_COUNT={approaching_count}" >> $GITHUB_ENV)
-        print(f"TOTAL_ISSUES={eol_count + approaching_count}" >> $GITHUB_ENV)
+        print(f"EOL_COUNT={eol_count}")
+        print(f"APPROACHING_COUNT={approaching_count}")
+        print(f"TOTAL_ISSUES={eol_count + approaching_count}")
         EOF
         
+        # Set environment variable and run the Python script
         THRESHOLD_DAYS="$THRESHOLD_DAYS" python3 check_eol.py
+        
+        # Set GitHub environment variables from Python output
+        EOL_COUNT=$(python3 -c "
+        import json
+        with open('eol_results.json', 'r') as f:
+            results = json.load(f)
+        print(len(results['eol']))
+        ")
+        APPROACHING_COUNT=$(python3 -c "
+        import json
+        with open('eol_results.json', 'r') as f:
+            results = json.load(f)
+        print(len(results['approaching_eol']))
+        ")
+        TOTAL_ISSUES=$((EOL_COUNT + APPROACHING_COUNT))
+        
+        echo "EOL_COUNT=$EOL_COUNT" >> $GITHUB_ENV
+        echo "APPROACHING_COUNT=$APPROACHING_COUNT" >> $GITHUB_ENV
+        echo "TOTAL_ISSUES=$TOTAL_ISSUES" >> $GITHUB_ENV
         
     - name: Generate EOL Report
       id: generate-report
@@ -566,7 +584,12 @@ jobs:
       run: |
         echo "❌ Failing workflow due to $EOL_COUNT EOL dependencies found"
         echo "Use the generated report to update these dependencies"
+        
+        # Send Slack notification if webhook URL is configured
+        if [ -n "${{ vars.SLACK_WEBHOOK_URL }}" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🔍 EOL Dependencies Alert: Found $EOL_COUNT EOL and $APPROACHING_COUNT approaching EOL dependencies in ${{ github.repository }}. Check the workflow run for details.\"}" \
+            ${{ vars.SLACK_WEBHOOK_URL }}
+        fi
+        
         exit 1
-        curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"🔍 EOL Dependencies Alert: Found $EOL_COUNT EOL and $APPROACHING_COUNT approaching EOL dependencies in ${{ github.repository }}. Check the workflow run for details.\"}" \
-          ${{ vars.SLACK_WEBHOOK_URL }}

@@ -35,8 +35,8 @@ jobs:
         distribution: zulu
         cache: maven
         
-      - name: Extract Maven dependencies
-        run: |
+    - name: Extract Maven dependencies
+      run: |
           python3 << 'EOF'
           import xml.etree.ElementTree as ET
           import os
@@ -211,7 +211,7 @@ jobs:
           if not eol_deps:
               exit(1)  # Fail if no dependencies found
           EOF    - name: Check EOL status for dependencies
-      id: eol-check
+    - id: eol-check
       run: |
         echo "Checking EOL status using endoflife.date API..."
         

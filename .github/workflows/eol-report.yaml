@@ -1,6 +1,8 @@
 name: EOL Dependencies Check
 
 on:
+  schedule: 
+    - cron: '0 11 * * 1'  # Weekly on Mondays at 11:00 UTC
   pull_request: 
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
@@ -38,279 +40,428 @@ jobs:
     - name: Extract Maven dependencies
       run: |
           python3 << 'EOF'
-          import xml.etree.ElementTree as ET
-          import os
+          import subprocess
           import json
-          from pathlib import Path
           import re
+          from datetime import datetime
           
-          def extract_maven_deps():
+          def extract_maven_dependencies():
+              """Extract dependencies using Maven dependency:list command"""
+              print("🔍 Extracting dependencies using Maven...")
+              
               dependencies = {}
-              all_properties = {}  # Global properties from parent
               
-              # First pass: collect all properties from all POMs
-              for pom_file in Path('.').rglob('pom.xml'):
-                  try:
-                      print(f"Loading properties from POM: {pom_file}")
-                      tree = ET.parse(pom_file)
-                      root = tree.getroot()
-                      
-                      # Handle namespaces properly
-                      ns = {}
-                      if root.tag.startswith('{'):
-                          ns_uri = root.tag.split('}')[0][1:]
-                          ns = {'m': ns_uri}
-                      
-                      # Extract properties from this POM
-                      if ns:
-                          properties_elem = root.find('.//m:properties', ns)
-                      else:
-                          properties_elem = root.find('.//properties')
-                      
-                      if properties_elem is not None:
-                          pom_props = 0
-                          for prop in properties_elem:
-                              prop_name = prop.tag
-                              if '}' in prop_name:
-                                  prop_name = prop_name.split('}')[1]
-                              if prop.text:
-                                  all_properties[prop_name] = prop.text.strip()
-                                  pom_props += 1
-                          print(f"  Found {pom_props} properties in this POM")
-                                  
-                  except Exception as e:
-                      print(f"Error reading POM {pom_file}: {e}")
-                      continue
-              
-              print(f"Collected {len(all_properties)} total properties from all POMs")
-              
-              # Second pass: process all POMs
-              for pom_file in Path('.').rglob('pom.xml'):
-                  try:
-                      print(f"Processing {pom_file}")
-                      tree = ET.parse(pom_file)
-                      root = tree.getroot()
-                      
-                      # Handle namespaces properly
-                      ns = {}
-                      if root.tag.startswith('{'):
-                          ns_uri = root.tag.split('}')[0][1:]
-                          ns = {'m': ns_uri}
-                      
-                      def find_direct_child(parent, tag_name):
-                          """Find direct child element (not descendants)"""
-                          for child in parent:
-                              child_tag = child.tag
-                              if '}' in child_tag:
-                                  child_tag = child_tag.split('}')[1]
-                              if child_tag == tag_name:
-                                  return child
-                          return None
-                      
-                      def get_text_safe(elem):
-                          return elem.text.strip() if elem is not None and elem.text else None
-                      
-                      def resolve_version(version_str):
-                          if not version_str:
-                              return None
-                          if version_str.startswith('${') and version_str.endswith('}'):
-                              prop_name = version_str[2:-1]
-                              resolved = all_properties.get(prop_name)
-                              if resolved:
-                                  return resolved
-                              else:
-                                  print(f"  Warning: Could not resolve property {prop_name}")
-                                  return version_str
-                          return version_str
-                      
-                      # Extract dependencies from both <dependencies> and <dependencyManagement><dependencies>
-                      deps_elements = []
-                      
-                      # Look for regular dependencies
-                      if ns:
-                          deps_sections = root.findall('.//m:dependencies', ns)
-                      else:
-                          deps_sections = root.findall('.//dependencies')
-                      
-                      for deps_section in deps_sections:
-                          for child in deps_section:
-                              child_tag = child.tag
-                              if '}' in child_tag:
-                                  child_tag = child_tag.split('}')[1]
-                              if child_tag == 'dependency':
-                                  deps_elements.append(child)
-                      
-                      print(f"  Found {len(deps_elements)} dependency elements")
-                      
-                      for dep in deps_elements:
-                          group_id_elem = find_direct_child(dep, 'groupId')
-                          artifact_id_elem = find_direct_child(dep, 'artifactId')
-                          version_elem = find_direct_child(dep, 'version')
-                          scope_elem = find_direct_child(dep, 'scope')
-                          type_elem = find_direct_child(dep, 'type')
-                          
-                          group_id = get_text_safe(group_id_elem)
-                          artifact_id = get_text_safe(artifact_id_elem)
-                          version = get_text_safe(version_elem)
-                          scope = get_text_safe(scope_elem)
-                          dep_type = get_text_safe(type_elem)
-                          
-                          if not group_id or not artifact_id:
-                              continue
-                          
-                          # Skip test and provided scope dependencies
-                          if scope and scope.lower() in ['test', 'provided']:
-                              continue
-                          
-                          # Skip BOM dependencies (type=pom with import scope)
-                          if dep_type == 'pom' and scope == 'import':
-                              continue
-                          
-                          # Resolve version
-                          version = resolve_version(version)
-                          
-                          # Only include dependencies with resolved versions
-                          if version and not version.startswith('${'):
-                              key = f"{group_id}:{artifact_id}"
-                              dependencies[key] = {
-                                  'groupId': group_id,
-                                  'artifactId': artifact_id,
-                                  'version': version,
-                                  'type': 'dependency',
-                                  'scope': scope or 'compile'
-                              }
-                              print(f"  Added: {key} = {version}")
-                          elif version:
-                              print(f"  Skipped (unresolved version): {group_id}:{artifact_id} = {version}")
-                              
-                  except Exception as e:
-                      print(f"Error parsing {pom_file}: {e}")
-                      continue
-              
-              return dependencies
-          
-          # Extract dependencies
-          deps = extract_maven_deps()
-          
-          # Map to EOL products
-          eol_mappings = {
-              'org.springframework.boot': 'spring-boot',
-              'org.springframework': 'spring-framework',
-              'org.springframework.cloud': 'spring-cloud',
-              'com.fasterxml.jackson.core': 'jackson',
-              'com.fasterxml.jackson': 'jackson',
-              'org.postgresql': 'postgresql',
-              'redis.clients': 'redis',
-              'org.mongodb': 'mongodb',
-              'io.swagger.core.v3': 'openapi',
-              'io.swagger.v3': 'openapi',
-              'org.springdoc': 'openapi',
-              'org.apache.tomcat': 'tomcat',
-              'org.apache.tomcat.embed': 'tomcat',
-              'org.eclipse.jetty': 'jetty',
-              'junit': 'junit',
-              'org.junit': 'junit',
-              'org.mockito': 'mockito',
-              'ch.qos.logback': 'logback',
-              'org.slf4j': 'slf4j',
-              'org.hibernate': 'hibernate'
-          }
-          
-          eol_deps = {}
-          for dep_key, dep_info in deps.items():
-              group_id = dep_info['groupId']
-              for group_prefix, eol_product in eol_mappings.items():
-                  if group_id.startswith(group_prefix):
-                      eol_deps[eol_product] = {
-                          'version': dep_info['version'],
-                          'dependency': dep_key
-                      }
-                      break
-          
-          # Use Maven to get dependency list which includes resolved versions
-          print(f"Found {len(deps)} dependencies with explicit versions")
-          print("\nUsing Maven to get effective dependency list...")
-          try:
-              import subprocess
-              
-              # Get dependency list for the api-gateway module (has most dependencies)
-              result = subprocess.run(['mvn', 'dependency:list'], 
-                                    capture_output=True, text=True, cwd='api-gateway')
-              
-              if result.returncode == 0:
-                  maven_deps = 0
-                  # Parse Maven output
+              try:
+                  # Use Maven to get the complete dependency tree for api-gateway module
+                  # This includes all resolved transitive dependencies with actual versions
+                  result = subprocess.run([
+                      'mvn', 'dependency:list', 
+                      '-pl', 'api-gateway',
+                      '-DexcludeTransitive=false',  # Include transitive dependencies
+                      '-DincludeScope=compile,runtime',  # Only runtime dependencies
+                      '-Dsort=true'  # Sort output for consistency
+                  ], capture_output=True, text=True, cwd='.')
+                  
+                  if result.returncode != 0:
+                      print(f"❌ Maven dependency:list failed: {result.stderr}")
+                      return dependencies
+                  
+                  print(f"✅ Maven dependency:list completed successfully")
+                  
+                  # Parse Maven output to extract dependency information
+                  # Format: [INFO]    groupId:artifactId:type:version:scope -- module info
+                  dependency_count = 0
+                  
                   for line in result.stdout.splitlines():
                       line = line.strip()
-                      if line.startswith('[INFO]    ') and ':' in line and 'jar:' in line:
-                          # Extract dependency info from Maven output
-                          # Format: [INFO]    groupId:artifactId:type:version:scope -- module info
-                          parts = line.replace('[INFO]    ', '').strip()
+                      
+                      # Look for dependency lines
+                      if line.startswith('[INFO]    ') and ':jar:' in line:
+                          # Remove the [INFO] prefix and any trailing module info
+                          dependency_info = line.replace('[INFO]    ', '').strip()
                           
-                          # Split by '--' to get just the dependency part
-                          if '--' in parts:
-                              parts = parts.split('--')[0].strip()
+                          # Split by '--' to get just the dependency part (before module info)
+                          if '--' in dependency_info:
+                              dependency_info = dependency_info.split('--')[0].strip()
                           
-                          if parts.count(':') >= 4:
+                          # Parse dependency format: groupId:artifactId:type:version:scope
+                          parts = dependency_info.split(':')
+                          if len(parts) >= 5:
                               try:
-                                  dep_parts = parts.split(':')
-                                  group_id = dep_parts[0].strip()
-                                  artifact_id = dep_parts[1].strip()
-                                  packaging = dep_parts[2].strip()
-                                  version = dep_parts[3].strip()
-                                  scope = dep_parts[4].strip() if len(dep_parts) > 4 else 'compile'
+                                  group_id = parts[0].strip()
+                                  artifact_id = parts[1].strip()
+                                  packaging = parts[2].strip()
+                                  version = parts[3].strip()
+                                  scope = parts[4].strip()
                                   
-                                  # Skip test dependencies
+                                  # Skip test and provided dependencies (should be filtered by Maven already)
                                   if scope.lower() in ['test', 'provided']:
                                       continue
                                   
-                                  key = f"{group_id}:{artifact_id}"
-                                  if key not in deps:  # Don't override XML parsed ones
-                                      deps[key] = {
-                                          'groupId': group_id,
-                                          'artifactId': artifact_id,
-                                          'version': version,
-                                          'type': 'dependency',
-                                          'scope': scope
-                                      }
-                                      maven_deps += 1
-                              except Exception as e:
-                                  print(f"Error parsing Maven output line: {line} - {e}")
+                                  # Create dependency key
+                                  dep_key = f"{group_id}:{artifact_id}"
+                                  
+                                  # Store dependency information
+                                  dependencies[dep_key] = {
+                                      'groupId': group_id,
+                                      'artifactId': artifact_id,
+                                      'version': version,
+                                      'packaging': packaging,
+                                      'scope': scope
+                                  }
+                                  
+                                  dependency_count += 1
+                                  
+                              except (IndexError, ValueError) as e:
+                                  print(f"⚠️  Could not parse dependency line: {dependency_info} - {e}")
                                   continue
                   
-                  print(f"Maven resolved {maven_deps} additional dependencies")
+                  print(f"📦 Found {dependency_count} dependencies from Maven")
                   
-              else:
-                  print(f"Maven dependency:list failed: {result.stderr}")
+              except Exception as e:
+                  print(f"❌ Error running Maven dependency command: {e}")
               
-          except Exception as e:
-              print(f"Maven resolution failed: {e}")
+              return dependencies
           
-          # Re-map dependencies to EOL products with complete dependency list
+          # Extract dependencies using Maven
+          deps = extract_maven_dependencies()
+          
+          # Create dynamic EOL mappings based on actual dependencies found
+          def create_dynamic_eol_mappings(dependencies):
+              """
+              Dynamically create EOL product mappings based on the actual dependencies found.
+              This analyzes dependency groupIds and creates targeted mappings for EOL tracking.
+              """
+              print("🎯 Creating dynamic EOL mappings based on found dependencies...")
+              
+              # Master EOL mapping rules - comprehensive database for potential matches
+              eol_mapping_rules = {
+                  # Spring Framework ecosystem
+                  'org.springframework.boot': 'spring-boot',
+                  'org.springframework': 'spring-framework',
+                  'org.springframework.cloud': 'spring-cloud',
+                  'org.springframework.data': 'spring-framework',
+                  'org.springframework.security': 'spring-framework',
+                  'org.springframework.integration': 'spring-framework',
+                  'org.springframework.batch': 'spring-framework',
+                  'org.springframework.webflow': 'spring-framework',
+                  
+                  # Jackson JSON processing
+                  'com.fasterxml.jackson.core': 'jackson',
+                  'com.fasterxml.jackson.dataformat': 'jackson',
+                  'com.fasterxml.jackson.datatype': 'jackson',
+                  'com.fasterxml.jackson.module': 'jackson',
+                  'com.fasterxml.jackson.jr': 'jackson',
+                  'com.fasterxml.jackson': 'jackson',
+                  
+                  # Database drivers and clients
+                  'org.postgresql': 'postgresql',
+                  'mysql': 'mysql',
+                  'com.mysql': 'mysql',
+                  'com.microsoft.sqlserver': 'mssql-server',
+                  'com.oracle.database.jdbc': 'oracle-database',
+                  'com.h2database': 'h2',
+                  'org.hsqldb': 'hsqldb',
+                  'org.apache.derby': 'derby',
+                  'org.xerial': 'sqlite',
+                  'redis.clients': 'redis',
+                  'org.mongodb': 'mongodb',
+                  'dev.morphia.morphia': 'mongodb',
+                  'io.lettuce': 'redis',
+                  'org.redisson': 'redis',
+                  
+                  # Web servers and networking
+                  'org.apache.tomcat': 'tomcat',
+                  'org.apache.tomcat.embed': 'tomcat',
+                  'org.eclipse.jetty': 'jetty',
+                  'io.undertow': 'undertow',
+                  'io.netty': 'netty',
+                  'org.apache.httpcomponents': 'apache-httpclient',
+                  'org.apache.httpcomponents.client5': 'apache-httpclient',
+                  'org.apache.httpcomponents.core5': 'apache-httpcore',
+                  
+                  # Logging frameworks
+                  'ch.qos.logback': 'logback',
+                  'org.slf4j': 'slf4j',
+                  'org.apache.logging.log4j': 'log4j',
+                  'org.jboss.logging': 'jboss',
+                  'commons-logging': 'commons-logging',
+                  'log4j': 'log4j',
+                  
+                  # Testing frameworks
+                  'junit': 'junit',
+                  'org.junit.jupiter': 'junit',
+                  'org.junit.platform': 'junit',
+                  'org.junit': 'junit',
+                  'org.testng': 'testng',
+                  'org.mockito': 'mockito',
+                  'org.hamcrest': 'hamcrest',
+                  'org.assertj': 'assertj',
+                  'com.github.tomakehurst': 'wiremock',
+                  'org.testcontainers': 'testcontainers',
+                  'org.spockframework': 'spock',
+                  
+                  # Java/Jakarta EE and specifications
+                  'javax.servlet': 'java-ee',
+                  'javax.annotation': 'java-ee',
+                  'javax.validation': 'java-ee',
+                  'javax.xml.bind': 'java-ee',
+                  'javax.activation': 'java-ee',
+                  'jakarta.servlet': 'jakarta-ee',
+                  'jakarta.annotation': 'jakarta-ee',
+                  'jakarta.validation': 'jakarta-ee',
+                  'jakarta.xml.bind': 'jakarta-ee',
+                  'jakarta.activation': 'jakarta-ee',
+                  'jakarta.persistence': 'jakarta-ee',
+                  'org.eclipse.persistence': 'eclipselink',
+                  
+                  # API documentation and OpenAPI
+                  'io.swagger.core.v3': 'openapi',
+                  'io.swagger.v3': 'openapi',
+                  'org.springdoc': 'openapi',
+                  'org.openapi4j': 'openapi',
+                  'io.swagger': 'swagger',
+                  
+                  # Validation and ORM
+                  'org.hibernate.validator': 'hibernate',
+                  'org.hibernate': 'hibernate',
+                  'org.hibernate.orm': 'hibernate',
+                  'org.mybatis': 'mybatis',
+                  'com.querydsl': 'querydsl',
+                  'org.jooq': 'jooq',
+                  
+                  # Reactive programming
+                  'io.projectreactor': 'reactor',
+                  'io.projectreactor.netty': 'reactor',
+                  'io.projectreactor.addons': 'reactor',
+                  'org.reactivestreams': 'reactive-streams',
+                  'io.reactivex.rxjava3': 'rxjava',
+                  'io.reactivex.rxjava2': 'rxjava',
+                  'com.github.akarnokd': 'rxjava',
+                  
+                  # Metrics, monitoring and observability
+                  'io.micrometer': 'micrometer',
+                  'io.prometheus': 'prometheus',
+                  'io.zipkin.brave': 'brave',
+                  'io.jaegertracing': 'jaeger',
+                  'io.opentracing': 'opentracing',
+                  'io.opentelemetry': 'opentelemetry',
+                  
+                  # Resilience and fault tolerance
+                  'io.github.resilience4j': 'resilience4j',
+                  'com.netflix.hystrix': 'hystrix',
+                  'com.netflix.ribbon': 'ribbon',
+                  'com.netflix.eureka': 'eureka',
+                  
+                  # Security and cryptography
+                  'org.bouncycastle': 'bouncy-castle',
+                  'io.jsonwebtoken': 'jwt',
+                  'com.nimbusds': 'nimbus-jose-jwt',
+                  'org.springframework.security': 'spring-security',
+                  'org.apache.shiro': 'shiro',
+                  'org.keycloak': 'keycloak',
+                  
+                  # Serialization and data formats
+                  'org.yaml': 'snakeyaml',
+                  'com.google.code.gson': 'gson',
+                  'com.jayway.jsonpath': 'jsonpath',
+                  'com.fasterxml.woodstox': 'woodstox',
+                  'org.apache.avro': 'avro',
+                  'com.google.protobuf': 'protobuf',
+                  
+                  # Apache Commons and utilities
+                  'org.apache.commons': 'apache-commons',
+                  'commons-codec': 'apache-commons',
+                  'commons-fileupload': 'apache-commons',
+                  'commons-io': 'apache-commons',
+                  'commons-lang': 'apache-commons',
+                  'commons-lang3': 'apache-commons',
+                  'commons-collections': 'apache-commons',
+                  'commons-beanutils': 'apache-commons',
+                  
+                  # Google libraries
+                  'com.google.guava': 'guava',
+                  'com.google.inject': 'guice',
+                  'com.google.code.findbugs': 'findbugs',
+                  
+                  # Code manipulation and bytecode
+                  'org.aspectj': 'aspectj',
+                  'net.bytebuddy': 'byte-buddy',
+                  'org.javassist': 'javassist',
+                  'org.ow2.asm': 'asm',
+                  'cglib': 'cglib',
+                  
+                  # Caching libraries
+                  'com.github.ben-manes.caffeine': 'caffeine',
+                  'net.sf.ehcache': 'ehcache',
+                  'org.ehcache': 'ehcache',
+                  'com.hazelcast': 'hazelcast',
+                  
+                  # Build and development tools
+                  'org.projectlombok': 'lombok',
+                  'org.checkerframework': 'checker-framework',
+                  'org.mapstruct': 'mapstruct',
+                  'org.immutables': 'immutables',
+                  
+                  # Message brokers and messaging
+                  'org.apache.kafka': 'kafka',
+                  'org.apache.activemq': 'activemq',
+                  'com.rabbitmq': 'rabbitmq',
+                  'org.apache.qpid': 'qpid',
+                  
+                  # XML processing
+                  'org.dom4j': 'dom4j',
+                  'jdom': 'jdom',
+                  'org.jdom': 'jdom',
+                  'xalan': 'xalan',
+                  'xerces': 'xerces'
+              }
+              
+              # Analyze found dependencies and create targeted mappings
+              eol_mappings = {}
+              dependency_groups = set()
+              
+              print(f"  Analyzing {len(dependencies)} dependencies for EOL mapping...")
+              
+              for dep_key, dep_info in dependencies.items():
+                  group_id = dep_info['groupId']
+                  dependency_groups.add(group_id)
+                  
+                  # Check for exact matches first
+                  if group_id in eol_mapping_rules:
+                      eol_product = eol_mapping_rules[group_id]
+                      eol_mappings[group_id] = eol_product
+                      print(f"    ✅ Direct match: {group_id} -> {eol_product}")
+                      continue
+                  
+                  # Check for prefix matches (for sub-modules)
+                  matched = False
+                  for rule_prefix, eol_product in eol_mapping_rules.items():
+                      if group_id.startswith(rule_prefix):
+                          eol_mappings[group_id] = eol_product
+                          print(f"    📦 Prefix match: {group_id} -> {eol_product} (via {rule_prefix})")
+                          matched = True
+                          break
+                  
+                  if not matched:
+                      print(f"    ❓ No EOL mapping found for: {group_id}")
+              
+              # Summary
+              unique_eol_products = set(eol_mappings.values())
+              print(f"  📊 Created {len(eol_mappings)} mappings covering {len(unique_eol_products)} EOL products")
+              print(f"  🎯 EOL products to track: {', '.join(sorted(unique_eol_products))}")
+              
+              return eol_mappings, dependency_groups
+          
+          # Create dynamic EOL mappings based on found dependencies
+          eol_mappings, dependency_groups = create_dynamic_eol_mappings(deps)
+          
+          # Exclude internal project modules
+          internal_prefixes = ['org.eclipse.ecsp']
+          
+          print(f"\n🔗 Mapping {len(deps)} dependencies to EOL products...")
+          
           eol_deps = {}
+          mapped_count = 0
+          skipped_count = 0
+          
           for dep_key, dep_info in deps.items():
               group_id = dep_info['groupId']
-              for group_prefix, eol_product in eol_mappings.items():
-                  if group_id.startswith(group_prefix):
+              
+              # Skip internal project modules
+              is_internal = any(group_id.startswith(prefix) for prefix in internal_prefixes)
+              if is_internal:
+                  print(f"  ⏭️  Skipping internal module: {dep_key}")
+                  skipped_count += 1
+                  continue
+              
+              # Map to EOL products using dynamic mappings
+              mapped = False
+              
+              # First try exact match
+              if group_id in eol_mappings:
+                  eol_product = eol_mappings[group_id]
+                  
+                  # Handle multiple dependencies mapping to same EOL product
+                  # Keep the one with the most specific version or latest found
+                  if eol_product not in eol_deps or len(dep_info['version']) > len(eol_deps[eol_product]['version']):
                       eol_deps[eol_product] = {
                           'version': dep_info['version'],
-                          'dependency': dep_key
+                          'dependency': dep_key,
+                          'groupId': group_id
                       }
-                      break
+                  
+                  print(f"  ✅ Exact match: {dep_key} -> {eol_product}")
+                  mapped = True
+                  mapped_count += 1
+              else:
+                  # Try prefix matching for sub-modules
+                  for mapping_group, eol_product in eol_mappings.items():
+                      if group_id.startswith(mapping_group):
+                          
+                          # Handle multiple dependencies mapping to same EOL product
+                          if eol_product not in eol_deps or len(dep_info['version']) > len(eol_deps[eol_product]['version']):
+                              eol_deps[eol_product] = {
+                                  'version': dep_info['version'],
+                                  'dependency': dep_key,
+                                  'groupId': group_id
+                              }
+                          
+                          print(f"  📦 Prefix match: {dep_key} -> {eol_product} (via {mapping_group})")
+                          mapped = True
+                          mapped_count += 1
+                          break
+              
+              if not mapped:
+                  print(f"  ❓ No EOL mapping: {dep_key}")
           
-          print(f"\nFound {len(deps)} total dependencies")
-          print(f"Mapped {len(eol_deps)} dependencies to EOL products")
+          print(f"\n📊 Mapping Summary:")
+          print(f"  Total dependencies: {len(deps)}")
+          print(f"  Internal modules skipped: {skipped_count}")
+          print(f"  Dependencies mapped: {mapped_count}")
+          print(f"  Unique EOL products: {len(eol_deps)}")
           
-          # Save results (even if empty)
+
+
+          
+          # Save results with enhanced metadata
+          eol_output = {}
+          for eol_product, info in eol_deps.items():
+              eol_output[eol_product] = {
+                  'version': info['version'],
+                  'dependency': info['dependency'],
+                  'groupId': info['groupId'],
+                  'mapped_at': datetime.now().isoformat()
+              }
+          
           with open('eol_dependencies.json', 'w') as f:
-              json.dump(eol_deps, f, indent=2)
+              json.dump(eol_output, f, indent=2)
           
+          # Enhanced output
           if not eol_deps:
-              print("No dependencies mapped to EOL products")
+              print("\n❓ No dependencies mapped to trackable EOL products")
+              print("   This could mean:")
+              print("   - All dependencies are very new/unknown products")
+              print("   - Dependencies are mostly internal modules")
+              print("   - EOL mapping rules need expansion")
           else:
-              print("EOL-trackable dependencies:")
-              for eol_product, info in eol_deps.items():
-                  print(f"  {eol_product}: {info['version']} (from {info['dependency']})")
+              print(f"\n🎯 EOL-trackable dependencies ({len(eol_deps)} unique products):")
+              for eol_product, info in sorted(eol_deps.items()):
+                  print(f"  📦 {eol_product}: {info['version']} (from {info['dependency']})")
+          
+          # Save dependency analysis metadata
+          analysis_metadata = {
+              'analysis_date': datetime.now().isoformat(),
+              'total_dependencies': len(deps),
+              'internal_modules_skipped': skipped_count,
+              'dependencies_mapped': mapped_count,
+              'unique_eol_products': len(eol_deps),
+              'dependency_groups_found': sorted(list(dependency_groups)),
+              'eol_mappings_used': len(eol_mappings)
+          }
+          
+          with open('dependency_analysis.json', 'w') as f:
+              json.dump(analysis_metadata, f, indent=2)
           EOF
           
     - name: Check EOL status for dependencies
@@ -489,6 +640,11 @@ jobs:
         echo "APPROACHING_COUNT=$APPROACHING_COUNT" >> $GITHUB_ENV
         echo "TOTAL_ISSUES=$TOTAL_ISSUES" >> $GITHUB_ENV
         
+        # Also set step outputs for conditional logic
+        echo "eol-count=$EOL_COUNT" >> $GITHUB_OUTPUT
+        echo "approaching-count=$APPROACHING_COUNT" >> $GITHUB_OUTPUT
+        echo "total-issues=$TOTAL_ISSUES" >> $GITHUB_OUTPUT
+        
     - name: Generate EOL Report
       id: generate-report
       run: |
@@ -616,10 +772,11 @@ jobs:
           eol_report.md
           eol_results.json
           eol_dependencies.json
+          dependency_analysis.json
         retention-days: 30
         
     - name: Comment on PR (if applicable)
-      if: github.event_name == 'pull_request' && env.TOTAL_ISSUES > 0
+      if: github.event_name == 'pull_request' && steps.eol-check.outputs.total-issues != '0'
       uses: actions/github-script@v7
       with:
         script: |
@@ -634,7 +791,7 @@ jobs:
           });
           
     - name: Create Issue for EOL Dependencies
-      if: env.EOL_COUNT > 0 && github.event_name == 'schedule'
+      if: steps.eol-check.outputs.eol-count != '0' && github.event_name == 'schedule'
       uses: actions/github-script@v7
       with:
         script: |
@@ -677,7 +834,7 @@ jobs:
         cat eol_report.md >> $GITHUB_STEP_SUMMARY
         
     - name: Fail on EOL Dependencies
-      if: github.event.inputs.fail_on_eol == 'true' && env.EOL_COUNT > 0
+      if: github.event.inputs.fail_on_eol == 'true' && steps.eol-check.outputs.eol-count != '0'
       run: |
         echo "❌ Failing workflow due to $EOL_COUNT EOL dependencies found"
         echo "Use the generated report to update these dependencies"

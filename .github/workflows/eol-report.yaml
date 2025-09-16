@@ -37,7 +37,12 @@ jobs:
         distribution: zulu
         cache: maven
         
-    - name: Extract Maven dependencies
+    - name: Build project
+      run: |
+        echo "Building multi-module project to resolve inter-module dependencies..."
+        mvn clean install -DskipTests        
+        
+    - name: Extract project dependencies
       run: |
           python3 << 'EOF'
           import subprocess

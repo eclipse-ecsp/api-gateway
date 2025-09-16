@@ -37,12 +37,12 @@ jobs:
         distribution: zulu
         cache: maven
         
-    - name: Build project
+    - name: Build project modules
       run: |
         echo "Building multi-module project to resolve inter-module dependencies..."
-        mvn clean install -Dmaven.test.skip=true
+        mvn clean install -DskipTests
         
-    - name: Extract project dependencies
+    - name: Extract Maven dependencies
       run: |
           python3 << 'EOF'
           import subprocess
@@ -214,20 +214,11 @@ jobs:
                   'com.fasterxml.jackson': 'jackson',
                   
                   # Database drivers and clients
-                  'org.postgresql': 'postgresql',
-                  'mysql': 'mysql',
-                  'com.mysql': 'mysql',
-                  'com.microsoft.sqlserver': 'mssql-server',
-                  'com.oracle.database.jdbc': 'oracle-database',
+                  
                   'com.h2database': 'h2',
                   'org.hsqldb': 'hsqldb',
                   'org.apache.derby': 'derby',
                   'org.xerial': 'sqlite',
-                  'redis.clients': 'redis',
-                  'org.mongodb': 'mongodb',
-                  'dev.morphia.morphia': 'mongodb',
-                  'io.lettuce': 'redis',
-                  'org.redisson': 'redis',
                   
                   # Web servers and networking
                   'org.apache.tomcat': 'tomcat',
@@ -235,9 +226,6 @@ jobs:
                   'org.eclipse.jetty': 'jetty',
                   'io.undertow': 'undertow',
                   'io.netty': 'netty',
-                  'org.apache.httpcomponents': 'apache-httpclient',
-                  'org.apache.httpcomponents.client5': 'apache-httpclient',
-                  'org.apache.httpcomponents.core5': 'apache-httpcore',
                   
                   # Logging frameworks
                   'ch.qos.logback': 'logback',

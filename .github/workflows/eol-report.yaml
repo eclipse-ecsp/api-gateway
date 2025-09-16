@@ -40,7 +40,7 @@ jobs:
     - name: Build project
       run: |
         echo "Building multi-module project to resolve inter-module dependencies..."
-        mvn clean install -DskipTests        
+        mvn clean install -DskipTests
         
     - name: Extract project dependencies
       run: |
@@ -57,11 +57,21 @@ jobs:
               dependencies = {}
               
               try:
+                  # Try to resolve dependencies first to handle multi-module projects
+                  print("  Pre-resolving dependencies for multi-module project...")
+                  resolve_result = subprocess.run([
+                      'mvn', 'dependency:resolve'
+                  ], capture_output=True, text=True, cwd='.')
+                  
+                  if resolve_result.returncode != 0:
+                      print(f"⚠️  Maven dependency:resolve had issues: {resolve_result.stderr}")
+                      # Continue anyway as this might still work
+                  
                   # Get all dependencies using Maven dependency:list for all modules
                   # This includes all resolved transitive dependencies with actual versions
                   print("  Running Maven dependency:list for all modules...")
                   result = subprocess.run([
-                      'mvn', 'dependency:list'
+                      'mvn', 'dependency:list', '-DexcludeTransitive=false'
                   ], capture_output=True, text=True, cwd='.')
                   
                   if result.returncode != 0:
@@ -69,7 +79,19 @@ jobs:
                       print(f"   Return code: {result.returncode}")
                       print(f"   stderr: {result.stderr}")
                       print(f"   stdout: {result.stdout}")
-                      return dependencies
+                      
+                      # Try alternative approach: use dependency:tree instead
+                      print("  Trying alternative approach with dependency:tree...")
+                      tree_result = subprocess.run([
+                          'mvn', 'dependency:tree', '-DoutputType=text'
+                      ], capture_output=True, text=True, cwd='.')
+                      
+                      if tree_result.returncode == 0:
+                          print("  ✅ Using dependency:tree output as fallback")
+                          result = tree_result
+                      else:
+                          print(f"❌ dependency:tree also failed: {tree_result.stderr}")
+                          return dependencies
                   
                   print(f"✅ Maven dependency:list completed successfully")
                   
@@ -92,14 +114,30 @@ jobs:
                   for line in result.stdout.splitlines():
                       line = line.strip()
                       
-                      # Look for dependency lines - they start with [INFO]    and contain groupId:artifactId:type:version:scope
-                      if line.startswith('[INFO]    ') and ':' in line and not line.startswith('[INFO]    none'):
-                          # Remove the [INFO] prefix and any trailing module info
-                          dependency_info = line.replace('[INFO]    ', '').strip()
-                          
-                          # Split by '--' to get just the dependency part (before module info)
-                          if '--' in dependency_info:
-                              dependency_info = dependency_info.split('--')[0].strip()
+                      # Look for dependency lines from both dependency:list and dependency:tree
+                      # dependency:list format: [INFO]    groupId:artifactId:type:version:scope -- module info
+                      # dependency:tree format: [INFO] +- groupId:artifactId:type:version:scope
+                      is_dependency_list = line.startswith('[INFO]    ') and ':' in line and not line.startswith('[INFO]    none')
+                      is_dependency_tree = (line.startswith('[INFO] ') and 
+                                           any(prefix in line for prefix in ['+- ', '\\- ', '|  ']) and 
+                                           ':' in line)
+                      
+                      if is_dependency_list or is_dependency_tree:
+                          # Parse based on format
+                          if is_dependency_list:
+                              # Remove the [INFO] prefix and any trailing module info
+                              dependency_info = line.replace('[INFO]    ', '').strip()
+                              # Split by '--' to get just the dependency part (before module info)
+                              if '--' in dependency_info:
+                                  dependency_info = dependency_info.split('--')[0].strip()
+                          else:  # is_dependency_tree
+                              # Remove [INFO] prefix and tree characters
+                              dependency_info = line.replace('[INFO] ', '').strip()
+                              # Remove tree prefixes like '+- ', '\\- ', '|  '
+                              for prefix in ['+- ', '\\- ', '|  +- ', '|  \\- ', '   ']:
+                                  if dependency_info.startswith(prefix):
+                                      dependency_info = dependency_info[len(prefix):].strip()
+                                      break
                           
                           # Parse dependency format: groupId:artifactId:type:version:scope
                           parts = dependency_info.split(':')

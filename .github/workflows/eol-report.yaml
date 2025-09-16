@@ -52,14 +52,11 @@ jobs:
               dependencies = {}
               
               try:
-                  # Use Maven to get the complete dependency tree for api-gateway module
+                  # Get all dependencies using Maven dependency:list for all modules
                   # This includes all resolved transitive dependencies with actual versions
+                  print("  Running Maven dependency:list for all modules...")
                   result = subprocess.run([
-                      'mvn', 'dependency:list', 
-                      '-pl', 'api-gateway',
-                      '-DexcludeTransitive=false',  # Include transitive dependencies
-                      '-DincludeScope=compile,runtime',  # Only runtime dependencies
-                      '-Dsort=true'  # Sort output for consistency
+                      'mvn', 'dependency:list'
                   ], capture_output=True, text=True, cwd='.')
                   
                   if result.returncode != 0:
@@ -67,6 +64,18 @@ jobs:
                       return dependencies
                   
                   print(f"✅ Maven dependency:list completed successfully")
+                  
+                  # Extract module information from Maven output
+                  modules_processed = []
+                  for line in result.stdout.splitlines():
+                      if 'Building ' in line and '[' in line and '/' in line:
+                          # Extract module name from "Building module-name version [x/y]"
+                          parts = line.split('Building')[1].strip().split('[')[0].strip()
+                          module_name = parts.split()[0] if parts else 'unknown'
+                          modules_processed.append(module_name)
+                  
+                  if modules_processed:
+                      print(f"  📋 Modules processed: {', '.join(modules_processed)}")
                   
                   # Parse Maven output to extract dependency information
                   # Format: [INFO]    groupId:artifactId:type:version:scope -- module info
@@ -94,23 +103,23 @@ jobs:
                                   version = parts[3].strip()
                                   scope = parts[4].strip()
                                   
-                                  # Skip test and provided dependencies (should be filtered by Maven already)
+                                  # Only include compile and runtime dependencies (skip test, provided)
                                   if scope.lower() in ['test', 'provided']:
                                       continue
                                   
                                   # Create dependency key
                                   dep_key = f"{group_id}:{artifact_id}"
                                   
-                                  # Store dependency information
-                                  dependencies[dep_key] = {
-                                      'groupId': group_id,
-                                      'artifactId': artifact_id,
-                                      'version': version,
-                                      'packaging': packaging,
-                                      'scope': scope
-                                  }
-                                  
-                                  dependency_count += 1
+                                  # Store dependency information (avoid duplicates)
+                                  if dep_key not in dependencies:
+                                      dependencies[dep_key] = {
+                                          'groupId': group_id,
+                                          'artifactId': artifact_id,
+                                          'version': version,
+                                          'packaging': packaging,
+                                          'scope': scope
+                                      }
+                                      dependency_count += 1
                                   
                               except (IndexError, ValueError) as e:
                                   print(f"⚠️  Could not parse dependency line: {dependency_info} - {e}")

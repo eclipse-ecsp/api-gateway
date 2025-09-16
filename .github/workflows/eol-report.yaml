@@ -40,7 +40,7 @@ jobs:
     - name: Build project
       run: |
         echo "Building multi-module project to resolve inter-module dependencies..."
-        mvn clean install -DskipTests
+        mvn clean install -Dmaven.test.skip=true
         
     - name: Extract project dependencies
       run: |

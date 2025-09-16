@@ -60,7 +60,10 @@ jobs:
                   ], capture_output=True, text=True, cwd='.')
                   
                   if result.returncode != 0:
-                      print(f"❌ Maven dependency:list failed: {result.stderr}")
+                      print(f"❌ Maven dependency:list failed:")
+                      print(f"   Return code: {result.returncode}")
+                      print(f"   stderr: {result.stderr}")
+                      print(f"   stdout: {result.stdout}")
                       return dependencies
                   
                   print(f"✅ Maven dependency:list completed successfully")
@@ -84,8 +87,8 @@ jobs:
                   for line in result.stdout.splitlines():
                       line = line.strip()
                       
-                      # Look for dependency lines
-                      if line.startswith('[INFO]    ') and ':jar:' in line:
+                      # Look for dependency lines - they start with [INFO]    and contain groupId:artifactId:type:version:scope
+                      if line.startswith('[INFO]    ') and ':' in line and not line.startswith('[INFO]    none'):
                           # Remove the [INFO] prefix and any trailing module info
                           dependency_info = line.replace('[INFO]    ', '').strip()
                           
@@ -95,13 +98,17 @@ jobs:
                           
                           # Parse dependency format: groupId:artifactId:type:version:scope
                           parts = dependency_info.split(':')
-                          if len(parts) >= 5:
+                          if len(parts) >= 4:  # At minimum we need groupId:artifactId:type:version
                               try:
                                   group_id = parts[0].strip()
                                   artifact_id = parts[1].strip()
-                                  packaging = parts[2].strip()
-                                  version = parts[3].strip()
-                                  scope = parts[4].strip()
+                                  packaging = parts[2].strip() if len(parts) > 2 else 'jar'
+                                  version = parts[3].strip() if len(parts) > 3 else 'unknown'
+                                  scope = parts[4].strip() if len(parts) > 4 else 'compile'
+                                  
+                                  # Skip empty or malformed entries
+                                  if not group_id or not artifact_id or group_id == 'none':
+                                      continue
                                   
                                   # Only include compile and runtime dependencies (skip test, provided)
                                   if scope.lower() in ['test', 'provided']:
@@ -429,9 +436,6 @@ jobs:
           print(f"  Internal modules skipped: {skipped_count}")
           print(f"  Dependencies mapped: {mapped_count}")
           print(f"  Unique EOL products: {len(eol_deps)}")
-          
-
-
           
           # Save results with enhanced metadata
           eol_output = {}

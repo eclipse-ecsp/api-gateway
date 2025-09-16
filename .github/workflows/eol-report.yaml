@@ -40,7 +40,7 @@ jobs:
     - name: Build project modules
       run: |
         echo "Building multi-module project to resolve inter-module dependencies..."
-        mvn clean install -DskipTests
+        mvn clean install -Dmaven.test.skip=true
         
     - name: Extract Maven dependencies
       run: |
@@ -791,8 +791,6 @@ jobs:
             report.append("")
             report.append("### Useful Resources")
             report.append("- [endoflife.date](https://endoflife.date/) - EOL information database")
-            report.append("- [OWASP Dependency Check](https://owasp.org/www-project-dependency-check/) - Security vulnerability scanning")
-            report.append("- [Renovate](https://renovatebot.com/) - Automated dependency updates")
             
             return "\n".join(report)
         
@@ -874,7 +872,6 @@ jobs:
           
     - name: Add to GitHub Summary
       run: |
-        echo "## 🔍 EOL Dependencies Check Results" >> $GITHUB_STEP_SUMMARY
         cat eol_report.md >> $GITHUB_STEP_SUMMARY
         
     - name: Fail on EOL Dependencies

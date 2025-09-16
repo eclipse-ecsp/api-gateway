@@ -9,5 +9,5 @@ on:
 jobs:
   eol_dependency_check:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-eol-analysis.yml@eol-report
-    #with: 
+    #with:
     #  custom_mappings: "org.liquibase:liquibase"

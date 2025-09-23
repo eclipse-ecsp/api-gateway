@@ -1,13 +1,8 @@
 name: License Compliance
 
 on:
-  push:
-    branches: [ "*" ]
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
   pull_request:
-    branches: [ "*" ]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:

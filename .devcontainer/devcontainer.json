@@ -1,0 +1,57 @@
+{
+  "name": "api-gateway-devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "jdkDistro": "ms",
+      "installMaven": true,
+      "mavenVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/itsmechlark/features/redis-server:1": {},
+    "ghcr.io/itsmechlark/features/postgresql:1": {}
+  },
+  "forwardPorts": [
+    8080,
+    7000
+  ],
+  "appPort": [
+    8080,
+    7000
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "dbaeumer.vscode-eslint",
+        "vscjava.vscode-maven",
+        "vmware.vscode-boot-dev-pack",
+        "ms-azuretools.vscode-docker",
+        "cweijan.vscode-redis-client",
+        "mongodb.mongodb-vscode",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "remote.autoForwardPorts": false
+      }
+    }
+  },
+  "postCreateCommand": "sudo chown -R $(id -u):$(id -g) /workspaces",
+  "portsAttributes": {
+    "7000": {
+      "label": "api-registry",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+     "8080": {
+      "label": "api-gateway",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "*": {
+            "onAutoForward": "ignore"
+    }
+  },
+  "otherPortsAttributes": {"onAutoForward": "ignore"}
+}

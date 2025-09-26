@@ -10,10 +10,13 @@ on:
 
 jobs:
   maven_build:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@test-report
     name: Maven Build
     with:
       maven_args: 'clean package --file pom.xml'
+      test_report: true
+      summaries-test-report: true
+
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:

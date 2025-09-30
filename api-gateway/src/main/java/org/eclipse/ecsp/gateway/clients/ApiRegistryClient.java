@@ -29,6 +29,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Client for interacting with the API Registry to routes.
@@ -50,6 +53,9 @@ public class ApiRegistryClient {
     private String routeUserId;
     private final WebClient webClient;
     private final RouteUtils routeUtils;
+    
+    // Thread-safe cache to store last successfully fetched routes
+    private final List<IgniteRouteDefinition> cachedRoutes = new CopyOnWriteArrayList<>();
 
     /**
      * Constructor for ApiRegistryClient.
@@ -68,8 +74,10 @@ public class ApiRegistryClient {
 
     /**
      * Fetches routes from the API registry.
+     * If the registry is unavailable or returns empty routes, returns cached routes from the last successful fetch.
+     * Only returns dummy route if no cached routes are available.
      *
-     * @return list of routes from registry
+     * @return list of routes from registry or cached routes
      */
     public Flux<IgniteRouteDefinition> getRoutes() {
         LOGGER.debug("Loading API Routes");
@@ -80,10 +88,67 @@ public class ApiRegistryClient {
                 .header(GatewayConstants.SCOPE, routeScopes)
                 .retrieve()
                 .bodyToFlux(IgniteRouteDefinition.class)
+                .collectList()
+                .flatMapMany(routes -> {
+                    if (routes != null && !routes.isEmpty()) {
+                        LOGGER.info("Successfully fetched {} routes from api-registry", routes.size());
+                        // Update cache with successfully fetched routes
+                        clearCache();
+                        cachedRoutes.addAll(routes);
+                        return Flux.fromIterable(routes);
+                    } else {
+                        LOGGER.warn("API registry returned empty routes list");
+                        return handleEmptyOrErrorResponse();
+                    }
+                })
                 .doOnError(throwable -> LOGGER.error("Error while fetching routes from api-registry: {}",
-                        throwable))
-                .onErrorResume(e -> Flux.empty())
-                .switchIfEmpty(Flux.just(routeUtils.getDummyRoute()));
+                        throwable.getMessage()))
+                .onErrorResume(e -> handleEmptyOrErrorResponse());
         // @formatter:on
+    }
+
+    /**
+     * Handles the case when API registry is unavailable or returns empty routes.
+     * Returns cached routes if available, otherwise returns dummy route.
+     *
+     * @return cached routes or dummy route
+     */
+    private Flux<IgniteRouteDefinition> handleEmptyOrErrorResponse() {
+        if (hasCachedRoutes()) {
+            LOGGER.warn("API registry unavailable or returned empty routes. "
+                    + "Using {} cached routes from last successful fetch", 
+                    getCachedRoutesCount());
+            return Flux.fromIterable(new ArrayList<>(cachedRoutes));
+        } else {
+            LOGGER.error("No cached routes available. Returning dummy route");
+            return Flux.just(routeUtils.getDummyRoute());
+        }
+    }
+
+    /**
+     * Checks if cached routes are available.
+     *
+     * @return true if cached routes exist, false otherwise
+     */
+    public boolean hasCachedRoutes() {
+        return !cachedRoutes.isEmpty();
+    }
+
+    /**
+     * Gets the number of cached routes.
+     *
+     * @return number of cached routes
+     */
+    public int getCachedRoutesCount() {
+        return cachedRoutes.size();
+    }
+
+    /**
+     * Clears the cached routes.
+     * This method is useful for testing or manual cache invalidation.
+     */
+    public void clearCache() {
+        LOGGER.info("Clearing route cache");
+        cachedRoutes.clear();
     }
 }

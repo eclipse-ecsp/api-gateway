@@ -41,8 +41,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for ApiRegistryClient using WireMock.
@@ -54,6 +55,7 @@ class ApiRegistryClientTest {
     private static final String ROUTES_ENDPOINT = "/api/v1/routes";
     private static final String ROUTE_SCOPES = "SYSTEM_READ";
     private static final String ROUTE_USER_ID = "1";
+    private static final int EXPECTED_TWO_ROUTES = 2;
 
     private WireMockServer wireMockServer;
     private ApiRegistryClient apiRegistryClient;
@@ -69,10 +71,10 @@ class ApiRegistryClientTest {
         wireMockServer.start();
         WireMock.configureFor("localhost", wireMockServer.port());
 
-        // Setup dummy route
+        // Setup dummy route - use lenient to avoid UnnecessaryStubbingException in tests where cache is used
         dummyRoute = new IgniteRouteDefinition();
         dummyRoute.setId("dummy-route");
-        when(routeUtils.getDummyRoute()).thenReturn(dummyRoute);
+        lenient().when(routeUtils.getDummyRoute()).thenReturn(dummyRoute);
 
         // Create real WebClient pointing to WireMock server
         WebClient.Builder webClientBuilder = WebClient.builder();
@@ -340,6 +342,314 @@ class ApiRegistryClientTest {
                 .verifyComplete();
 
         verify(routeUtils).getDummyRoute();
+    }
+
+    /**
+     * Test route caching on successful fetch.
+     * Verifies that routes are cached after successful retrieval.
+     */
+    @Test
+    void getRoutes_whenSuccessful_thenCachesRoutes() {
+        // Given
+        String responseBody = """
+            [
+                {
+                    "id": "route-1",
+                    "uri": "http://example.com/api/v1/test1",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v1/test1/**"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+
+        // When
+        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextCount(1)
+                .verifyComplete();
+
+        // Verify routes are cached
+        assert apiRegistryClient.hasCachedRoutes();
+        assert apiRegistryClient.getCachedRoutesCount() == 1;
+    }
+
+    /**
+     * Test that cached routes are returned when API registry is down.
+     * Verifies the fallback mechanism to use cached routes.
+     */
+    @Test
+    void getRoutes_whenApiRegistryDownAfterSuccessfulFetch_thenReturnsCachedRoutes() {
+        // Given - First, load routes successfully
+        String responseBody = """
+            [
+                {
+                    "id": "cached-route-1",
+                    "uri": "http://example.com/api/v1/cached",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v1/cached/**"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "cached-route-2",
+                    "uri": "http://example.com/api/v2/cached",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v2/cached/**"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+
+        // Load routes successfully and cache them
+        StepVerifier.create(apiRegistryClient.getRoutes())
+                .expectNextCount(EXPECTED_TWO_ROUTES)
+                .verifyComplete();
+
+        // Verify routes are cached
+        assert apiRegistryClient.getCachedRoutesCount() == EXPECTED_TWO_ROUTES;
+
+        // Now simulate API registry being down
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())));
+
+        // When - Try to fetch routes again
+        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then - Should return cached routes, not dummy route
+        StepVerifier.create(result)
+                .expectNextMatches(route -> "cached-route-1".equals(route.getId()))
+                .expectNextMatches(route -> "cached-route-2".equals(route.getId()))
+                .verifyComplete();
+
+        // Verify getDummyRoute was NOT called
+        verify(routeUtils, never()).getDummyRoute();
+    }
+
+    /**
+     * Test that cached routes are returned when API registry returns empty list.
+     * Verifies the fallback mechanism for empty responses.
+     */
+    @Test
+    void getRoutes_whenEmptyResponseAfterSuccessfulFetch_thenReturnsCachedRoutes() {
+        // Given - First, load routes successfully
+        String responseBody = """
+            [
+                {
+                    "id": "cached-route",
+                    "uri": "http://example.com/api/v1/test",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v1/test/**"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+
+        // Load routes successfully and cache them
+        StepVerifier.create(apiRegistryClient.getRoutes())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        // Now simulate empty response
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("[]")));
+
+        // When - Try to fetch routes again
+        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then - Should return cached routes, not dummy route
+        StepVerifier.create(result)
+                .expectNextMatches(route -> "cached-route".equals(route.getId()))
+                .verifyComplete();
+
+        // Verify getDummyRoute was NOT called
+        verify(routeUtils, never()).getDummyRoute();
+    }
+
+    /**
+     * Test cache update when new routes are fetched.
+     * Verifies that cache is properly updated with new routes.
+     */
+    @Test
+    void getRoutes_whenNewRoutesFetched_thenUpdatesCache() {
+        // Given - First fetch with initial routes
+        String initialResponse = createSingleRouteResponse("route-v1", "http://example.com/api/v1", "/api/v1/**");
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(initialResponse)));
+
+        // Fetch and cache initial routes
+        StepVerifier.create(apiRegistryClient.getRoutes())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        assert apiRegistryClient.getCachedRoutesCount() == 1;
+
+        // Now fetch with updated routes
+        String updatedResponse = createTwoRoutesResponse();
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(updatedResponse)));
+
+        // When - Fetch updated routes
+        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then - Cache should be updated
+        StepVerifier.create(result)
+                .expectNextMatches(route -> "route-v2".equals(route.getId()))
+                .expectNextMatches(route -> "route-v3".equals(route.getId()))
+                .verifyComplete();
+
+        assert apiRegistryClient.getCachedRoutesCount() == EXPECTED_TWO_ROUTES;
+    }
+
+    /**
+     * Helper method to create a response with two routes.
+     */
+    private String createTwoRoutesResponse() {
+        return """
+            [
+                {
+                    "id": "route-v2",
+                    "uri": "http://example.com/api/v2",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v2/**"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "route-v3",
+                    "uri": "http://example.com/api/v3",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v3/**"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """;
+    }
+
+    /**
+     * Helper method to create a single route response.
+     */
+    private String createSingleRouteResponse(String id, String uri, String pattern) {
+        return String.format("""
+            [
+                {
+                    "id": "%s",
+                    "uri": "%s",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "%s"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """, id, uri, pattern);
+    }
+
+    /**
+     * Test clearCache method.
+     * Verifies that cache can be manually cleared.
+     */
+    @Test
+    void clearCache_whenCalled_thenRemovesCachedRoutes() {
+        // Given - Load routes successfully
+        String responseBody = """
+            [
+                {
+                    "id": "route-1",
+                    "uri": "http://example.com/api/v1",
+                    "predicates": [
+                        {
+                            "name": "Path",
+                            "args": {
+                                "pattern": "/api/v1/**"
+                            }
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+
+        StepVerifier.create(apiRegistryClient.getRoutes())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        assert apiRegistryClient.hasCachedRoutes();
+
+        // When
+        apiRegistryClient.clearCache();
+
+        // Then
+        assert !apiRegistryClient.hasCachedRoutes();
+        assert apiRegistryClient.getCachedRoutesCount() == 0;
     }
 
 }

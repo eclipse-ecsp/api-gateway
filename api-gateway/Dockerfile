@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk-alpine:17.0.14-17.56-jre-headless
+FROM azul/zulu-openjdk-alpine:21-jre-headless
 
 RUN apk update && apk add --no-cache curl
 

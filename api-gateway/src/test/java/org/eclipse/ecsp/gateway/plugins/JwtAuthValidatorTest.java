@@ -26,7 +26,7 @@ import io.jsonwebtoken.JwtVisitor;
 import io.jsonwebtoken.Jwts;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
@@ -387,12 +387,12 @@ class JwtAuthValidatorTest {
         claims.put("scope", scopesList);
         String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         if (result != null) {
-            Assertions.assertTrue(StringUtils.contains(result, "SelfManage"));
+            Assertions.assertTrue(Strings.CS.contains(result, "SelfManage"));
         }
         claims.setScope(String.join(",", scopesList));
         String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         if (resultString != null) {
-            Assertions.assertTrue(StringUtils.contains(resultString, "SelfManage"));
+            Assertions.assertTrue(Strings.CS.contains(resultString, "SelfManage"));
         }
     }
 

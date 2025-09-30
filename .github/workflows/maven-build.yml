@@ -22,8 +22,9 @@ jobs:
   sonar_analysis:
     needs: maven_build
     uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
-    secrets:
+    with:
       java_version: '21'
+    secrets:
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
     needs: sonar_analysis

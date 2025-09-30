@@ -14,6 +14,9 @@ jobs:
     name: Maven Build
     with:
       maven_args: 'clean package --file pom.xml'
+      test-report: true
+      summaries-test-report: true
+
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:

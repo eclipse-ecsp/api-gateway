@@ -13,21 +13,24 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
     name: Maven Build
     with:
+      java_version: '21'
       maven_args: 'clean package --file pom.xml'
       test-report: true
       summaries-test-report: true
-
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:
     needs: maven_build
     uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     secrets:
+      java_version: '21'
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
     secrets: inherit
+    with:
+      java_version: '21'
     permissions:
       pull-requests: write
       contents: read
@@ -40,6 +43,7 @@ jobs:
     with:
       context_path: ./api-registry
       maven_args: 'clean package --file pom.xml'
+      java_version: '21'
 
   docker_push_api-gateway:
     needs: sonar_analysis
@@ -49,3 +53,4 @@ jobs:
     with:
       context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'
+      java_version: '21'

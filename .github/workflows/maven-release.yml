@@ -9,12 +9,15 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
+    with:
+      java_version: '21'
 
   licence_compliance_status:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
     name: Check Licence Compliance Status
     with:
+      java_version: '21'
       create-review: false
 
   extract_version:
@@ -46,6 +49,7 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@main
     secrets: inherit
     with:
+      java_version: '21'
       release_version: ${{ needs.extract_version.outputs.release_version }}
 
   docker_push_api_registry:
@@ -56,6 +60,7 @@ jobs:
       context_path: ./api-registry
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
+      java_version: '21'
 
   docker_push_api_gateway:
     needs: extract_version
@@ -65,10 +70,12 @@ jobs:
       context_path: ./api-gateway
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
+      java_version: '21'
   
   update_next_version:
     needs: extract_version
     uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@main
     with:
       version: ${{ needs.extract_version.outputs.release_version }}
+      java_version: '21'
     secrets: inherit

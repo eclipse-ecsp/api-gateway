@@ -10,7 +10,7 @@ on:
 
 jobs:
   maven_build:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@test-report
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
     name: Maven Build
     with:
       maven_args: 'clean package --file pom.xml'

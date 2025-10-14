@@ -137,7 +137,7 @@ maven/mavencentral/org.aspectj/aspectjrt/1.9.24, EPL-1.0, approved, tools.aspect
 maven/mavencentral/org.aspectj/aspectjweaver/1.9.24, EPL-1.0, approved, tools.aspectj
 maven/mavencentral/org.assertj/assertj-core/3.27.4, Apache-2.0, approved, #17980
 maven/mavencentral/org.awaitility/awaitility/4.2.2, Apache-2.0, approved, #14178
-maven/mavencentral/org.bouncycastle/bcprov-jdk18on/1.81, MIT AND CC0-1.0, approved, #21819
+maven/mavencentral/org.bouncycastle/bcprov-jdk18on/1.82, MIT AND CC0-1.0, approved, #23374
 maven/mavencentral/org.checkerframework/checker-qual/3.42.0, MIT, approved, #20003
 maven/mavencentral/org.checkerframework/checker-qual/3.49.3, MIT, approved, #20842
 maven/mavencentral/org.eclipse.angus/angus-activation/2.0.2, EPL-2.0 OR GPL-2.0-only with Classpath-exception-2.0, approved, ee4j.angus

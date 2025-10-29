@@ -104,7 +104,8 @@ public class ApiConfig {
         List<Server> servers = new ArrayList<>();
         for (String serverUrl : serverUrls.split(",")) {
             Server server = new Server();
-            server.setUrl(serverUrl);
+            String normalizedUrl = normalizeServerUrl(serverUrl.trim());
+            server.setUrl(normalizedUrl);
             servers.add(server);
         }
         LOGGER.info("API serverUrls : {}", Collections.singletonList(serverUrls));
@@ -116,6 +117,46 @@ public class ApiConfig {
                         .version(applicationVersion())
                         .description(desc))
                 .servers(servers);
+    }
+
+    /**
+     * Normalizes server URLs to prevent duplication and ensure proper scheme.
+     *
+     * @param raw the raw server URL
+     * @return the normalized server URL
+     */
+    private String normalizeServerUrl(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return raw;
+        }
+        
+        String trimmed = raw.trim();
+        
+        // Check for duplicate domain patterns and clean them up
+        if (trimmed.contains("api-gateway.")
+                && trimmed.indexOf("api-gateway.") != trimmed.lastIndexOf("api-gateway.")) {
+            // Extract the first occurrence of the domain pattern
+            int firstIndex = trimmed.indexOf("api-gateway.");
+            int secondIndex = trimmed.indexOf("api-gateway.", firstIndex + 1);
+            if (secondIndex > firstIndex) {
+                trimmed = trimmed.substring(0, secondIndex);
+                LOGGER.warn("Detected duplicate domain pattern in URL '{}', cleaned to '{}'", raw, trimmed);
+            }
+        }
+        
+        // Add https scheme if no scheme is present
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            if (trimmed.startsWith("//")) {
+                // Protocol-relative URL
+                trimmed = "https:" + trimmed;
+            } else {
+                // No scheme at all
+                trimmed = "https://" + trimmed;
+            }
+            LOGGER.debug("Added https scheme to URL '{}' -> '{}'", raw, trimmed);
+        }
+        
+        return trimmed;
     }
 
     /**

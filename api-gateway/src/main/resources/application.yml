@@ -45,12 +45,12 @@ spring:
         redis.cache.enabled: false
       default-filters:
         - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
-        - name: RequestRateLimiter
-          args:
-            key-resolver: "#{@requestKeyResolver}"
-            redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:1000}
-            redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:1000}
-            redis-rate-limiter.requestedTokens: 1
+        # - name: RequestRateLimiter
+        #   args:
+        #     key-resolver: "#{@requestKeyResolver}"
+        #     redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:1000}
+        #     redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:1000}
+        #     redis-rate-limiter.requestedTokens: 1
         - name: RequestHeaderFilter
           args:
             remove-unknown-headers: ${api_gateway_request-header-filter_remove_unknown_headers:true}
@@ -115,6 +115,12 @@ api:
   userId:
     field: "sub"
   gateway:
+    rate-limit:
+      enabled: true 
+      defaults:
+        replenish-rate: 1000
+        burst-capacity: 1000
+        rate-limit-type: CLIENT_IP
     metrics:
       enabled: true
       port: 9101

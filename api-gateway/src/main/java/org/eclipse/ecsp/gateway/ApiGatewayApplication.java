@@ -20,6 +20,8 @@ package org.eclipse.ecsp.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.ComponentScan;
 
@@ -27,7 +29,7 @@ import org.springframework.context.annotation.ComponentScan;
  * Spring cloud gateway based application.
  */
 @EnableDiscoveryClient
-@SpringBootApplication
+@SpringBootApplication(exclude = {RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 @ComponentScan(basePackages = {"org.eclipse.ecsp"})
 public class ApiGatewayApplication {
     /**

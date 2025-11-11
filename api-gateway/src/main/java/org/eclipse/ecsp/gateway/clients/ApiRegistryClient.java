@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.clients;
 
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
+import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.service.RouteUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -51,6 +52,8 @@ public class ApiRegistryClient {
     private String routeScopes;
     @Value("${api.registry.route.user-id:1}")
     private String routeUserId;
+    @Value("${api.registry.rate-limits-endpoint:/v1/config/rate-limits}")
+    private String rateLimitsEndpoint;
     private final WebClient webClient;
     private final RouteUtils routeUtils;
     
@@ -150,5 +153,24 @@ public class ApiRegistryClient {
     public void clearCache() {
         LOGGER.info("Clearing route cache");
         cachedRoutes.clear();
+    }
+
+    /**
+     * Fetches rate limit configurations from the API registry service.
+     *
+     * @return list of rate limit definitions provided by the registry
+     */
+    public List<RateLimit> getRateLimits() {
+        LOGGER.debug("Loading API Rate Limits");
+        // @formatter:off
+        return this.webClient.get().uri(rateLimitsEndpoint)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(GatewayConstants.USER_ID, routeUserId)
+                .header(GatewayConstants.SCOPE, routeScopes)
+                .retrieve()
+                .bodyToFlux(RateLimit.class)
+                .collectList()
+                .block();
+        // @formatter:on
     }
 }

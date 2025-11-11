@@ -16,12 +16,12 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.gateway.config;
+package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import java.net.InetSocketAddress;
@@ -29,23 +29,32 @@ import java.net.InetSocketAddress;
 /**
  * Class to get the hostname from server web exchange object.
  */
-@Service
-public class RequestKeyResolver implements KeyResolver {
+@Component("routePathKeyResolver")
+public class RoutePathKeyResolver implements KeyResolver {
 
     /**
      * Creates a logger instance.
      */
     private static final IgniteLogger LOGGER
-            = IgniteLoggerFactory.getLogger(RequestKeyResolver.class);
+            = IgniteLoggerFactory.getLogger(RoutePathKeyResolver.class);
 
     /**
-     * method to return the host name.
+     * Returns the host name for rate limiting.
      *
      * @param exchange ServerWebExchange object
      * @return hostname returns hostname from ServerWebExchange object
      */
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
+        String forwardedForHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        // Check X-Forwarded-For header first
+        if (forwardedForHeader != null && !forwardedForHeader.isEmpty()) {
+            String clientIp = forwardedForHeader.split(",")[0].trim();
+            LOGGER.debug("Client Key from X-Forwarded-For -> {}", clientIp);
+            return Mono.just(clientIp);
+        }
+
+        // Fallback to remote address if X-Forwarded-For is not present
         InetSocketAddress remoteAddress = exchange
                 .getRequest().getRemoteAddress();
         if (remoteAddress == null) {

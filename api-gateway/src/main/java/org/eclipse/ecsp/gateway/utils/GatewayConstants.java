@@ -272,4 +272,22 @@ public class GatewayConstants {
      * Default metric name for public key source refresh time.
      */
     public static final String DEFAULT_SOURCE_REFRESH_TIME_METRIC = "public_key_source_refresh_time";
+
+    /**
+     * Prefix for caching-related properties.
+     */
+    public static final String CACHING_PREFIX = "api.caching";
+
+    public static final String CACHING_ENABLED = CACHING_PREFIX + ".enabled";
+
+    public static final String CACHING_TYPE = CACHING_PREFIX + ".type";
+
+    /**
+     * Prefix for rate limiting-related properties.
+     */
+    public static final String RATE_LIMITING_PREFIX = "api.gateway.rate-limit";
+
+    public static final String RATE_LIMITING_ENABLED = RATE_LIMITING_PREFIX + ".enabled";
+
+    
 }

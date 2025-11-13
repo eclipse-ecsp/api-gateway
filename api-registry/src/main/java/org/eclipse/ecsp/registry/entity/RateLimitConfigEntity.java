@@ -28,6 +28,7 @@ import org.eclipse.ecsp.domain.Version;
 import org.eclipse.ecsp.entities.AuditableIgniteEntity;
 import org.eclipse.ecsp.entities.IgniteEntity;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Entity representing Rate Limit Configuration.
@@ -48,20 +49,13 @@ public class RateLimitConfigEntity implements AuditableIgniteEntity, IgniteEntit
     private long replenishRate;
     private long burstCapacity;
     private boolean includeHeaders;
-    private RateLimitType rateLimitType;
-    private String headerName;
+    private String keyResolver;
+    private Map<String, String> args;
+    private long requestedTokens = 1;
+    private Boolean denyEmptyKey = true;
+    private String emptyKeyStatus = "400";
     private LocalDateTime lastUpdatedTime;
     private Version schemaVersion;
-
-    /**
-     * Enumeration for Rate Limit Types.
-     */
-    public enum RateLimitType {
-        CLIENT_IP,
-        HEADER,
-        ROUTE_PATH,
-        ROUTE_NAME
-    }
 
     @Override
     public Version getSchemaVersion() {

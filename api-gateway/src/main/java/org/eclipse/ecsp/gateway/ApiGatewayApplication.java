@@ -29,7 +29,7 @@ import org.springframework.context.annotation.ComponentScan;
  * Spring cloud gateway based application.
  */
 @EnableDiscoveryClient
-@SpringBootApplication(exclude = {RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@SpringBootApplication(exclude = { RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class })
 @ComponentScan(basePackages = {"org.eclipse.ecsp"})
 public class ApiGatewayApplication {
     /**

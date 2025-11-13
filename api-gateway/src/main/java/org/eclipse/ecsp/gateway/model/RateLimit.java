@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import java.util.Map;
 
 /**
  * Model representing Rate Limit configuration.
@@ -29,11 +30,46 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RateLimit {
+    /**
+     * Route identifier for the rate limit.
+     */
     private String routeId;
+    /**
+     * Service name for the rate limit.
+     */
     private String service;
+    /**
+     * Replenish rate for the rate limiter.
+     */
     private long replenishRate;
+    /**
+     * Burst capacity for the rate limiter.
+     */
     private long burstCapacity;
-    private RateLimitType rateLimitType;
-    private String headerName;
+    /**
+     * Key resolver to be used for rate limiting.
+     */
+    private String keyResolver;
+    /**
+     * Additional arguments for the key resolver.
+     */
+    private Map<String, String> args;
+    /**
+     * Flag to include headers in the rate limiting response.
+     */
     private boolean includeHeaders = true;
+    /**
+     * Number of requested tokens for the rate limiter.
+     */
+    private long requestedTokens = 1;
+
+    /**
+     * Flag to deny requests with empty keys.
+     */
+    private Boolean denyEmptyKey = true;
+
+    /**
+     * Status to return when the key is empty and denyEmptyKey is true.
+     */
+    private String emptyKeyStatus = "400";
 }

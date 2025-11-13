@@ -278,8 +278,14 @@ public class GatewayConstants {
      */
     public static final String CACHING_PREFIX = "api.caching";
 
+    /**
+     * Property to enable or disable caching.
+     */
     public static final String CACHING_ENABLED = CACHING_PREFIX + ".enabled";
 
+    /**
+     * Property to specify the caching type.
+     */
     public static final String CACHING_TYPE = CACHING_PREFIX + ".type";
 
     /**
@@ -287,7 +293,15 @@ public class GatewayConstants {
      */
     public static final String RATE_LIMITING_PREFIX = "api.gateway.rate-limit";
 
+    /**
+     * Property to enable or disable rate limiting.
+     */
     public static final String RATE_LIMITING_ENABLED = RATE_LIMITING_PREFIX + ".enabled";
+
+    /**
+     * Prefix for rate limiting metadata headers.
+     */
+    public static final String RATE_LIMITING_METADATA_PREFIX = "X-Rate-Limit-Args-";
 
     
 }

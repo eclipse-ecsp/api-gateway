@@ -18,20 +18,18 @@
 
 package org.eclipse.ecsp.gateway.config;
 
-import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
 import org.eclipse.ecsp.gateway.conditions.RedisCacheEnabledCondition;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -49,7 +47,7 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 @Conditional(RedisCacheEnabledCondition.class)
-@ImportAutoConfiguration({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
     /**

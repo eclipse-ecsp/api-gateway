@@ -21,15 +21,18 @@ package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.stereotype.Component;
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import java.net.InetSocketAddress;
+
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.SERVICE_NAME;
 
 /**
- * Class to get the hostname from server web exchange object.
+ * Key Resolver to get the route name from server web exchange object for rate limiting.
+ *
+ * @author Abhishek Kumar
  */
-@Component("routeNameKeyResolver")
 public class RouteNameKeyResolver implements KeyResolver {
 
     /**
@@ -39,30 +42,20 @@ public class RouteNameKeyResolver implements KeyResolver {
             = IgniteLoggerFactory.getLogger(RouteNameKeyResolver.class);
 
     /**
-     * Returns the host name for rate limiting.
+     * Returns the route name for rate limiting.
      *
      * @param exchange ServerWebExchange object
-     * @return hostname returns hostname from ServerWebExchange object
+     * @return route name from ServerWebExchange object
      */
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        String forwardedForHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        // Check X-Forwarded-For header first
-        if (forwardedForHeader != null && !forwardedForHeader.isEmpty()) {
-            String clientIp = forwardedForHeader.split(",")[0].trim();
-            LOGGER.debug("Client Key from X-Forwarded-For -> {}", clientIp);
-            return Mono.just(clientIp);
-        }
+        LOGGER.debug("Resolving Route Name for Rate Limiting");
+        Route route = (Route) exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
 
-        // Fallback to remote address if X-Forwarded-For is not present
-        InetSocketAddress remoteAddress = exchange
-                .getRequest().getRemoteAddress();
-        if (remoteAddress == null) {
-            LOGGER.error("Remote Address is null");
-            return Mono.empty();
-        }
-        String hostName = remoteAddress.getHostName();
-        LOGGER.debug("Client Key -> {}", hostName);
-        return Mono.just(hostName);
+        String serviceName = (String) route.getMetadata().get(SERVICE_NAME);
+
+        LOGGER.debug("Route Name Key Resolver - Service Name: {}, Route ID: {}", serviceName, route.getId());
+        return Mono.just(serviceName + ":" + route.getId());
+        
     }
 }

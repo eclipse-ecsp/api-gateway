@@ -21,15 +21,14 @@ package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import java.net.InetSocketAddress;
 
 /**
- * Class to get the hostname from server web exchange object.
+ * Key Resolver to get the route path from server web exchange object for rate limiting.
+ *
+ * @author Abhishek Kumar 
  */
-@Component("routePathKeyResolver")
 public class RoutePathKeyResolver implements KeyResolver {
 
     /**
@@ -39,30 +38,15 @@ public class RoutePathKeyResolver implements KeyResolver {
             = IgniteLoggerFactory.getLogger(RoutePathKeyResolver.class);
 
     /**
-     * Returns the host name for rate limiting.
+     * Returns the request path for rate limiting.
      *
      * @param exchange ServerWebExchange object
-     * @return hostname returns hostname from ServerWebExchange object
+     * @return request path from ServerWebExchange object
      */
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        String forwardedForHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        // Check X-Forwarded-For header first
-        if (forwardedForHeader != null && !forwardedForHeader.isEmpty()) {
-            String clientIp = forwardedForHeader.split(",")[0].trim();
-            LOGGER.debug("Client Key from X-Forwarded-For -> {}", clientIp);
-            return Mono.just(clientIp);
-        }
-
-        // Fallback to remote address if X-Forwarded-For is not present
-        InetSocketAddress remoteAddress = exchange
-                .getRequest().getRemoteAddress();
-        if (remoteAddress == null) {
-            LOGGER.error("Remote Address is null");
-            return Mono.empty();
-        }
-        String hostName = remoteAddress.getHostName();
-        LOGGER.debug("Client Key -> {}", hostName);
-        return Mono.just(hostName);
+        String requestPath = exchange.getRequest().getURI().getPath();
+        LOGGER.debug("Route Path Key Resolver - Request Path: {}", requestPath);
+        return Mono.just(requestPath);
     }
 }

@@ -18,20 +18,23 @@
 
 package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 
-
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
-import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Mono; 
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Class to get the header value from server web exchange object.
+ *
+ * @author Abhishek Kumar
  */
-@Component("headerKeyResolver")
 public class RequestHeaderKeyResolver implements KeyResolver {
     
     /**
@@ -49,8 +52,27 @@ public class RequestHeaderKeyResolver implements KeyResolver {
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-        String headerName = route.getMetadata().get("x-rate-limit-header").toString();
+        Map<String, Object> rateLimitConfig = route.getMetadata().entrySet()
+                .stream()
+                .filter((entry) -> entry.getKey().startsWith(GatewayConstants.RATE_LIMITING_METADATA_PREFIX))
+                .map(entry -> Map.entry(
+                        entry.getKey().substring(GatewayConstants.RATE_LIMITING_METADATA_PREFIX.length()),
+                        entry.getValue()))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+
+        String headerName = (String) rateLimitConfig.get("headerName");
+        if (headerName == null || headerName.isEmpty()) {
+            LOGGER.error("Header name is not configured for RequestHeaderKeyResolver");
+            return Mono.empty();
+        }
+
         String headerValue = exchange.getRequest().getHeaders().getFirst(headerName);
+
+        if (headerValue == null || headerValue.isEmpty()) {
+            LOGGER.error("Header value is empty for header name: {}, route: {}", headerName, route.getId());
+            return Mono.empty();
+        }
+
         LOGGER.debug("Request Header Key Resolver - Header Name: {}, Key Value: {}", headerName, headerValue);
         return Mono.just(headerValue);
     }

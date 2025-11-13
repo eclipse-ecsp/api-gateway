@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
 import java.util.List;
 
 /**
@@ -11,6 +13,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@Configuration
 @ConfigurationProperties(prefix = "api.gateway.rate-limit")
 public class RateLimitProperties {
     private boolean enabled = false;

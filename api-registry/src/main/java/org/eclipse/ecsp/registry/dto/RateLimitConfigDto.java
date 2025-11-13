@@ -1,5 +1,7 @@
 package org.eclipse.ecsp.registry.dto;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
@@ -18,16 +20,9 @@ public class RateLimitConfigDto {
     private long replenishRate;
     private long burstCapacity;
     private boolean includeHeaders = true;
-    private RateLimitType rateLimitType;
-    private String headerName;
-
-    /**
-     * Enumeration for Rate Limit Types.
-     */
-    public enum RateLimitType {
-        CLIENT_IP,
-        HEADER,
-        ROUTE_PATH,
-        ROUTE_NAME
-    }
+    private String keyResolver;
+    private Map<String, String> args;
+    private long requestedTokens = 1;
+    private Boolean denyEmptyKey = true;
+    private String emptyKeyStatus = "400";
 }

@@ -60,21 +60,29 @@ public class DefaultRateLimitConfigResolver implements RateLimitConfigResolver {
     @EventListener(RefreshRoutesEvent.class)
     public void initialize() {
         LOGGER.info("Initializing GatewayRateLimiter and loading rate limits from API Registry");
-        apiRegistryClient.getRateLimits().forEach(rateLimit -> {
-            if (StringUtils.isNotBlank(rateLimit.getRouteId())) {
-                LOGGER.info(
-                        "Loaded rate limit for routeId: {}, config: {}",
-                        rateLimit.getRouteId(),
-                        rateLimit);
-                routeRateLimitMap.put(rateLimit.getRouteId(), rateLimit);
-            } else if (StringUtils.isNotBlank(rateLimit.getService())) {
-                LOGGER.info(
-                        "Loaded rate limit for service: {}, config: {}",
-                        rateLimit.getService(),
-                        rateLimit);
-                serviceRateLimitMap.put(rateLimit.getService(), rateLimit);
-            }
-        });
+        List<RateLimit> registryRateLimits = apiRegistryClient.getRateLimits();
+        
+        if (registryRateLimits == null) {
+            LOGGER.warn("No rate limits found in API Registry");
+            registryRateLimits = Collections.emptyList();
+        } else {
+            LOGGER.info("Loaded {} rate limits from API Registry", registryRateLimits.size());
+            registryRateLimits.forEach(rateLimit -> {
+                if (StringUtils.isNotBlank(rateLimit.getRouteId())) {
+                    LOGGER.info(
+                            "Loaded rate limit for routeId: {}, config: {}",
+                            rateLimit.getRouteId(),
+                            rateLimit);
+                    routeRateLimitMap.put(rateLimit.getRouteId(), rateLimit);
+                } else if (StringUtils.isNotBlank(rateLimit.getService())) {
+                    LOGGER.info(
+                            "Loaded rate limit for service: {}, config: {}",
+                            rateLimit.getService(),
+                            rateLimit);
+                    serviceRateLimitMap.put(rateLimit.getService(), rateLimit);
+                }
+            });
+        }
         LOGGER.info("Finished loading rate limits from API Registry");
         for (RateLimit override : overrides) {
             if (StringUtils.isNotBlank(override.getRouteId())) {

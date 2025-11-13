@@ -115,12 +115,14 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             entityToUpdate.setService(updatedService);
             entityToUpdate.setRouteId(null);
         }
-
         entityToUpdate.setReplenishRate(config.getReplenishRate());
         entityToUpdate.setBurstCapacity(config.getBurstCapacity());
         entityToUpdate.setIncludeHeaders(config.isIncludeHeaders());
-        entityToUpdate.setRateLimitType(RateLimitConfigEntity.RateLimitType.valueOf(config.getRateLimitType().name()));
-        entityToUpdate.setHeaderName(config.getHeaderName());
+        entityToUpdate.setKeyResolver(config.getKeyResolver());
+        entityToUpdate.setArgs(config.getArgs());
+        entityToUpdate.setRequestedTokens(config.getRequestedTokens());
+        entityToUpdate.setDenyEmptyKey(config.getDenyEmptyKey());
+        entityToUpdate.setEmptyKeyStatus(config.getEmptyKeyStatus());
         RateLimitConfigEntity updatedEntity = rateLimitConfigRepository.save(entityToUpdate);
 
         LOGGER.info("Rate limit configuration updated for id: {}", id);
@@ -223,8 +225,11 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         dto.setReplenishRate(entity.getReplenishRate());
         dto.setBurstCapacity(entity.getBurstCapacity());
         dto.setIncludeHeaders(entity.isIncludeHeaders());
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.valueOf(entity.getRateLimitType().name()));
-        dto.setHeaderName(entity.getHeaderName());
+        dto.setKeyResolver(entity.getKeyResolver());
+        dto.setArgs(entity.getArgs());
+        dto.setRequestedTokens(entity.getRequestedTokens());
+        dto.setDenyEmptyKey(entity.getDenyEmptyKey());
+        dto.setEmptyKeyStatus(entity.getEmptyKeyStatus());
         return dto;
     }
 
@@ -296,8 +301,11 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         entity.setReplenishRate(dto.getReplenishRate());
         entity.setBurstCapacity(dto.getBurstCapacity());
         entity.setIncludeHeaders(dto.isIncludeHeaders());
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.valueOf(dto.getRateLimitType().name()));
-        entity.setHeaderName(dto.getHeaderName());
+        entity.setKeyResolver(dto.getKeyResolver());
+        entity.setArgs(dto.getArgs());
+        entity.setRequestedTokens(dto.getRequestedTokens());
+        entity.setDenyEmptyKey(dto.getDenyEmptyKey());
+        entity.setEmptyKeyStatus(dto.getEmptyKeyStatus());
         return entity;
     }
 

@@ -30,6 +30,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -59,6 +61,9 @@ public class ApiRegistryClient {
     
     // Thread-safe cache to store last successfully fetched routes
     private final List<IgniteRouteDefinition> cachedRoutes = new CopyOnWriteArrayList<>();
+    
+    // Thread-safe cache to store last successfully fetched rate limits
+    private final List<RateLimit> cachedRateLimits = new CopyOnWriteArrayList<>();
 
     /**
      * Constructor for ApiRegistryClient.
@@ -157,8 +162,10 @@ public class ApiRegistryClient {
 
     /**
      * Fetches rate limit configurations from the API registry service.
+     * If the registry is unavailable or returns empty rate limits, returns cached rate limits
+     * from last successful fetch. Returns empty list if no cached rate limits are available.
      *
-     * @return list of rate limit definitions provided by the registry
+     * @return list of rate limit definitions provided by the registry or cached rate limits
      */
     public List<RateLimit> getRateLimits() {
         LOGGER.debug("Loading API Rate Limits");
@@ -170,7 +177,67 @@ public class ApiRegistryClient {
                 .retrieve()
                 .bodyToFlux(RateLimit.class)
                 .collectList()
+                .flatMap(rateLimits -> {
+                    if (rateLimits != null && !rateLimits.isEmpty()) {
+                        LOGGER.info("Successfully fetched {} rate limits from api-registry", rateLimits.size());
+                        // Update cache with successfully fetched rate limits
+                        clearRateLimitCache();
+                        cachedRateLimits.addAll(rateLimits);
+                        return Mono.just(rateLimits);
+                    } else {
+                        LOGGER.warn("API registry returned empty rate limits list");
+                        return handleEmptyOrErrorRateLimitResponse();
+                    }
+                })
+                .doOnError(throwable -> LOGGER.error("Error while fetching rate limits from api-registry: {}",
+                        throwable.getMessage()))
+                .onErrorResume(e -> handleEmptyOrErrorRateLimitResponse())
                 .block();
         // @formatter:on
+    }
+
+    /**
+     * Handles the case when API registry is unavailable or returns empty rate limits.
+     * Returns cached rate limits if available, otherwise returns empty list.
+     *
+     * @return cached rate limits or empty list
+     */
+    private Mono<List<RateLimit>> handleEmptyOrErrorRateLimitResponse() {
+        if (hasCachedRateLimits()) {
+            LOGGER.warn("API registry unavailable or returned empty rate limits. "
+                    + "Using {} cached rate limits from last successful fetch", 
+                    getCachedRateLimitsCount());
+            return Mono.just(new ArrayList<>(cachedRateLimits));
+        } else {
+            LOGGER.warn("No cached rate limits available. Returning empty list");
+            return Mono.just(new ArrayList<>());
+        }
+    }
+
+    /**
+     * Checks if cached rate limits are available.
+     *
+     * @return true if cached rate limits exist, false otherwise
+     */
+    public boolean hasCachedRateLimits() {
+        return !cachedRateLimits.isEmpty();
+    }
+
+    /**
+     * Gets the number of cached rate limits.
+     *
+     * @return number of cached rate limits
+     */
+    public int getCachedRateLimitsCount() {
+        return cachedRateLimits.size();
+    }
+
+    /**
+     * Clears the cached rate limits.
+     * This method is useful for testing or manual cache invalidation.
+     */
+    public void clearRateLimitCache() {
+        LOGGER.info("Clearing rate limit cache");
+        cachedRateLimits.clear();
     }
 }

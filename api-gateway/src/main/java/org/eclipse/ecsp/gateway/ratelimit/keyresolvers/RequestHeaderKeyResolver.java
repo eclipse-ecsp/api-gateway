@@ -18,7 +18,7 @@
 
 package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 
-import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.service.RouteUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
@@ -27,8 +27,6 @@ import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono; 
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 /**
  * Class to get the header value from server web exchange object.
@@ -52,13 +50,7 @@ public class RequestHeaderKeyResolver implements KeyResolver {
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-        Map<String, Object> rateLimitConfig = route.getMetadata().entrySet()
-                .stream()
-                .filter((entry) -> entry.getKey().startsWith(GatewayConstants.RATE_LIMITING_METADATA_PREFIX))
-                .map(entry -> Map.entry(
-                        entry.getKey().substring(GatewayConstants.RATE_LIMITING_METADATA_PREFIX.length()),
-                        entry.getValue()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        Map<String, Object> rateLimitConfig = RouteUtils.getRateLimitArgs(route);
 
         String headerName = (String) rateLimitConfig.get("headerName");
         if (headerName == null || headerName.isEmpty()) {
@@ -66,7 +58,12 @@ public class RequestHeaderKeyResolver implements KeyResolver {
             return Mono.empty();
         }
 
-        String headerValue = exchange.getRequest().getHeaders().getFirst(headerName);
+        String headerValue = exchange.getRequest().getHeaders().entrySet()
+            .stream()
+            .filter(entry -> entry.getKey().equalsIgnoreCase(headerName))
+            .map(entry -> entry.getValue().get(0))
+            .findFirst()
+            .orElse(null);
 
         if (headerValue == null || headerValue.isEmpty()) {
             LOGGER.error("Header value is empty for header name: {}, route: {}", headerName, route.getId());

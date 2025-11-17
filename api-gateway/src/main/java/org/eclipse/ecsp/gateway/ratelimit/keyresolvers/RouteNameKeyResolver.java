@@ -53,7 +53,10 @@ public class RouteNameKeyResolver implements KeyResolver {
         Route route = (Route) exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
 
         String serviceName = (String) route.getMetadata().get(SERVICE_NAME);
-
+        if (serviceName == null || serviceName.isEmpty()) {
+            LOGGER.error("Service name is not configured in route metadata for RouteNameKeyResolver");
+            return Mono.empty();
+        }
         LOGGER.debug("Route Name Key Resolver - Service Name: {}, Route ID: {}", serviceName, route.getId());
         return Mono.just(serviceName + ":" + route.getId());
         

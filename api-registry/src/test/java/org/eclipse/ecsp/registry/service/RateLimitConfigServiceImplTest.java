@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.service;
 
+import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
@@ -68,6 +69,15 @@ class RateLimitConfigServiceImplTest {
     private static final int NEGATIVE_REPLENISH_RATE = -10;
     private static final int NEGATIVE_BURST_CAPACITY = -50;
     private static final int EXPECTED_SIZE_2 = 2;
+    private static final int MAX_REPLENISH_RATE = 10000;
+    private static final int MAX_BURST_CAPACITY = 10000;
+    private static final int MAX_REQUESTED_TOKENS = 100;
+    private static final int REQUESTED_TOKENS_1 = 1;
+    private static final int NEGATIVE_REQUESTED_TOKENS = -1;
+    private static final int EXCEEDS_MAX_REPLENISH_RATE = 15000;
+    private static final int EXCEEDS_MAX_BURST_CAPACITY = 15000;
+    private static final int EXCEEDS_MAX_REQUESTED_TOKENS = 150;
+    private static final String EMPTY_KEY_STATUS = "400";
 
     private RateLimitConfigServiceImpl rateLimitConfigService;
 
@@ -83,7 +93,13 @@ class RateLimitConfigServiceImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        rateLimitConfigService = new RateLimitConfigServiceImpl(rateLimitConfigRepository);
+        RateLimitProperties rateLimitProperties = new RateLimitProperties();
+        rateLimitProperties.setMaxBurstCapacity(MAX_BURST_CAPACITY);
+        rateLimitProperties.setMaxReplenishRate(MAX_REPLENISH_RATE);
+        rateLimitProperties.setMaxRequestedTokens(MAX_REQUESTED_TOKENS);
+        rateLimitProperties.getKeyResolvers().addAll(Arrays.asList("CLIENT_IP", "HEADER", "ROUTE_NAME", "ROUTE_PATH"));
+        
+        rateLimitConfigService = new RateLimitConfigServiceImpl(rateLimitConfigRepository, rateLimitProperties);
     }
 
     // ==================== addOrUpdateRateLimitConfigs Tests ====================
@@ -157,7 +173,8 @@ class RateLimitConfigServiceImplTest {
         dto.setService("service1");
         dto.setReplenishRate(REPLENISH_RATE_100);
         dto.setBurstCapacity(BURST_CAPACITY_200);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
+        dto.setRequestedTokens(REQUESTED_TOKENS_1);
 
         final List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
@@ -176,7 +193,8 @@ class RateLimitConfigServiceImplTest {
         RateLimitConfigDto dto = new RateLimitConfigDto();
         dto.setReplenishRate(REPLENISH_RATE_100);
         dto.setBurstCapacity(BURST_CAPACITY_200);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
+        dto.setRequestedTokens(REQUESTED_TOKENS_1);
 
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
@@ -248,6 +266,100 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
+    void testAddOrUpdateRateLimitConfigs_ExceedsMaxReplenishRate_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", EXCEEDS_MAX_REPLENISH_RATE, EXCEEDS_MAX_BURST_CAPACITY);
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void testAddOrUpdateRateLimitConfigs_ExceedsMaxBurstCapacity_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, EXCEEDS_MAX_BURST_CAPACITY);
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void testAddOrUpdateRateLimitConfigs_InvalidRequestedTokens_Negative_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        dto.setRequestedTokens(NEGATIVE_REQUESTED_TOKENS);
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void testAddOrUpdateRateLimitConfigs_InvalidRequestedTokens_ExceedsMax_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        dto.setRequestedTokens(EXCEEDS_MAX_REQUESTED_TOKENS);
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive and less than"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void testAddOrUpdateRateLimitConfigs_MissingKeyResolver_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        dto.setKeyResolver(null);
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Key resolver must be specified"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void testAddOrUpdateRateLimitConfigs_InvalidKeyResolver_ThrowsException() {
+        // Arrange
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        dto.setKeyResolver("INVALID_RESOLVER");
+        List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Invalid key resolver"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
+    }
+
+    @Test
     void testAddOrUpdateRateLimitConfigs_BurstCapacityEqualToReplenishRate_Success() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_100);
@@ -303,12 +415,12 @@ class RateLimitConfigServiceImplTest {
     void testAddOrUpdateRateLimitConfigs_WithHeaderType_Success() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.HEADER);
-        dto.setHeaderName("X-API-Key");
+        dto.setKeyResolver("HEADER");
+        dto.setArgs(Collections.singletonMap("headerName", "X-API-Key"));
         dto.setIncludeHeaders(true);
         RateLimitConfigEntity entity = createRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.HEADER);
-        entity.setHeaderName("X-API-Key");
+        entity.setKeyResolver("HEADER");
+        entity.setArgs(Collections.singletonMap("headerName", "X-API-Key"));
         entity.setIncludeHeaders(true);
         when(rateLimitConfigRepository.saveAll(anyList())).thenReturn(Collections.singletonList(entity));
 
@@ -320,8 +432,8 @@ class RateLimitConfigServiceImplTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(RateLimitConfigDto.RateLimitType.HEADER, result.get(0).getRateLimitType());
-        assertEquals("X-API-Key", result.get(0).getHeaderName());
+        assertEquals("HEADER", result.get(0).getKeyResolver());
+        assertEquals("X-API-Key", result.get(0).getArgs().get("headerName"));
         assertTrue(result.get(0).isIncludeHeaders());
     }
 
@@ -430,7 +542,8 @@ class RateLimitConfigServiceImplTest {
         updateDto.setService("service1");
         updateDto.setReplenishRate(REPLENISH_RATE_100);
         updateDto.setBurstCapacity(BURST_CAPACITY_200);
-        updateDto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        updateDto.setKeyResolver("CLIENT_IP");
+        updateDto.setRequestedTokens(REQUESTED_TOKENS_1);
 
         RateLimitConfigEntity existingEntity = createRouteEntity(id, REPLENISH_RATE_100, BURST_CAPACITY_200);
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
@@ -457,6 +570,44 @@ class RateLimitConfigServiceImplTest {
                 () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
         
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(rateLimitConfigRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdateRateLimitConfig_ExceedsMaxLimits_ThrowsException() {
+        // Arrange
+        String id = "route1";
+        RateLimitConfigDto updateDto = createValidRouteDto("route1",
+                EXCEEDS_MAX_REPLENISH_RATE, EXCEEDS_MAX_BURST_CAPACITY);
+
+        RateLimitConfigEntity existingEntity = createRouteEntity(id, REPLENISH_RATE_100, BURST_CAPACITY_200);
+        when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdateRateLimitConfig_InvalidKeyResolver_ThrowsException() {
+        // Arrange
+        String id = "route1";
+        RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
+        updateDto.setKeyResolver("INVALID_RESOLVER");
+
+        RateLimitConfigEntity existingEntity = createRouteEntity(id, REPLENISH_RATE_100, BURST_CAPACITY_200);
+        when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Invalid key resolver"));
         verify(rateLimitConfigRepository, never()).save(any());
     }
 
@@ -499,8 +650,8 @@ class RateLimitConfigServiceImplTest {
         // Arrange
         RateLimitConfigEntity entity = createRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         entity.setIncludeHeaders(true);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.HEADER);
-        entity.setHeaderName("X-Custom-Header");
+        entity.setKeyResolver("HEADER");
+        entity.setArgs(Collections.singletonMap("headerName", "X-Custom-Header"));
 
         when(rateLimitConfigRepository.findAll()).thenReturn(Collections.singletonList(entity));
 
@@ -514,8 +665,8 @@ class RateLimitConfigServiceImplTest {
         assertEquals(REPLENISH_RATE_100, dto.getReplenishRate());
         assertEquals(BURST_CAPACITY_200, dto.getBurstCapacity());
         assertTrue(dto.isIncludeHeaders());
-        assertEquals(RateLimitConfigDto.RateLimitType.HEADER, dto.getRateLimitType());
-        assertEquals("X-Custom-Header", dto.getHeaderName());
+        assertEquals("HEADER", dto.getKeyResolver());
+        assertEquals("X-Custom-Header", dto.getArgs().get("headerName"));
     }
 
     // ==================== deleteRateLimitConfig Tests ====================
@@ -560,7 +711,10 @@ class RateLimitConfigServiceImplTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
+        dto.setRequestedTokens(REQUESTED_TOKENS_1);
+        dto.setDenyEmptyKey(true);
+        dto.setEmptyKeyStatus(EMPTY_KEY_STATUS);
         return dto;
     }
 
@@ -570,7 +724,10 @@ class RateLimitConfigServiceImplTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
+        dto.setRequestedTokens(REQUESTED_TOKENS_1);
+        dto.setDenyEmptyKey(true);
+        dto.setEmptyKeyStatus(EMPTY_KEY_STATUS);
         return dto;
     }
 
@@ -581,7 +738,7 @@ class RateLimitConfigServiceImplTest {
         entity.setReplenishRate(replenishRate);
         entity.setBurstCapacity(burstCapacity);
         entity.setIncludeHeaders(false);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.CLIENT_IP);
+        entity.setKeyResolver("CLIENT_IP");
         return entity;
     }
 
@@ -592,7 +749,7 @@ class RateLimitConfigServiceImplTest {
         entity.setReplenishRate(replenishRate);
         entity.setBurstCapacity(burstCapacity);
         entity.setIncludeHeaders(false);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.CLIENT_IP);
+        entity.setKeyResolver("CLIENT_IP");
         return entity;
     }
 }

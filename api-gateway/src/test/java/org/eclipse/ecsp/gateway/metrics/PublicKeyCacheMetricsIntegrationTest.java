@@ -23,6 +23,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.gateway.ApiGatewayApplication;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
@@ -89,6 +90,9 @@ class PublicKeyCacheMetricsIntegrationTest {
 
     @MockitoBean
     private ApiGatewayController apiGatewayController;
+
+    @MockitoBean
+    private ApiRegistryClient apiRegistryClient;
 
     // Helper method to create PublicKeyMetrics with refactored components
     private PublicKeyMetrics createPublicKeyMetrics(PublicKeyCache cache, List<PublicKeySourceProvider> providers) {

@@ -85,7 +85,8 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
 
             config.put("key-resolver", "#{@" + resolverName + "}");
 
-            config.put("includeheaders", String.valueOf(rateLimit.isIncludeHeaders()));
+            // Spring Cloud Gateway uses 'include-headers' (with hyphen) not 'includeHeaders'
+            config.put("include-headers", String.valueOf(rateLimit.isIncludeHeaders()));
             FilterDefinition rateLimitFilter = new FilterDefinition();
             rateLimitFilter.setName("RequestRateLimiter");
             rateLimitFilter.setArgs(config);
@@ -109,31 +110,107 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
                     igniteRouteDefinition.getId(),
                     rateLimitFilter);
             routeDefinition.getFilters().add(rateLimitFilter);
+            
+            // Add a filter to remove rate limit headers if includeHeaders is false
+            if (!rateLimit.isIncludeHeaders()) {
+                FilterDefinition removeHeadersFilter = new FilterDefinition();
+                removeHeadersFilter.setName("RemoveResponseHeader");
+                Map<String, String> removeHeadersArgs = new HashMap<>();
+                removeHeadersArgs.put("name", "X-RateLimit-Remaining");
+                removeHeadersFilter.setArgs(removeHeadersArgs);
+                routeDefinition.getFilters().add(removeHeadersFilter);
+                
+                FilterDefinition removeHeadersFilter2 = new FilterDefinition();
+                removeHeadersFilter2.setName("RemoveResponseHeader");
+                Map<String, String> removeHeadersArgs2 = new HashMap<>();
+                removeHeadersArgs2.put("name", "X-RateLimit-Replenish-Rate");
+                removeHeadersFilter2.setArgs(removeHeadersArgs2);
+                routeDefinition.getFilters().add(removeHeadersFilter2);
+                
+                FilterDefinition removeHeadersFilter3 = new FilterDefinition();
+                removeHeadersFilter3.setName("RemoveResponseHeader");
+                Map<String, String> removeHeadersArgs3 = new HashMap<>();
+                removeHeadersArgs3.put("name", "X-RateLimit-Burst-Capacity");
+                removeHeadersFilter3.setArgs(removeHeadersArgs3);
+                routeDefinition.getFilters().add(removeHeadersFilter3);
+                
+                FilterDefinition removeHeadersFilter4 = new FilterDefinition();
+                removeHeadersFilter4.setName("RemoveResponseHeader");
+                Map<String, String> removeHeadersArgs4 = new HashMap<>();
+                removeHeadersArgs4.put("name", "X-RateLimit-Requested-Tokens");
+                removeHeadersFilter4.setArgs(removeHeadersArgs4);
+                routeDefinition.getFilters().add(removeHeadersFilter4);
+                
+                LOGGER.info("Added filters to remove rate limit headers for route {}", 
+                    igniteRouteDefinition.getId());
+            }
         }
         return routeDefinition;
     }
 
     /**
      * Get the KeyResolver bean name based on the RateLimit configuration.
+     * Supports multiple formats:
+     * - Standard names: CLIENT_IP, client_ip, client-ip, clientIpKeyResolver
+     * - Custom resolvers: customKeyResolver, CustomKeyResolver
      *
      * @param rateLimit the RateLimit configuration
      * @return the KeyResolver bean name
      */
     private String getKeyResolverBeanName(RateLimit rateLimit) {
-        String resolverName = toCamelCase(rateLimit.getKeyResolver());
+        String originalResolverName = rateLimit.getKeyResolver();
         
-        if (!validateIfKeyResolverExists(resolverName)) {
-            resolverName = resolverName + "KeyResolver";
-            LOGGER.debug("Attempting alternative KeyResolver name  {}", resolverName);
-            if (!validateIfKeyResolverExists(resolverName)) {
-                LOGGER.error(
-                        "No KeyResolver bean found, attempted resolver names: [{},{}]", 
-                        toCamelCase(rateLimit.getKeyResolver()), resolverName);
-                throw new IllegalStateException(
-                        "No valid KeyResolver found for rate limiting: " + rateLimit.getKeyResolver());
+        // First, try the original name as-is (handles cases like customKeyResolver, CustomKeyResolver)
+        if (validateIfKeyResolverExists(originalResolverName)) {
+            return originalResolverName;
+        }
+        
+        // Normalize the input by removing "KeyResolver" suffix and converting to lowercase
+        String normalized = originalResolverName.toLowerCase()
+                .replace("keyresolver", "")
+                .replace("-", "_");
+        
+        // Map standard resolver names to their bean names
+        String resolverName;
+        switch (normalized) {
+            case "client_ip", "clientip" -> resolverName = "clientIpKeyResolver";
+            case "header" -> resolverName = "headerKeyResolver";
+            case "route_path", "routepath" -> resolverName = "userIdKeyResolver";
+            case "route_name", "routename" -> resolverName = "apiKeyKeyResolver";
+            default -> {
+                // For custom resolvers, try camelCase conversion
+                resolverName = toCamelCase(originalResolverName);
+                if (!resolverName.endsWith("KeyResolver")) {
+                    resolverName = resolverName + "KeyResolver";
+                }
             }
         }
-        return resolverName;
+
+        // Validate the resolved name
+        if (validateIfKeyResolverExists(resolverName)) {
+            return resolverName;
+        }
+        
+        // Try camelCase version of original name
+        String camelCaseName = toCamelCase(originalResolverName);
+        if (validateIfKeyResolverExists(camelCaseName)) {
+            return camelCaseName;
+        }
+        
+        // Try camelCase with KeyResolver suffix
+        String camelCaseWithSuffix = camelCaseName.endsWith("KeyResolver") 
+                ? camelCaseName 
+                : camelCaseName + "KeyResolver";
+        if (validateIfKeyResolverExists(camelCaseWithSuffix)) {
+            return camelCaseWithSuffix;
+        }
+        
+        // If still not found, log error and throw exception
+        LOGGER.error(
+                "No KeyResolver bean found, attempted resolver names: [{}, {}, {}, {}]", 
+                originalResolverName, resolverName, camelCaseName, camelCaseWithSuffix);
+        throw new IllegalStateException(
+                "No valid KeyResolver found for rate limiting: " + originalResolverName);
     }
 
     /**

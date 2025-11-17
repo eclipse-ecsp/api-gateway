@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.rest;
 
+import org.eclipse.ecsp.registry.dto.GenericResponseDto;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.service.RateLimitConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -308,13 +309,13 @@ class RateLimitConfigControllerTest {
     void testUpdateRateLimitConfig_WithHeaderType_Success() {
         // Arrange
         RateLimitConfigDto inputDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
-        inputDto.setRateLimitType(RateLimitConfigDto.RateLimitType.HEADER);
-        inputDto.setHeaderName("X-API-Key");
+        inputDto.setKeyResolver("HEADER");
+        inputDto.setArgs(Map.of("headerName", "X-API-Key"));
         inputDto.setIncludeHeaders(true);
 
         RateLimitConfigDto outputDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
-        outputDto.setRateLimitType(RateLimitConfigDto.RateLimitType.HEADER);
-        outputDto.setHeaderName("X-API-Key");
+        outputDto.setKeyResolver("HEADER");
+        outputDto.setArgs(Map.of("headerName", "X-API-Key"));
         outputDto.setIncludeHeaders(true);
 
         when(rateLimitConfigService.updateRateLimitConfig(eq("route1"), any(RateLimitConfigDto.class)))
@@ -325,8 +326,8 @@ class RateLimitConfigControllerTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals(RateLimitConfigDto.RateLimitType.HEADER, result.getRateLimitType());
-        assertEquals("X-API-Key", result.getHeaderName());
+        assertEquals("HEADER", result.getKeyResolver());
+        assertEquals("X-API-Key", result.getArgs().get("headerName"));
         assertTrue(result.isIncludeHeaders());
     }
 
@@ -339,14 +340,14 @@ class RateLimitConfigControllerTest {
         doNothing().when(rateLimitConfigService).deleteRateLimitConfig(id);
 
         // Act
-        ResponseEntity<Map<String, String>> response = rateLimitConfigController.deleteRateLimitConfig(id);
+        ResponseEntity<GenericResponseDto> response = rateLimitConfigController.deleteRateLimitConfig(id);
 
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().containsKey("message"));
-        assertEquals("Rate limit configuration deleted successfully", response.getBody().get("message"));
+        assertTrue(response.getBody().getMessage() != null && !response.getBody().getMessage().isEmpty());
+        assertEquals("Rate limit configuration deleted successfully", response.getBody().getMessage());
         verify(rateLimitConfigService, times(1)).deleteRateLimitConfig(id);
     }
 
@@ -374,7 +375,7 @@ class RateLimitConfigControllerTest {
         doNothing().when(rateLimitConfigService).deleteRateLimitConfig(id);
 
         // Act
-        ResponseEntity<Map<String, String>> response = rateLimitConfigController.deleteRateLimitConfig(id);
+        ResponseEntity<GenericResponseDto> response = rateLimitConfigController.deleteRateLimitConfig(id);
 
         // Assert
         assertNotNull(response);
@@ -402,7 +403,7 @@ class RateLimitConfigControllerTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
         return dto;
     }
 
@@ -412,7 +413,7 @@ class RateLimitConfigControllerTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
         return dto;
     }
 }

@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.rest;
 
+import org.eclipse.ecsp.registry.dto.GenericResponseDto;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.service.RateLimitConfigService;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -109,11 +110,13 @@ public class RateLimitConfigController {
      * @return ResponseEntity with deletion status
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteRateLimitConfig(@PathVariable String id) {
+    public ResponseEntity<GenericResponseDto> deleteRateLimitConfig(@PathVariable String id) {
         LOGGER.info("Deleting rate limit configuration with id: {}", id);
         rateLimitConfigService.deleteRateLimitConfig(id);
         LOGGER.info("Deleted rate limit configuration with id: {}", id);
-        return ResponseEntity.ok(Map.of("message", "Rate limit configuration deleted successfully"));
+        GenericResponseDto response = new GenericResponseDto();
+        response.setMessage("Rate limit configuration deleted successfully");
+        return ResponseEntity.ok(response);
     }
     
 }

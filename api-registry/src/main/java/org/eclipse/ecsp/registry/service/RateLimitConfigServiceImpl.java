@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.registry.service;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
@@ -41,20 +43,30 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitConfigServiceImpl.class);
 
-    private final RateLimitConfigRepository rateLimitConfigRepository;  
+    private final RateLimitConfigRepository rateLimitConfigRepository; 
+    
+    private final RateLimitProperties rateLimitProperties;
 
     /**
      * Constructor to initialize RateLimitConfigServiceImpl.
      *
      * @param rateLimitConfigRepository the RateLimitConfigRepository
      */
-    public RateLimitConfigServiceImpl(RateLimitConfigRepository rateLimitConfigRepository) {
+    public RateLimitConfigServiceImpl(RateLimitConfigRepository rateLimitConfigRepository,
+            RateLimitProperties rateLimitProperties) {
         this.rateLimitConfigRepository = rateLimitConfigRepository;
+        this.rateLimitProperties = rateLimitProperties;
     }
 
     @Override
     public List<RateLimitConfigDto> addOrUpdateRateLimitConfigs(List<RateLimitConfigDto> config) {
         LOGGER.info("Adding or updating {} rate limit configurations.", config.size());
+
+        if (config.isEmpty()) {
+            LOGGER.warn("No rate limit configurations provided to add or update.");
+            return List.of();
+        }
+
         // validate config
         config.forEach(this::validateConfig);
 
@@ -63,6 +75,27 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
 
         // check for duplicate routeIds
         validateDuplicateRoutes(config);
+
+        // Log the difference between existing (what is changed) and new configs (whats added)
+        LOGGER.info("Comparing existing and new rate limit configurations for changes.");
+        List<RateLimitConfigEntity> existingConfigs = rateLimitConfigRepository.findAll();
+        for (RateLimitConfigDto newConfig : config) {
+            Optional<RateLimitConfigEntity> existingConfigOpt = existingConfigs.stream()
+                .filter(e -> {
+                    if (StringUtils.isNotBlank(newConfig.getRouteId())) {
+                        return Strings.CS.equals(e.getRouteId(), newConfig.getRouteId());
+                    } else {
+                        return Strings.CS.equals(e.getService(), newConfig.getService());
+                    }
+                }).findFirst();
+            if (existingConfigOpt.isPresent()) {
+                RateLimitConfigEntity existingConfig = existingConfigOpt.get();
+                LOGGER.info("Updating existing rate limit configuration: {} to new configuration: {}",
+                    existingConfig, newConfig);
+            } else {
+                LOGGER.info("Adding new rate limit configuration: {}", newConfig);
+            }
+        }
 
         List<RateLimitConfigEntity> entities = config.stream()
             .map(this::convertToEntity)
@@ -162,13 +195,32 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
      * @return true if valid, else throws exception
      */
     private boolean validateConfig(RateLimitConfigDto config) {
+        String identifier = getConfigIdentifier(config);
+        
+        validateRouteOrService(config, identifier);
+        validateLimitConfig(config);
+        validateKeyResolver(config, identifier);
+        validateRequestedTokens(config, identifier);
+        validateHeaderKeyResolverArgs(config, identifier);
+        validateEmptyKeyStatus(config, identifier);
+
+        return true;
+    }
+
+    /**
+     * Validate that either routeId or service is present, but not both.
+     *
+     * @param config RateLimitConfigDto to validate
+     * @param identifier Config identifier for error messages
+     */
+    private void validateRouteOrService(RateLimitConfigDto config, String identifier) {
         // validate if routeId or service is should be present not both
         if (StringUtils.isNotBlank(config.getRouteId())
             && StringUtils.isNotBlank(config.getService())) {
             LOGGER.error("Both routeId and service are present in the config: {}", config);
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Either routeId or service should be present, not both."
+                String.format("Either routeId or service should be present, not both for %s.", identifier)
             );
         }
 
@@ -181,31 +233,172 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
                 "Either routeId or service should be present"
             );
         }
+    }
 
+    /**
+     * Validate key resolver is present and is in the allowed list.
+     *
+     * @param config RateLimitConfigDto to validate
+     * @param identifier Config identifier for error messages
+     */
+    private void validateKeyResolver(RateLimitConfigDto config, String identifier) {
+        // validate key resolver is present
+        if (StringUtils.isBlank(config.getKeyResolver())) {
+            LOGGER.error("Key resolver is missing in the config: {}", config);
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Key resolver must be specified for %s.", identifier)
+            );
+        }
+
+        // validate key resolver is among the allowed ones
+        if (!rateLimitProperties.getKeyResolvers().contains(config.getKeyResolver())) {
+            LOGGER.error("Invalid key resolver in the config: {}, allowed key resolvers: {}", config,
+                rateLimitProperties.getKeyResolvers());
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Invalid key resolver for %s. Allowed key resolvers are: %s.",
+                    identifier, String.join(", ", rateLimitProperties.getKeyResolvers()))
+            );
+        }
+    }
+
+    /**
+     * Validate requested tokens is within valid range.
+     *
+     * @param config RateLimitConfigDto to validate
+     * @param identifier Config identifier for error messages
+     */
+    private void validateRequestedTokens(RateLimitConfigDto config, String identifier) {
+        if (config.getRequestedTokens() <= 0
+            || config.getRequestedTokens() > rateLimitProperties.getMaxRequestedTokens()) {
+            LOGGER.error("Invalid requested tokens in the config: {}, should be positive and "
+                + "less than max requested tokens: {}", config,
+                rateLimitProperties.getMaxRequestedTokens());
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Requested tokens must be positive and less than %d for %s.",
+                    rateLimitProperties.getMaxRequestedTokens(), identifier)
+            );
+        }
+    }
+
+    /**
+     * Validate header key resolver has required args.
+     *
+     * @param config RateLimitConfigDto to validate
+     * @param identifier Config identifier for error messages
+     */
+    private void validateHeaderKeyResolverArgs(RateLimitConfigDto config, String identifier) {
+        // validate if the key resolver is header and args contains header name
+        if (config.getKeyResolver().equalsIgnoreCase("header") ||
+            config.getKeyResolver().equals("headerKeyResolver")) {
+            if (config.getArgs() == null || !config.getArgs().containsKey("headerName")
+                || StringUtils.isBlank(config.getArgs().get("headerName"))) {
+                LOGGER.error("Header name is missing in args for header key resolver in the config: {}", config);
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Header name must be specified in args for header key resolver for %s.",
+                        identifier)
+                );
+            }
+        }
+    }
+
+    /**
+     * Validate empty key status is a valid HTTP status code.
+     *
+     * @param config RateLimitConfigDto to validate
+     * @param identifier Config identifier for error messages
+     */
+    private void validateEmptyKeyStatus(RateLimitConfigDto config, String identifier) {
+        // validate empty response code is matching with http status codes
+        if (config.getDenyEmptyKey()) {
+            try {
+                HttpStatus.resolve(Integer.valueOf(config.getEmptyKeyStatus()));
+            } catch (IllegalArgumentException e) {
+                LOGGER.error("Invalid empty key status code in the config: {}," 
+                    + " must be a valid HTTP status code", config);
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Empty key status must be a valid HTTP status code for %s.", identifier)
+                );
+            }
+        }
+    }
+
+    private void validateLimitConfig(RateLimitConfigDto config) {
+        String identifier = getConfigIdentifier(config);
+        
         // validate if the replenish rate and burst capacity are positive integers
-
+        // validate the replenish rate and burst capacity are positive integers
         if (config.getReplenishRate() <= 0 || config.getBurstCapacity() <= 0) {
-            LOGGER.error("Invalid replenish rate or burst capacity in the config: {}, {}, "
+            LOGGER.error("Invalid replenish rate or burst capacity in the config: {}, {}," 
                 + "should be positive integers", config,
                 "ReplenishRate: " + config.getReplenishRate()
                 + ", BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Replenish rate and burst capacity must be positive integers."
+                String.format("Replenish rate and burst capacity must be positive integers for %s.", identifier)
             );
         }
+
+        // validate the max replenish rate and burst capacity from properties
+        if (config.getReplenishRate() > rateLimitProperties.getMaxReplenishRate()
+            || config.getBurstCapacity() > rateLimitProperties.getMaxBurstCapacity()) {
+            LOGGER.error("Replenish rate or burst capacity exceeds maximum limit in the config: {}, {}," 
+                + "maxReplenishRate: {}, maxBurstCapacity: {}", config,
+                "ReplenishRate: " + config.getReplenishRate()
+                + ", BurstCapacity: " + config.getBurstCapacity(),
+                rateLimitProperties.getMaxReplenishRate(), rateLimitProperties.getMaxBurstCapacity());
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Replenish rate or burst capacity exceeds maximum limit (max: %d/%d) for %s.",
+                    rateLimitProperties.getMaxReplenishRate(),
+                    rateLimitProperties.getMaxBurstCapacity(), identifier)
+            );
+        }
+       
         // validate the burst capacity is greater than or equal to replenish rate
         if (config.getBurstCapacity() < config.getReplenishRate()) {
-            LOGGER.error("Burst capacity is less than replenish rate in the config: {}, {}, "
+            LOGGER.error("Burst capacity is less than replenish rate in the config: {}, {}," 
                 + "burst capacity should be greater than or equal to replenish rate", config,
                 "ReplenishRate: " + config.getReplenishRate()
                 + ", BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Burst capacity must be greater than or equal to replenish rate."
+                String.format("Burst capacity (%d) must be greater than or equal to replenish rate (%d) for %s.",
+                    config.getBurstCapacity(), config.getReplenishRate(), identifier)
             );
-        }       
-        return true;
+        }
+
+        // validate requested tokens is less than or equal to burst capacity
+        if (config.getRequestedTokens() > config.getBurstCapacity()) {
+            LOGGER.error("Requested tokens exceeds burst capacity in the config: {}, {}," 
+                + "requested tokens should be less than or equal to burst capacity", config,
+                "RequestedTokens: " + config.getRequestedTokens()
+                + ", BurstCapacity: " + config.getBurstCapacity());
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                String.format("Requested tokens (%d) must be less than or equal to burst capacity (%d) for %s.",
+                    config.getRequestedTokens(), config.getBurstCapacity(), identifier)
+            );
+        }
+    }
+
+    /**
+     * Get configuration identifier (routeId or service) for error messages.
+     *
+     * @param config RateLimitConfigDto
+     * @return routeId or service name formatted as "routeId xxx" or "service xxx"
+     */
+    private String getConfigIdentifier(RateLimitConfigDto config) {
+        if (StringUtils.isNotBlank(config.getRouteId())) {
+            return "routeId " + config.getRouteId();
+        } else if (StringUtils.isNotBlank(config.getService())) {
+            return "service " + config.getService();
+        }
+        return "unknown config";
     }
 
     /**

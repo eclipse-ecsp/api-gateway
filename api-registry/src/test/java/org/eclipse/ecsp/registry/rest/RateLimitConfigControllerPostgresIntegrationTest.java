@@ -46,10 +46,6 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
         registry.add("postgres.jdbc.url", POSTGRES_CONTAINER::getJdbcUrl);
         registry.add("postgres.username", POSTGRES_CONTAINER::getUsername);
         registry.add("postgres.password", POSTGRES_CONTAINER::getPassword);
-        registry.add("spring.datasource.url", POSTGRES_CONTAINER::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES_CONTAINER::getUsername);
-        registry.add("spring.datasource.password", POSTGRES_CONTAINER::getPassword);
-        registry.add("spring.datasource.driver-class-name", POSTGRES_CONTAINER::getDriverClassName);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.jpa.show-sql", () -> "false");
     }

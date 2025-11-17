@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.entity;
 
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Getter;
@@ -50,6 +51,7 @@ public class RateLimitConfigEntity implements AuditableIgniteEntity, IgniteEntit
     private long burstCapacity;
     private boolean includeHeaders;
     private String keyResolver;
+    @Convert(converter = MapToJsonConverter.class)
     private Map<String, String> args;
     private long requestedTokens = 1;
     private Boolean denyEmptyKey = true;

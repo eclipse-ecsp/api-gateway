@@ -1,0 +1,402 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
+package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
+
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
+
+/**
+ * Test class for all KeyResolver implementations.
+ */
+@ExtendWith(MockitoExtension.class)
+@SuppressWarnings({"checkstyle:MagicNumber", "checkstyle:VariableDeclarationUsageDistance"})
+class KeyResolversTest {
+
+    @Mock
+    private ServerWebExchange exchange;
+
+    @Mock
+    private ServerHttpRequest request;
+
+    @Mock
+    private Route route;
+
+    private HttpHeaders headers;
+    private Map<String, Object> metadata;
+
+    @BeforeEach
+    void setUp() {
+        headers = new HttpHeaders();
+        metadata = new HashMap<>();
+        
+        lenient().when(exchange.getRequest()).thenReturn(request);
+        lenient().when(request.getHeaders()).thenReturn(headers);
+    }
+
+    // ========== ClientIpKeyResolver Tests ==========
+
+    @Test
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    void clientIpKeyResolver_WithXForwardedFor_ReturnsFirstIp() {
+        // Arrange
+        ClientIpKeyResolver resolver = new ClientIpKeyResolver();
+        headers.add("X-Forwarded-For", "192.168.1.100, 10.0.0.1");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("192.168.1.100")
+                .verifyComplete();
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    void clientIpKeyResolver_WithSingleXForwardedFor_ReturnsTrimmedIp() {
+        // Arrange
+        ClientIpKeyResolver resolver = new ClientIpKeyResolver();
+        headers.add("X-Forwarded-For", "  172.16.0.50  ");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("172.16.0.50")
+                .verifyComplete();
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    void clientIpKeyResolver_WithoutXForwardedFor_ReturnsRemoteAddress() {
+        // Arrange
+        ClientIpKeyResolver resolver = new ClientIpKeyResolver();
+        InetSocketAddress remoteAddress = new InetSocketAddress("10.20.30.40", 8080);
+        when(request.getRemoteAddress()).thenReturn(remoteAddress);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("10.20.30.40")
+                .verifyComplete();
+    }
+
+    @Test
+    void clientIpKeyResolver_WithNullRemoteAddress_ReturnsEmpty() {
+        // Arrange
+        ClientIpKeyResolver resolver = new ClientIpKeyResolver();
+        when(request.getRemoteAddress()).thenReturn(null);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    void clientIpKeyResolver_WithEmptyXForwardedFor_UsesRemoteAddress() {
+        // Arrange
+        ClientIpKeyResolver resolver = new ClientIpKeyResolver();
+        headers.add("X-Forwarded-For", "");
+        InetSocketAddress remoteAddress = new InetSocketAddress("192.168.50.100", 9090);
+        when(request.getRemoteAddress()).thenReturn(remoteAddress);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("192.168.50.100")
+                .verifyComplete();
+    }
+
+    // ========== RequestHeaderKeyResolver Tests ==========
+
+    @Test
+    void requestHeaderKeyResolver_WithValidHeader_ReturnsHeaderValue() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-API-Key");
+        headers.add("X-API-Key", "abc123xyz");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("abc123xyz")
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithMissingHeaderName_ReturnsEmpty() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithEmptyHeaderName_ReturnsEmpty() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithMissingHeaderValue_ReturnsEmpty() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Custom-Header");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+        when(route.getId()).thenReturn("test-route");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithEmptyHeaderValue_ReturnsEmpty() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Empty-Header");
+        headers.add("X-Empty-Header", "");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+        when(route.getId()).thenReturn("test-route");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithMultipleMetadata_FiltersCorrectly() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        metadata.put("someOtherKey", "value");
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "Authorization");
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "otherConfig", "otherValue");
+        headers.add("Authorization", "Bearer token123");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("Bearer token123")
+                .verifyComplete();
+    }
+
+    // ========== RouteNameKeyResolver Tests ==========
+
+    @Test
+    void routeNameKeyResolver_WithValidRoute_ReturnsCombinedKey() {
+        // Arrange
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
+        metadata.put(GatewayConstants.SERVICE_NAME, "user-service");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+        when(route.getId()).thenReturn("user-route-123");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("user-service:user-route-123")
+                .verifyComplete();
+    }
+
+    @Test
+    void routeNameKeyResolver_WithNullServiceName_ReturnsNullPlusRouteId() {
+        // Arrange
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+        when(route.getId()).thenReturn("standalone-route");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("null:standalone-route")
+                .verifyComplete();
+    }
+
+    @Test
+    void routeNameKeyResolver_WithComplexServiceName_ReturnsCorrectFormat() {
+        // Arrange
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
+        metadata.put(GatewayConstants.SERVICE_NAME, "payment-processing-v2");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+        when(route.getId()).thenReturn("payment-api-endpoint");
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("payment-processing-v2:payment-api-endpoint")
+                .verifyComplete();
+    }
+
+    // ========== RoutePathKeyResolver Tests ==========
+
+    @Test
+    void routePathKeyResolver_WithSimplePath_ReturnsPath() {
+        // Arrange
+        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
+        when(request.getURI()).thenReturn(URI.create("http://localhost:8080/api/users"));
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("/api/users")
+                .verifyComplete();
+    }
+
+    @Test
+    void routePathKeyResolver_WithComplexPath_ReturnsFullPath() {
+        // Arrange
+        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
+        when(request.getURI()).thenReturn(URI.create("http://api.example.com/v2/products/123/details"));
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("/v2/products/123/details")
+                .verifyComplete();
+    }
+
+    @Test
+    void routePathKeyResolver_WithRootPath_ReturnsSlash() {
+        // Arrange
+        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
+        when(request.getURI()).thenReturn(URI.create("http://localhost:9000/"));
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("/")
+                .verifyComplete();
+    }
+
+    @Test
+    void routePathKeyResolver_WithQueryParameters_ReturnsPathOnly() {
+        // Arrange
+        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
+        when(request.getURI()).thenReturn(
+            URI.create("http://localhost:8080/search?query=test&page=1"));
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("/search")
+                .verifyComplete();
+    }
+
+    @Test
+    void routePathKeyResolver_WithEncodedPath_ReturnsDecodedPath() {
+        // Arrange
+        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
+        when(request.getURI()).thenReturn(
+            URI.create("http://localhost:8080/api/users/john%20doe"));
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert - URI.getPath() automatically decodes
+        StepVerifier.create(result)
+                .expectNext("/api/users/john doe")
+                .verifyComplete();
+    }
+}

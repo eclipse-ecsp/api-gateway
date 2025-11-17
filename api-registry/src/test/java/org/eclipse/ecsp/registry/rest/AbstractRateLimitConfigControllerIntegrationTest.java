@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -213,7 +214,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         dto.setService("service1");
         dto.setReplenishRate(REPLENISH_RATE_100);
         dto.setBurstCapacity(BURST_CAPACITY_200);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
 
         List<RateLimitConfigDto> configs = Arrays.asList(dto);
         String requestBody = objectMapper.writeValueAsString(configs);
@@ -372,8 +373,8 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
         RateLimitConfigDto updateDto = createRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
-        updateDto.setRateLimitType(RateLimitConfigDto.RateLimitType.HEADER);
-        updateDto.setHeaderName("X-API-Key");
+        updateDto.setKeyResolver("HEADER");
+        updateDto.setArgs(Map.of("headerName", "X-API-Key"));
         updateDto.setIncludeHeaders(true);
         String requestBody = objectMapper.writeValueAsString(updateDto);
 
@@ -382,15 +383,15 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rateLimitType", is("HEADER")))
-                .andExpect(jsonPath("$.headerName", is("X-API-Key")))
+                .andExpect(jsonPath("$.keyResolver", is("HEADER")))
+                .andExpect(jsonPath("$.args.headerName", is("X-API-Key")))
                 .andExpect(jsonPath("$.includeHeaders", is(true)));
 
         // Verify database
         Optional<RateLimitConfigEntity> updatedEntity = rateLimitConfigRepository.findById("route1");
         assertTrue(updatedEntity.isPresent());
-        assertEquals(RateLimitConfigEntity.RateLimitType.HEADER, updatedEntity.get().getRateLimitType());
-        assertEquals("X-API-Key", updatedEntity.get().getHeaderName());
+        assertEquals("HEADER", updatedEntity.get().getKeyResolver());
+        assertEquals("X-API-Key", updatedEntity.get().getArgs().get("headerName"));
     }
 
     // ==================== DELETE /v1/config/rate-limits/{id} Tests ====================
@@ -504,14 +505,13 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     void testWorkflow_MultipleRateLimitTypes() throws Exception {
         // Create configs with different rate limit types
         RateLimitConfigDto clientIpDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
-        clientIpDto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        clientIpDto.setKeyResolver("CLIENT_IP");
 
         RateLimitConfigDto headerDto = createRouteDto("route2", REPLENISH_RATE_150, BURST_CAPACITY_300);
-        headerDto.setRateLimitType(RateLimitConfigDto.RateLimitType.HEADER);
-        headerDto.setHeaderName("X-API-Key");
-
+        headerDto.setKeyResolver("HEADER");
+        headerDto.setArgs(Map.of("headerName", "X-API-Key"));
         RateLimitConfigDto routePathDto = createServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
-        routePathDto.setRateLimitType(RateLimitConfigDto.RateLimitType.ROUTE_PATH);
+        routePathDto.setKeyResolver("ROUTE_PATH");
 
         List<RateLimitConfigDto> configs = Arrays.asList(clientIpDto, headerDto, routePathDto);
         String requestBody = objectMapper.writeValueAsString(configs);
@@ -527,7 +527,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         mockMvc.perform(get("/v1/config/rate-limits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(EXPECTED_SIZE_3)))
-                .andExpect(jsonPath("$[*].rateLimitType",
+                .andExpect(jsonPath("$[*].keyResolver",
                         containsInAnyOrder("CLIENT_IP", "HEADER", "ROUTE_PATH")));
     }
 
@@ -539,7 +539,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
         return dto;
     }
 
@@ -549,7 +549,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         dto.setReplenishRate(replenishRate);
         dto.setBurstCapacity(burstCapacity);
         dto.setIncludeHeaders(false);
-        dto.setRateLimitType(RateLimitConfigDto.RateLimitType.CLIENT_IP);
+        dto.setKeyResolver("CLIENT_IP");
         return dto;
     }
 
@@ -560,7 +560,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         entity.setReplenishRate(replenishRate);
         entity.setBurstCapacity(burstCapacity);
         entity.setIncludeHeaders(false);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.CLIENT_IP);
+        entity.setKeyResolver("CLIENT_IP");
         return rateLimitConfigRepository.save(entity);
     }
 
@@ -571,7 +571,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
         entity.setReplenishRate(replenishRate);
         entity.setBurstCapacity(burstCapacity);
         entity.setIncludeHeaders(false);
-        entity.setRateLimitType(RateLimitConfigEntity.RateLimitType.CLIENT_IP);
+        entity.setKeyResolver("CLIENT_IP");
         return rateLimitConfigRepository.save(entity);
     }
 }

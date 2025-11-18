@@ -103,13 +103,13 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
     private static void processJwk(JWK jwk, Map<String, PublicKey> publicKeys) {
         try {
             PublicKey publicKey;
-            if (jwk instanceof RSAKey rsaKey) {
-                publicKey = rsaKey.toPublicKey();
-            } else if (jwk instanceof ECKey ecKey) {
-                publicKey = ecKey.toPublicKey();
-            }  else {
-                LOGGER.warn("Unsupported JWK type: {}. Only RSA and EC keys are supported.", jwk.getKeyType());
-                return; // Skip processing this key
+            switch (jwk) {
+                case RSAKey rsaKey -> publicKey = rsaKey.toPublicKey();
+                case ECKey ecKey -> publicKey = ecKey.toPublicKey();
+                default -> {
+                    LOGGER.warn("Unsupported JWK type: {}. Only RSA and EC keys are supported.", jwk.getKeyType());
+                    return; // Skip processing this key
+                }
             }
 
             // Check if the public key is valid before adding it

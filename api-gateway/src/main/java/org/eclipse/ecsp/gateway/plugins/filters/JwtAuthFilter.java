@@ -141,27 +141,26 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         String tokenHeaderValue = null;
         if (tokenHeader != null) {
             Object headerValue = claims.get(tokenHeader);
-           
-            if (headerValue instanceof List<?> list) {
-                // If the header value is a list, join it with commas
-                tokenHeaderValue = list.stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(","));
-            } else if (headerValue instanceof String[] strArray) {
-                // If the header value is an array, join it with commas
-                tokenHeaderValue = String.join(",", strArray);
-            } else if (headerValue instanceof Set<?> setHeaders) {
-                // If the header value is a set, join it with commas
-                tokenHeaderValue = setHeaders.stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(","));
-
-            } else if (headerValue instanceof String str) {
-                // If the header value is a string, use it directly
-                tokenHeaderValue = str;
-            } else {
-                // For other types, convert to string
-                tokenHeaderValue = String.valueOf(claims.get(tokenHeader));
+            switch (headerValue) {
+                case List<?> list ->
+                    // If the header value is a list, join it with commas
+                    tokenHeaderValue = list.stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(","));
+                case String[] strArray ->
+                    // If the header value is an array, join it with commas
+                    tokenHeaderValue = String.join(",", strArray);
+                case Set<?> setHeaders ->
+                    // If the header value is a set, join it with commas
+                    tokenHeaderValue = setHeaders.stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(","));
+                case String str ->
+                    // If the header value is a string, use it directly
+                    tokenHeaderValue = str;
+                default ->
+                    // For other types, convert to string
+                    tokenHeaderValue = String.valueOf(claims.get(tokenHeader));
             }
         }
         return tokenHeaderValue;

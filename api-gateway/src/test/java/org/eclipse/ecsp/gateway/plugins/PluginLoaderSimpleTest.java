@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Simple test class for {@link PluginLoader}.
@@ -69,8 +70,11 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginEnabled", false);
         ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "/some/path");
 
-        pluginLoader.initialize();
-        // Should complete without exception
+        try {
+            pluginLoader.initialize();
+        } catch (Exception e) {
+            fail("Initialize should not throw exception when plugins are disabled", e);
+        }
     }
 
     @Test
@@ -78,8 +82,11 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginEnabled", true);
         ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "");
 
-        pluginLoader.initialize();
-        // Should complete without exception
+        try {
+            pluginLoader.initialize();
+        } catch (Exception e) {
+            fail("Initialize should not throw exception when plugins are disabled", e);
+        }
     }
 
     @Test
@@ -91,7 +98,11 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
+        try {
+            pluginLoader.initialize();
+        } catch (Exception e) {
+            fail("Initialize should not throw exception when plugins are disabled", e);
+        }
 
         assertNotNull(applicationContext.getClassLoader());
     }
@@ -221,8 +232,11 @@ class PluginLoaderSimpleTest {
 
     @Test
     void destroy_WithoutClassLoader_HandlesGracefully() {
-        pluginLoader.destroy();
-        // Should complete without exception
+        try {
+            pluginLoader.destroy();
+        } catch (final Exception e) {
+            Assertions.fail("Destroy should not throw exception", e);
+        }
     }
 
     @Test

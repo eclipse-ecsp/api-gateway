@@ -327,78 +327,25 @@ class KeyResolversTest {
 
     @Test
     void routePathKeyResolver_WithSimplePath_ReturnsPath() {
+        testRoutePath("http://localhost:8080/api/users", "/api/users");
+        testRoutePath("http://api.example.com/v2/products/123/details", "/v2/products/123/details");
+        testRoutePath("http://localhost:9000/", "/");
+        testRoutePath("http://localhost:8080/search?query=test&page=1", "/search");
+        testRoutePath("http://localhost:8080/api/users/john%20doe", "/api/users/john doe");
+    }
+
+    private boolean testRoutePath(String requestUri, String expectedPath) {
         // Arrange
         RoutePathKeyResolver resolver = new RoutePathKeyResolver();
-        when(request.getURI()).thenReturn(URI.create("http://localhost:8080/api/users"));
+        when(request.getURI()).thenReturn(URI.create(requestUri));
 
         // Act
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
         StepVerifier.create(result)
-                .expectNext("/api/users")
+                .expectNext(expectedPath)
                 .verifyComplete();
-    }
-
-    @Test
-    void routePathKeyResolver_WithComplexPath_ReturnsFullPath() {
-        // Arrange
-        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
-        when(request.getURI()).thenReturn(URI.create("http://api.example.com/v2/products/123/details"));
-
-        // Act
-        Mono<String> result = resolver.resolve(exchange);
-
-        // Assert
-        StepVerifier.create(result)
-                .expectNext("/v2/products/123/details")
-                .verifyComplete();
-    }
-
-    @Test
-    void routePathKeyResolver_WithRootPath_ReturnsSlash() {
-        // Arrange
-        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
-        when(request.getURI()).thenReturn(URI.create("http://localhost:9000/"));
-
-        // Act
-        Mono<String> result = resolver.resolve(exchange);
-
-        // Assert
-        StepVerifier.create(result)
-                .expectNext("/")
-                .verifyComplete();
-    }
-
-    @Test
-    void routePathKeyResolver_WithQueryParameters_ReturnsPathOnly() {
-        // Arrange
-        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
-        when(request.getURI()).thenReturn(
-            URI.create("http://localhost:8080/search?query=test&page=1"));
-
-        // Act
-        Mono<String> result = resolver.resolve(exchange);
-
-        // Assert
-        StepVerifier.create(result)
-                .expectNext("/search")
-                .verifyComplete();
-    }
-
-    @Test
-    void routePathKeyResolver_WithEncodedPath_ReturnsDecodedPath() {
-        // Arrange
-        RoutePathKeyResolver resolver = new RoutePathKeyResolver();
-        when(request.getURI()).thenReturn(
-            URI.create("http://localhost:8080/api/users/john%20doe"));
-
-        // Act
-        Mono<String> result = resolver.resolve(exchange);
-
-        // Assert - URI.getPath() automatically decodes
-        StepVerifier.create(result)
-                .expectNext("/api/users/john doe")
-                .verifyComplete();
+        return true;
     }
 }

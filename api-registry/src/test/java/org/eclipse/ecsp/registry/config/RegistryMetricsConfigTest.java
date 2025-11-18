@@ -69,7 +69,7 @@ class RegistryMetricsConfigTest {
     void constructor_WithValidEnvironment_SetsJmxExcludeAll() {
         assertTrue(systemProperties.containsKey("management.endpoints.jmx.exposure.exclude"));
         String jmxExclude = (String) systemProperties.get("management.endpoints.jmx.exposure.exclude");
-        assertTrue(jmxExclude.equals("*"));
+        assertEquals("*", jmxExclude);
     }
 
     @Test

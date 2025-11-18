@@ -14,8 +14,10 @@ spring:
     web-application-type: reactive
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
+      # cluster:
+      #   nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
   cloud:
     discovery:
       client:
@@ -117,10 +119,18 @@ api:
   gateway:
     rate-limit:
       enabled: true 
+      max-burst-capacity: 10000
+      max-replenish-rate: 10000
+      max-requested-tokens: 100
+      key-resolvers: CLIENT_IP, client-ip, clientIpKeyResolver, HEADER, header, headerKeyResolver, ROUTE_NAME, route-name, routeNameKeyResolver, ROUTE_PATH, route-path, routePathKeyResolver
       defaults:
-        replenish-rate: 1000
-        burst-capacity: 1000
-        rate-limit-type: CLIENT_IP
+        replenish-rate: ${RATE_LIMIT_REPLENISH_RATE:50}
+        burst-capacity: ${RATE_LIMIT_BURST_CAPACITY:100}
+        requested-tokens: 1
+        deny-empty-key: true
+        empty-key-status: 400
+        key-resolver: clientIpKeyResolver
+        include-headers: true
     metrics:
       enabled: true
       port: 9101

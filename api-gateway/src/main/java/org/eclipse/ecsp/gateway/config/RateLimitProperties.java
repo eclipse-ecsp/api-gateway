@@ -99,14 +99,14 @@ public class RateLimitProperties {
         if (rateLimit.getBurstCapacity() < rateLimit.getReplenishRate()) {
             LOGGER.error("{} burst capacity must be greater than or equal to replenish rate.", type);
             throw new IllegalArgumentException(type + " burst capacity must be greater "
-            + "than or equal to replenish rate.");
+                + "than or equal to replenish rate.");
         }
 
         // validate requested tokens is less than or equal to burst capacity
         if (rateLimit.getRequestedTokens() > rateLimit.getBurstCapacity()) {
             LOGGER.error("{} requested tokens must be less than or equal to burst capacity.", type);
             throw new IllegalArgumentException(type + " requested tokens must be less "
-            + "than or equal to burst capacity.");
+                + "than or equal to burst capacity.");
         }
     }
         

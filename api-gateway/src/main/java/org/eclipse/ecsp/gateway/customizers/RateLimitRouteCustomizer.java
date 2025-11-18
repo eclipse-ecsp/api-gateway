@@ -25,10 +25,14 @@ import org.eclipse.ecsp.gateway.ratelimit.configresolvers.RateLimitConfigResolve
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
+import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.route.RouteDefinition;
+import org.springframework.cloud.gateway.support.NameUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.eclipse.ecsp.gateway.utils.GatewayConstants.RATE_LIMITING_METADATA_PREFIX;
@@ -81,6 +85,9 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
                     CONFIGURATION_PROPERTY_NAME + ".requestedTokens",
                     String.valueOf(rateLimit.getRequestedTokens()));
             
+            config.put("denyEmptyKey", String.valueOf(rateLimit.getDenyEmptyKey()));
+            config.put("emptyKeyStatus", String.valueOf(rateLimit.getEmptyKeyStatus()));
+            
             String resolverName = getKeyResolverBeanName(rateLimit);            
 
             config.put("key-resolver", "#{@" + resolverName + "}");
@@ -88,7 +95,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             // Spring Cloud Gateway uses 'include-headers' (with hyphen) not 'includeHeaders'
             config.put("include-headers", String.valueOf(rateLimit.isIncludeHeaders()));
             FilterDefinition rateLimitFilter = new FilterDefinition();
-            rateLimitFilter.setName("RequestRateLimiter");
+            rateLimitFilter.setName(NameUtils.normalizeFilterFactoryName(RequestRateLimiterGatewayFilterFactory.class));
             rateLimitFilter.setArgs(config);
 
             
@@ -113,35 +120,13 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             
             // Add a filter to remove rate limit headers if includeHeaders is false
             if (!rateLimit.isIncludeHeaders()) {
-                FilterDefinition removeHeadersFilter = new FilterDefinition();
-                removeHeadersFilter.setName("RemoveResponseHeader");
-                Map<String, String> removeHeadersArgs = new HashMap<>();
-                removeHeadersArgs.put("name", "X-RateLimit-Remaining");
-                removeHeadersFilter.setArgs(removeHeadersArgs);
-                routeDefinition.getFilters().add(removeHeadersFilter);
+                List.of("X-RateLimit-Remaining", 
+                    "X-RateLimit-Replenish-Rate", 
+                    "X-RateLimit-Burst-Capacity", 
+                    "X-RateLimit-Requested-Tokens")
+                    .forEach(header -> addRemoveHeaderFilter(routeDefinition, header));
                 
-                FilterDefinition removeHeadersFilter2 = new FilterDefinition();
-                removeHeadersFilter2.setName("RemoveResponseHeader");
-                Map<String, String> removeHeadersArgs2 = new HashMap<>();
-                removeHeadersArgs2.put("name", "X-RateLimit-Replenish-Rate");
-                removeHeadersFilter2.setArgs(removeHeadersArgs2);
-                routeDefinition.getFilters().add(removeHeadersFilter2);
-                
-                FilterDefinition removeHeadersFilter3 = new FilterDefinition();
-                removeHeadersFilter3.setName("RemoveResponseHeader");
-                Map<String, String> removeHeadersArgs3 = new HashMap<>();
-                removeHeadersArgs3.put("name", "X-RateLimit-Burst-Capacity");
-                removeHeadersFilter3.setArgs(removeHeadersArgs3);
-                routeDefinition.getFilters().add(removeHeadersFilter3);
-                
-                FilterDefinition removeHeadersFilter4 = new FilterDefinition();
-                removeHeadersFilter4.setName("RemoveResponseHeader");
-                Map<String, String> removeHeadersArgs4 = new HashMap<>();
-                removeHeadersArgs4.put("name", "X-RateLimit-Requested-Tokens");
-                removeHeadersFilter4.setArgs(removeHeadersArgs4);
-                routeDefinition.getFilters().add(removeHeadersFilter4);
-                
-                LOGGER.info("Added filters to remove rate limit headers for route {}", 
+                LOGGER.debug("Added filters to remove rate limit headers for route {}", 
                     igniteRouteDefinition.getId());
             }
         }
@@ -253,5 +238,14 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         }
         LOGGER.debug("Converted {} to camelCase: {}", input, camelCase.toString());
         return camelCase.toString();
+    }
+
+    private void addRemoveHeaderFilter(RouteDefinition routeDefinition, String headerName) {
+        FilterDefinition filter = new FilterDefinition();
+        filter.setName(NameUtils.normalizeFilterFactoryName(RemoveResponseHeaderGatewayFilterFactory.class));
+        Map<String, String> args = new HashMap<>();
+        args.put("name", headerName);
+        filter.setArgs(args);
+        routeDefinition.getFilters().add(filter);
     }
 }

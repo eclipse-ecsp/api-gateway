@@ -291,8 +291,8 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
      */
     private void validateHeaderKeyResolverArgs(RateLimitConfigDto config, String identifier) {
         // validate if the key resolver is header and args contains header name
-        if (config.getKeyResolver().equalsIgnoreCase("header") ||
-            config.getKeyResolver().equals("headerKeyResolver")) {
+        if (config.getKeyResolver().equalsIgnoreCase("header") 
+            || config.getKeyResolver().equals("headerKeyResolver")) {
             if (config.getArgs() == null || !config.getArgs().containsKey("headerName")
                 || StringUtils.isBlank(config.getArgs().get("headerName"))) {
                 LOGGER.error("Header name is missing in args for header key resolver in the config: {}", config);

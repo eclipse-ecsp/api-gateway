@@ -20,6 +20,8 @@ package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
+
 import java.util.Map;
 
 /**
@@ -29,6 +31,7 @@ import java.util.Map;
  */
 @Getter
 @Setter
+@ToString
 public class RateLimit {
     /**
      * Route identifier for the rate limit.

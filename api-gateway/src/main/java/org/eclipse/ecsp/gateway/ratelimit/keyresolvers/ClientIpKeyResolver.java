@@ -57,13 +57,12 @@ public class ClientIpKeyResolver implements KeyResolver {
         }
 
         // Fallback to remote address if X-Forwarded-For is not present
-        InetSocketAddress remoteAddress = exchange
-                .getRequest().getRemoteAddress();
-        if (remoteAddress == null) {
+        InetSocketAddress remoteAddress = exchange.getRequest().getRemoteAddress();;
+        if (remoteAddress == null || remoteAddress.getAddress() == null) {
             LOGGER.error("Remote Address is null");
             return Mono.empty();
         }
-        String hostName = remoteAddress.getHostName();
+        String hostName = remoteAddress.getAddress().getHostAddress();
         LOGGER.debug("Client Key -> {}", hostName);
         return Mono.just(hostName);
     }

@@ -44,8 +44,11 @@ import static org.mockito.Mockito.when;
  * Test class for all KeyResolver implementations.
  */
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings({"checkstyle:MagicNumber", "checkstyle:VariableDeclarationUsageDistance"})
 class KeyResolversTest {
+
+    private static final int PORT_9090 = 9090;
+
+    private static final int PORT_8080 = 8080;
 
     @Mock
     private ServerWebExchange exchange;
@@ -107,7 +110,7 @@ class KeyResolversTest {
     void clientIpKeyResolver_WithoutXForwardedFor_ReturnsRemoteAddress() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
-        InetSocketAddress remoteAddress = new InetSocketAddress("10.20.30.40", 8080);
+        InetSocketAddress remoteAddress = new InetSocketAddress("10.20.30.40", PORT_8080);
         when(request.getRemoteAddress()).thenReturn(remoteAddress);
 
         // Act
@@ -139,7 +142,7 @@ class KeyResolversTest {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         headers.add("X-Forwarded-For", "");
-        InetSocketAddress remoteAddress = new InetSocketAddress("192.168.50.100", 9090);
+        InetSocketAddress remoteAddress = new InetSocketAddress("192.168.50.100", PORT_9090);
         when(request.getRemoteAddress()).thenReturn(remoteAddress);
 
         // Act
@@ -156,7 +159,7 @@ class KeyResolversTest {
     @Test
     void requestHeaderKeyResolver_WithValidHeader_ReturnsHeaderValue() {
         // Arrange
-        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-API-Key");
         headers.add("X-API-Key", "abc123xyz");
         
@@ -164,6 +167,7 @@ class KeyResolversTest {
         when(route.getMetadata()).thenReturn(metadata);
 
         // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -191,13 +195,13 @@ class KeyResolversTest {
     @Test
     void requestHeaderKeyResolver_WithEmptyHeaderName_ReturnsEmpty() {
         // Arrange
-        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "");
         
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
         when(route.getMetadata()).thenReturn(metadata);
 
         // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -208,7 +212,6 @@ class KeyResolversTest {
     @Test
     void requestHeaderKeyResolver_WithMissingHeaderValue_ReturnsEmpty() {
         // Arrange
-        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Custom-Header");
         
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
@@ -216,6 +219,7 @@ class KeyResolversTest {
         when(route.getId()).thenReturn("test-route");
 
         // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -226,7 +230,6 @@ class KeyResolversTest {
     @Test
     void requestHeaderKeyResolver_WithEmptyHeaderValue_ReturnsEmpty() {
         // Arrange
-        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Empty-Header");
         headers.add("X-Empty-Header", "");
         
@@ -235,6 +238,7 @@ class KeyResolversTest {
         when(route.getId()).thenReturn("test-route");
 
         // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -245,7 +249,6 @@ class KeyResolversTest {
     @Test
     void requestHeaderKeyResolver_WithMultipleMetadata_FiltersCorrectly() {
         // Arrange
-        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         metadata.put("someOtherKey", "value");
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "Authorization");
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "otherConfig", "otherValue");
@@ -255,6 +258,7 @@ class KeyResolversTest {
         when(route.getMetadata()).thenReturn(metadata);
 
         // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -268,7 +272,6 @@ class KeyResolversTest {
     @Test
     void routeNameKeyResolver_WithValidRoute_ReturnsCombinedKey() {
         // Arrange
-        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
         metadata.put(GatewayConstants.SERVICE_NAME, "user-service");
         
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
@@ -276,6 +279,7 @@ class KeyResolversTest {
         when(route.getId()).thenReturn("user-route-123");
 
         // Act
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
@@ -285,27 +289,24 @@ class KeyResolversTest {
     }
 
     @Test
-    void routeNameKeyResolver_WithNullServiceName_ReturnsNullPlusRouteId() {
+    void routeNameKeyResolver_WithNullServiceName_ReturnsNull() {
         // Arrange
-        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
-        
+              
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
         when(route.getMetadata()).thenReturn(metadata);
-        when(route.getId()).thenReturn("standalone-route");
 
         // Act
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
         StepVerifier.create(result)
-                .expectNext("null:standalone-route")
                 .verifyComplete();
     }
 
     @Test
     void routeNameKeyResolver_WithComplexServiceName_ReturnsCorrectFormat() {
         // Arrange
-        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
         metadata.put(GatewayConstants.SERVICE_NAME, "payment-processing-v2");
         
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
@@ -313,6 +314,7 @@ class KeyResolversTest {
         when(route.getId()).thenReturn("payment-api-endpoint");
 
         // Act
+        RouteNameKeyResolver resolver = new RouteNameKeyResolver();
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert

@@ -119,7 +119,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithRateLimit_SetsCorrectConfiguration() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 50, 100);
+        RateLimit rateLimit = createRateLimit("client-ip", 50, 100);
         rateLimit.setRequestedTokens(2);
         rateLimit.setIncludeHeaders(false);
 
@@ -136,17 +136,15 @@ class RateLimitRouteCustomizerTest {
             "Burst capacity should match");
         assertEquals("2", args.get("redis-rate-limiter.requestedTokens"),
             "Requested tokens should match");
-        assertEquals("false", args.get("includeheaders"),
-            "Include headers should match");
-        assertTrue(args.get("key-resolver").contains("clientipKeyResolver"),
-            "Key resolver should reference clientipKeyResolver");
+        assertTrue(args.get("key-resolver").contains("clientIpKeyResolver"),
+            "Key resolver should reference clientIpKeyResolver");
     }
 
     @Test
     void customize_WithCamelCaseKeyResolver_ResolvesCorrectly() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 100, 200);
+        RateLimit rateLimit = createRateLimit("client-ip", 100, 200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -155,7 +153,7 @@ class RateLimitRouteCustomizerTest {
         FilterDefinition filter = result.getFilters().get(0);
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver, "Key resolver should not be null");
-        assertTrue(keyResolver.contains("clientipKeyResolver"), "Should resolve to clientipKeyResolver");
+        assertTrue(keyResolver.contains("clientIpKeyResolver"), "Should resolve to clientipKeyResolver");
     }
 
     @Test

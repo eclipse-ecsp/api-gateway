@@ -38,7 +38,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -123,8 +122,13 @@ class RateLimitConfigControllerTest {
                 .thenThrow(new RuntimeException("Database connection error"));
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> rateLimitConfigController.getRateLimitConfigs());
-        verify(rateLimitConfigService, times(1)).getRateLimitConfigs();
+        try {
+            rateLimitConfigController.getRateLimitConfigs();
+            org.junit.jupiter.api.Assertions.fail("Expected RuntimeException was not thrown");
+        } catch (RuntimeException exception) {
+            assertEquals("Database connection error", exception.getMessage());
+            verify(rateLimitConfigService, times(1)).getRateLimitConfigs();
+        }
     }
 
     // ==================== addOrUpdateRateLimitConfigs Tests ====================
@@ -184,11 +188,13 @@ class RateLimitConfigControllerTest {
                         "Either routeId or service should be present, not both"));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> rateLimitConfigController.addOrUpdateRateLimitConfigs(configs));
-        
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(rateLimitConfigService, times(1)).addOrUpdateRateLimitConfigs(configs);
+        try {
+            rateLimitConfigController.addOrUpdateRateLimitConfigs(configs);
+            org.junit.jupiter.api.Assertions.fail("Expected ResponseStatusException was not thrown");
+        } catch (ResponseStatusException exception) {
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            verify(rateLimitConfigService, times(1)).addOrUpdateRateLimitConfigs(configs);
+        }
     }
 
     @Test
@@ -218,11 +224,13 @@ class RateLimitConfigControllerTest {
                         "Duplicate routeId entries found: route1"));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> rateLimitConfigController.addOrUpdateRateLimitConfigs(configs));
-        
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Duplicate routeId"));
+        try {
+            rateLimitConfigController.addOrUpdateRateLimitConfigs(configs);
+            org.junit.jupiter.api.Assertions.fail("Expected ResponseStatusException was not thrown");
+        } catch (ResponseStatusException exception) {
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("Duplicate routeId"));
+        }
     }
 
     // ==================== updateRateLimitConfig Tests ====================
@@ -259,12 +267,14 @@ class RateLimitConfigControllerTest {
                         "Rate limit configuration not found for id: " + id));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> rateLimitConfigController.updateRateLimitConfig(id, updateDto));
-        
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("not found"));
-        verify(rateLimitConfigService, times(1)).updateRateLimitConfig(id, updateDto);
+        try {
+            rateLimitConfigController.updateRateLimitConfig(id, updateDto);
+            org.junit.jupiter.api.Assertions.fail("Expected ResponseStatusException was not thrown");
+        } catch (ResponseStatusException exception) {
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("not found"));
+            verify(rateLimitConfigService, times(1)).updateRateLimitConfig(id, updateDto);
+        }
     }
 
     @Test
@@ -278,11 +288,13 @@ class RateLimitConfigControllerTest {
                         "Replenish rate and burst capacity must be positive integers"));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> rateLimitConfigController.updateRateLimitConfig(id, invalidDto));
-        
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(rateLimitConfigService, times(1)).updateRateLimitConfig(id, invalidDto);
+        try {
+            rateLimitConfigController.updateRateLimitConfig(id, invalidDto);
+            org.junit.jupiter.api.Assertions.fail("Expected ResponseStatusException was not thrown");
+        } catch (ResponseStatusException exception) {
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            verify(rateLimitConfigService, times(1)).updateRateLimitConfig(id, invalidDto);
+        }
     }
 
     @Test
@@ -360,12 +372,14 @@ class RateLimitConfigControllerTest {
                 .when(rateLimitConfigService).deleteRateLimitConfig(id);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> rateLimitConfigController.deleteRateLimitConfig(id));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("not found"));
-        verify(rateLimitConfigService, times(1)).deleteRateLimitConfig(id);
+        try {
+            rateLimitConfigController.deleteRateLimitConfig(id);
+            org.junit.jupiter.api.Assertions.fail("Expected ResponseStatusException was not thrown");
+        } catch (ResponseStatusException exception) {
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("not found"));
+            verify(rateLimitConfigService, times(1)).deleteRateLimitConfig(id);
+        }
     }
 
     @Test
@@ -390,9 +404,13 @@ class RateLimitConfigControllerTest {
                 .when(rateLimitConfigService).deleteRateLimitConfig("route1");
 
         // Act & Assert
-        assertThrows(RuntimeException.class,
-                () -> rateLimitConfigController.deleteRateLimitConfig("route1"));
-        verify(rateLimitConfigService, times(1)).deleteRateLimitConfig("route1");
+        try {
+            rateLimitConfigController.deleteRateLimitConfig("route1");
+            org.junit.jupiter.api.Assertions.fail("Expected RuntimeException was not thrown");
+        } catch (RuntimeException exception) {
+            assertEquals("Database connection error", exception.getMessage());
+            verify(rateLimitConfigService, times(1)).deleteRateLimitConfig("route1");
+        }
     }
 
     // ==================== Helper Methods ====================

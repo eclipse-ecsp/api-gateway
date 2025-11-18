@@ -51,7 +51,6 @@ import org.springdoc.core.service.OpenAPIService;
 import org.springdoc.core.service.OperationService;
 import org.springdoc.webmvc.api.OpenApiResource;
 import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -138,7 +137,6 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
      */
-    @Autowired
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
                            AbstractRequestService requestBuilder,

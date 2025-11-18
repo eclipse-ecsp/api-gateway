@@ -101,4 +101,7 @@
     <logger name="${CUSTOM_PLUGINS_PACKAGE:-org.eclipse.ecsp.gateway.plugins}" level="${API_GATEWAY_LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}" />
     </logger>
+    <logger name="org.eclipse.ecsp.gateway.ratelimit" level="${RATE_LIMIT_LOG_LEVEL:-INFO}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}" />
+    </logger>
 </configuration>

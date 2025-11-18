@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @Service
 public class RateLimitConfigServiceImpl implements RateLimitConfigService {
 
+    private static final String REPLENISH_RATE = "ReplenishRate: ";
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitConfigServiceImpl.class);
 
     private final RateLimitConfigRepository rateLimitConfigRepository; 
@@ -335,7 +337,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         if (config.getReplenishRate() <= 0 || config.getBurstCapacity() <= 0) {
             LOGGER.error("Invalid replenish rate or burst capacity in the config: {}, {}," 
                 + "should be positive integers", config,
-                "ReplenishRate: " + config.getReplenishRate()
+                REPLENISH_RATE + config.getReplenishRate()
                 + "and BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
@@ -348,7 +350,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             || config.getBurstCapacity() > rateLimitProperties.getMaxBurstCapacity()) {
             LOGGER.error("Replenish rate or burst capacity exceeds maximum limit in the config: {}, {}," 
                 + "maxReplenishRate: {}, maxBurstCapacity: {}", config,
-                "ReplenishRate: " + config.getReplenishRate()
+                REPLENISH_RATE + config.getReplenishRate()
                 + ", BurstCapacity: " + config.getBurstCapacity(),
                 rateLimitProperties.getMaxReplenishRate(), rateLimitProperties.getMaxBurstCapacity());
             throw new ResponseStatusException(
@@ -363,7 +365,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         if (config.getBurstCapacity() < config.getReplenishRate()) {
             LOGGER.error("Burst capacity is less than replenish rate in the config: {}, {}," 
                 + "burst capacity should be greater than or equal to replenish rate", config,
-                "ReplenishRate: " + config.getReplenishRate()
+                REPLENISH_RATE + config.getReplenishRate()
                 + "and BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,

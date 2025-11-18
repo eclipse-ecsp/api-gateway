@@ -24,6 +24,7 @@ import org.eclipse.ecsp.gateway.customizers.RouteCustomizer;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.plugins.PluginLoader;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -157,8 +159,11 @@ class IgniteRouteLocatorTest {
                 new ArrayList<>()
         );
 
-        // Should not throw exception
-        igniteRouteLocator.init();
+        try {
+            igniteRouteLocator.init();
+        } catch (final Exception e) {
+            Assertions.fail("Init should not throw exception", e);
+        }        
     }
 
     @Test
@@ -188,7 +193,11 @@ class IgniteRouteLocatorTest {
         igniteRouteLocator.setOverrideFilterConfig(overrideConfig);
         ReflectionTestUtils.setField(igniteRouteLocator, "isFilterOverrideEnabled", true);
 
-        igniteRouteLocator.init();
+        try {
+            igniteRouteLocator.init();
+        } catch (final Exception e) {
+            Assertions.fail("Init should not throw exception", e);
+        }
     }
 
     @Test
@@ -381,7 +390,7 @@ class IgniteRouteLocatorTest {
         List<RouteCustomizer> customizers = (List<RouteCustomizer>) ReflectionTestUtils.getField(
                 igniteRouteLocator, "routeCustomizers");
         assertNotNull(customizers, "Route customizers should not be null");
-        assertTrue(customizers.size() == 1, "Should have one route customizer");
+        assertEquals(1, customizers.size(), "Should have one route customizer");
     }
 
     @Test
@@ -430,8 +439,11 @@ class IgniteRouteLocatorTest {
         igniteRouteLocator.setOverrideFilterConfig(overrideConfig);
         ReflectionTestUtils.setField(igniteRouteLocator, "isFilterOverrideEnabled", true);
 
-        // Should not throw exception
-        igniteRouteLocator.init();
+        try {
+            igniteRouteLocator.init();
+        } catch (final Exception e) {
+            Assertions.fail("Init should not throw exception", e);
+        }        
     }
 
     @Test
@@ -576,6 +588,12 @@ class IgniteRouteLocatorTest {
 
     @Test
     void getRoutes_WithRedisCache_AddsCacheFilter() {
+        assertTrue(testCacheFilter("test-cache-key"));
+        assertTrue(testCacheFilter(null));
+        assertTrue(testCacheFilter(""));
+    }
+
+    private boolean testCacheFilter(String cacheKey) {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -596,7 +614,7 @@ class IgniteRouteLocatorTest {
         testRoute.setId("test-route");
         testRoute.setUri(URI.create("http://localhost:8080"));
         testRoute.setService("test-service");
-        testRoute.setCacheKey("test-cache-key");
+        testRoute.setCacheKey(cacheKey);
 
         PredicateDefinition pathPredicate = new PredicateDefinition();
         pathPredicate.setName("Path");
@@ -623,6 +641,7 @@ class IgniteRouteLocatorTest {
         StepVerifier.create(routes)
                 .expectNextCount(1)
                 .verifyComplete();
+        return true;
     }
 
     @Test
@@ -801,57 +820,6 @@ class IgniteRouteLocatorTest {
         testRoute.setUri(URI.create("http://localhost:8080"));
         testRoute.setService("test-service");
         testRoute.setCacheKey("test-cache-key");
-
-        PredicateDefinition pathPredicate = new PredicateDefinition();
-        pathPredicate.setName("Path");
-        pathPredicate.addArg("pattern", "/test/**");
-        testRoute.setPredicates(List.of(pathPredicate));
-
-        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(testRoute));
-
-        RouteLocatorBuilder.Builder builder = mock(RouteLocatorBuilder.Builder.class);
-        when(routeLocatorBuilder.routes()).thenReturn(builder);
-        when(builder.route(any(String.class), any())).thenReturn(builder);
-
-        RouteLocator mockLocator = mock(RouteLocator.class);
-        Route mockRoute = Route.async()
-                .id("test-route")
-                .uri("http://localhost:8080")
-                .predicate(exchange -> true)
-                .build();
-        when(mockLocator.getRoutes()).thenReturn(Flux.just(mockRoute));
-        when(builder.build()).thenReturn(mockLocator);
-
-        Flux<Route> routes = igniteRouteLocator.getRoutes();
-
-        StepVerifier.create(routes)
-                .expectNextCount(1)
-                .verifyComplete();
-    }
-
-    @Test
-    void getRoutes_WithNullCacheKey_SkipsCacheFilter() {
-        igniteRouteLocator = new IgniteRouteLocator(
-                configurationService,
-                gatewayFilterFactories,
-                gatewayProperties,
-                false,
-                pluginLoader,
-                apiRegistryClient,
-                routeLocatorBuilder,
-                applicationEventPublisher,
-                springCloudGatewayConfig,
-                new ArrayList<>()
-        );
-
-        ReflectionTestUtils.setField(igniteRouteLocator, "isCacheEnabled", true);
-        ReflectionTestUtils.setField(igniteRouteLocator, "cacheType", "redis");
-
-        IgniteRouteDefinition testRoute = new IgniteRouteDefinition();
-        testRoute.setId("test-route");
-        testRoute.setUri(URI.create("http://localhost:8080"));
-        testRoute.setService("test-service");
-        testRoute.setCacheKey(null);
 
         PredicateDefinition pathPredicate = new PredicateDefinition();
         pathPredicate.setName("Path");
@@ -1154,57 +1122,6 @@ class IgniteRouteLocatorTest {
         testRoute.setUri(URI.create("http://localhost:8080"));
         testRoute.setService("test-service");
         testRoute.setFilters(new ArrayList<>());
-
-        PredicateDefinition pathPredicate = new PredicateDefinition();
-        pathPredicate.setName("Path");
-        pathPredicate.addArg("pattern", "/test/**");
-        testRoute.setPredicates(List.of(pathPredicate));
-
-        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(testRoute));
-
-        RouteLocatorBuilder.Builder builder = mock(RouteLocatorBuilder.Builder.class);
-        when(routeLocatorBuilder.routes()).thenReturn(builder);
-        when(builder.route(any(String.class), any())).thenReturn(builder);
-
-        RouteLocator mockLocator = mock(RouteLocator.class);
-        Route mockRoute = Route.async()
-                .id("test-route")
-                .uri("http://localhost:8080")
-                .predicate(exchange -> true)
-                .build();
-        when(mockLocator.getRoutes()).thenReturn(Flux.just(mockRoute));
-        when(builder.build()).thenReturn(mockLocator);
-
-        Flux<Route> routes = igniteRouteLocator.getRoutes();
-
-        StepVerifier.create(routes)
-                .expectNextCount(1)
-                .verifyComplete();
-    }
-
-    @Test
-    void getRoutes_WithCacheButEmptyCacheKey_SkipsCacheFilter() {
-        igniteRouteLocator = new IgniteRouteLocator(
-                configurationService,
-                gatewayFilterFactories,
-                gatewayProperties,
-                false,
-                pluginLoader,
-                apiRegistryClient,
-                routeLocatorBuilder,
-                applicationEventPublisher,
-                springCloudGatewayConfig,
-                new ArrayList<>()
-        );
-
-        ReflectionTestUtils.setField(igniteRouteLocator, "isCacheEnabled", true);
-        ReflectionTestUtils.setField(igniteRouteLocator, "cacheType", "redis");
-
-        IgniteRouteDefinition testRoute = new IgniteRouteDefinition();
-        testRoute.setId("test-route");
-        testRoute.setUri(URI.create("http://localhost:8080"));
-        testRoute.setService("test-service");
-        testRoute.setCacheKey("");
 
         PredicateDefinition pathPredicate = new PredicateDefinition();
         pathPredicate.setName("Path");

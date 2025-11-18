@@ -11,10 +11,11 @@ permissions:
 
 jobs:
   check_licences:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@jdk-distribution
     name: Analyse Licences
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       create-review: true
     secrets:
       token: ${{ secrets.GITLAB_API_TOKEN }}

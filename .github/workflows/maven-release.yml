@@ -6,18 +6,19 @@ on:
 
 jobs:
   sonar_analysis:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@jdk-distribution
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
     with:
       java_version: '21'
-
+      java_distribution: 'temurin'
   licence_compliance_status:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@jdk-distribution
     name: Check Licence Compliance Status
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       create-review: false
 
   extract_version:
@@ -46,36 +47,40 @@ jobs:
 
   publish_artifacts:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@jdk-distribution
     secrets: inherit
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       release_version: ${{ needs.extract_version.outputs.release_version }}
 
   docker_push_api_registry:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
     secrets: inherit
     with:
       context_path: ./api-registry
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
       java_version: '21'
+      java_distribution: 'temurin'
 
   docker_push_api_gateway:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
     secrets: inherit
     with:
       context_path: ./api-gateway
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
       java_version: '21'
-  
+      java_distribution: 'temurin'
+
   update_next_version:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@jdk-distribution
     with:
       version: ${{ needs.extract_version.outputs.release_version }}
       java_version: '21'
+      java_distribution: 'temurin'
     secrets: inherit

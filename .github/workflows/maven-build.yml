@@ -10,10 +10,11 @@ on:
 
 jobs:
   maven_build:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@jdk-distribution
     name: Maven Build
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       maven_args: 'clean package --file pom.xml'
       test-report: true
       summaries-test-report: true
@@ -21,17 +22,19 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:
     needs: maven_build
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@jdk-distribution
     with:
       java_version: '21'
+      java_distribution: 'temurin'
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@jdk-distribution
     secrets: inherit
     with:
       java_version: '21'
+      java_distribution: 'temurin'
     permissions:
       pull-requests: write
       contents: read
@@ -39,19 +42,21 @@ jobs:
   docker_push_api_registry:
     needs: sonar_analysis
     if: false
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
     secrets: inherit
     with:
       context_path: ./api-registry
       maven_args: 'clean package --file pom.xml'
       java_version: '21'
+      java_distribution: 'temurin'
 
   docker_push_api-gateway:
     needs: sonar_analysis
     if: false
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
     secrets: inherit
     with:
       context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'
       java_version: '21'
+      java_distribution: 'temurin'

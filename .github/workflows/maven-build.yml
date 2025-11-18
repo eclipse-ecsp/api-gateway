@@ -10,7 +10,7 @@ on:
 
 jobs:
   maven_build:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
     name: Maven Build
     with:
       java_version: '21'
@@ -22,7 +22,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:
     needs: maven_build
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     with:
       java_version: '21'
       java_distribution: 'temurin'
@@ -30,7 +30,7 @@ jobs:
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
     secrets: inherit
     with:
       java_version: '21'
@@ -42,7 +42,7 @@ jobs:
   docker_push_api_registry:
     needs: sonar_analysis
     if: false
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
       context_path: ./api-registry
@@ -53,7 +53,7 @@ jobs:
   docker_push_api-gateway:
     needs: sonar_analysis
     if: false
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
       context_path: ./api-gateway

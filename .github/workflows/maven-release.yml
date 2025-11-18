@@ -6,7 +6,7 @@ on:
 
 jobs:
   sonar_analysis:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
     with:
@@ -14,7 +14,7 @@ jobs:
       java_distribution: 'temurin'
   licence_compliance_status:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
     name: Check Licence Compliance Status
     with:
       java_version: '21'
@@ -47,7 +47,7 @@ jobs:
 
   publish_artifacts:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@main
     secrets: inherit
     with:
       java_version: '21'
@@ -56,7 +56,7 @@ jobs:
 
   docker_push_api_registry:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
       context_path: ./api-registry
@@ -67,7 +67,7 @@ jobs:
 
   docker_push_api_gateway:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
       context_path: ./api-gateway
@@ -78,7 +78,7 @@ jobs:
 
   update_next_version:
     needs: extract_version
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@jdk-distribution
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@main
     with:
       version: ${{ needs.extract_version.outputs.release_version }}
       java_version: '21'

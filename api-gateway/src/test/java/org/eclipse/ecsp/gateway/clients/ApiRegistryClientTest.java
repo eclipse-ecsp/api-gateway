@@ -44,6 +44,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -704,7 +708,7 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
+        assertNotNull(result);
         assert result.size() == EXPECTED_TWO_RATE_LIMITS;
         assert "route-1".equals(result.get(0).getRouteId());
         assert "route-2".equals(result.get(1).getRouteId());
@@ -734,8 +738,8 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.isEmpty();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -751,8 +755,8 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.isEmpty();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
 
         // Restart server for other tests
         wireMockServer.start();
@@ -776,8 +780,8 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.isEmpty();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -796,8 +800,8 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.isEmpty();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -816,8 +820,8 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.isEmpty();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -880,7 +884,7 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
+        assertNotNull(result);
         assert result.isEmpty();
     }
 
@@ -913,12 +917,12 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then
-        assert result != null;
-        assert result.size() == 1;
+        assertNotNull(result);
+        assertEquals(1, result.size());
 
         // Verify rate limits are cached
-        assert apiRegistryClient.hasCachedRateLimits();
-        assert apiRegistryClient.getCachedRateLimitsCount() == 1;
+        assertTrue(apiRegistryClient.hasCachedRateLimits());
+        assertEquals(1, apiRegistryClient.getCachedRateLimitsCount());
     }
 
     /**
@@ -955,10 +959,10 @@ class ApiRegistryClientTest {
 
         // Load rate limits successfully and cache them
         List<RateLimit> initialResult = apiRegistryClient.getRateLimits();
-        assert initialResult.size() == EXPECTED_TWO_RATE_LIMITS;
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, initialResult.size());
 
         // Verify rate limits are cached
-        assert apiRegistryClient.getCachedRateLimitsCount() == EXPECTED_TWO_RATE_LIMITS;
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, apiRegistryClient.getCachedRateLimitsCount());
 
         // Now simulate API registry being down
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
@@ -969,12 +973,12 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then - Should return cached rate limits, not empty list
-        assert result != null;
-        assert result.size() == EXPECTED_TWO_RATE_LIMITS;
-        assert "cached-route-1".equals(result.get(0).getRouteId());
-        assert "cached-route-2".equals(result.get(1).getRouteId());
-        assert result.get(0).getReplenishRate() == REPLENISH_RATE_15;
-        assert result.get(1).getReplenishRate() == REPLENISH_RATE_20;
+        assertNotNull(result);
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, result.size());
+        assertEquals("cached-route-1", result.get(0).getRouteId());
+        assertEquals("cached-route-2", result.get(1).getRouteId());
+        assertEquals(REPLENISH_RATE_15, result.get(0).getReplenishRate());
+        assertEquals(REPLENISH_RATE_20, result.get(1).getReplenishRate());
     }
 
     /**
@@ -1004,7 +1008,7 @@ class ApiRegistryClientTest {
 
         // Load rate limits successfully and cache them
         List<RateLimit> initialResult = apiRegistryClient.getRateLimits();
-        assert initialResult.size() == 1;
+        assertEquals(1, initialResult.size());
 
         // Now simulate empty response
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
@@ -1017,10 +1021,10 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then - Should return cached rate limits, not empty list
-        assert result != null;
-        assert result.size() == 1;
-        assert "cached-route".equals(result.get(0).getRouteId());
-        assert result.get(0).getReplenishRate() == REPLENISH_RATE_25;
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("cached-route", result.get(0).getRouteId());
+        assertEquals(REPLENISH_RATE_25, result.get(0).getReplenishRate());
     }
 
     /**
@@ -1050,8 +1054,8 @@ class ApiRegistryClientTest {
 
         // Fetch and cache initial rate limits
         List<RateLimit> initialResult = apiRegistryClient.getRateLimits();
-        assert initialResult.size() == 1;
-        assert apiRegistryClient.getCachedRateLimitsCount() == 1;
+        assertEquals(1, initialResult.size());
+        assertEquals(1, apiRegistryClient.getCachedRateLimitsCount());
 
         // Now fetch with updated rate limits
         String updatedResponse = """
@@ -1083,11 +1087,11 @@ class ApiRegistryClientTest {
         List<RateLimit> result = apiRegistryClient.getRateLimits();
 
         // Then - Cache should be updated
-        assert result != null;
-        assert result.size() == EXPECTED_TWO_RATE_LIMITS;
-        assert "route-v2".equals(result.get(0).getRouteId());
-        assert "route-v3".equals(result.get(1).getRouteId());
-        assert apiRegistryClient.getCachedRateLimitsCount() == EXPECTED_TWO_RATE_LIMITS;
+        assertNotNull(result);
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, result.size());
+        assertEquals("route-v2", result.get(0).getRouteId());
+        assertEquals("route-v3", result.get(1).getRouteId());
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, apiRegistryClient.getCachedRateLimitsCount());
     }
 
     /**
@@ -1116,15 +1120,15 @@ class ApiRegistryClientTest {
                         .withBody(responseBody)));
 
         List<RateLimit> result = apiRegistryClient.getRateLimits();
-        assert result.size() == 1;
-        assert apiRegistryClient.hasCachedRateLimits();
+        assertEquals(1, result.size());
+        assertTrue(apiRegistryClient.hasCachedRateLimits());
 
         // When
         apiRegistryClient.clearRateLimitCache();
 
         // Then
-        assert !apiRegistryClient.hasCachedRateLimits();
-        assert apiRegistryClient.getCachedRateLimitsCount() == 0;
+        assertFalse(apiRegistryClient.hasCachedRateLimits());
+        assertEquals(0, apiRegistryClient.getCachedRateLimitsCount());
     }
 
     /**
@@ -1181,23 +1185,23 @@ class ApiRegistryClientTest {
                 .verifyComplete();
         List<RateLimit> rateLimits = apiRegistryClient.getRateLimits();
 
-        assert apiRegistryClient.hasCachedRoutes();
-        assert apiRegistryClient.hasCachedRateLimits();
-        assert rateLimits.size() == 1;
+        assertTrue(apiRegistryClient.hasCachedRoutes());
+        assertTrue(apiRegistryClient.hasCachedRateLimits());
+        assertEquals(1, rateLimits.size());
 
         // When - Clear only rate limit cache
         apiRegistryClient.clearRateLimitCache();
 
         // Then - Route cache should still exist
-        assert apiRegistryClient.hasCachedRoutes();
-        assert !apiRegistryClient.hasCachedRateLimits();
+        assertTrue(apiRegistryClient.hasCachedRoutes());
+        assertFalse(apiRegistryClient.hasCachedRateLimits());
 
         // When - Clear route cache
         apiRegistryClient.clearCache();
 
         // Then - Both caches should be empty
-        assert !apiRegistryClient.hasCachedRoutes();
-        assert !apiRegistryClient.hasCachedRateLimits();
+        assertFalse(apiRegistryClient.hasCachedRoutes());
+        assertFalse(apiRegistryClient.hasCachedRateLimits());
     }
 
 }

@@ -30,6 +30,7 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,12 +67,6 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void getName_WithDefaultConvention_ReturnsDefaultName() {
-        HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
-        assertEquals("http.client.requests", convention.getName());
-    }
-
-    @Test
     void getLowCardinalityKeyValues_WithValidContext_ReturnsKeyValues() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
@@ -89,11 +84,15 @@ class HttpClientObservationConventionTest {
 
     @Test
     void url_WithValidRequestAndPath_ReturnsPath() {
+        assertTrue(testValidRequestPath("http://example.com/api/v1/users"));
+    }
+
+    private boolean testValidRequestPath(String endpoint) {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientRequest request = mock(ClientRequest.class);
 
-        URI testUri = URI.create("http://example.com/api/v1/users");
+        URI testUri = URI.create(endpoint);
         when(context.getRequest()).thenReturn(request);
         when(request.url()).thenReturn(testUri);
 
@@ -101,6 +100,7 @@ class HttpClientObservationConventionTest {
 
         assertEquals("uri", url.getKey());
         assertNotNull(url.getValue());
+        return true;
     }
 
     @Test

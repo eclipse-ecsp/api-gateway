@@ -30,7 +30,6 @@ import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -142,9 +141,16 @@ class RateLimitRouteCustomizerTest {
 
     @Test
     void customize_WithCamelCaseKeyResolver_ResolvesCorrectly() throws URISyntaxException {
+        assertTrue(testKeyResolverResolves("client-ip"));
+        assertTrue(testKeyResolverResolves("client_ip"));
+        assertTrue(testKeyResolverResolves("CLIENT-IP"));
+        assertTrue(testKeyResolverResolves("CLIENT_IP"));
+    }
+
+    private boolean testKeyResolverResolves(String keyResolverName) throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("client-ip", 100, 200);
+        RateLimit rateLimit = createRateLimit(keyResolverName, 100, 200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -154,54 +160,7 @@ class RateLimitRouteCustomizerTest {
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver, "Key resolver should not be null");
         assertTrue(keyResolver.contains("clientIpKeyResolver"), "Should resolve to clientipKeyResolver");
-    }
-
-    @Test
-    void customize_WithUnderscoreKeyResolver_ConvertsToKeySuffix() throws URISyntaxException {
-        IgniteRouteDefinition igniteRoute = createIgniteRoute();
-        RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("client_ip", 100, 200);
-
-        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
-
-        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
-
-        FilterDefinition filter = result.getFilters().get(0);
-        String keyResolver = filter.getArgs().get("key-resolver");
-        assertNotNull(keyResolver, "Key resolver should not be null");
-        assertTrue(keyResolver.contains("clientIp"), "Should convert client_ip to clientIp");
-    }
-
-    @Test
-    void customize_WithHyphenKeyResolver_ConvertsToKeySuffix() throws URISyntaxException {
-        IgniteRouteDefinition igniteRoute = createIgniteRoute();
-        RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("client-ip", 100, 200);
-
-        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
-
-        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
-
-        FilterDefinition filter = result.getFilters().get(0);
-        String keyResolver = filter.getArgs().get("key-resolver");
-        assertNotNull(keyResolver, "Key resolver should not be null");
-        assertTrue(keyResolver.contains("clientIp"), "Should convert client-ip to clientIp");
-    }
-
-    @Test
-    void customize_WithUpperCaseKeyResolver_ConvertsToLowerCase() throws URISyntaxException {
-        IgniteRouteDefinition igniteRoute = createIgniteRoute();
-        RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("CLIENT_IP", 100, 200);
-
-        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
-
-        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
-
-        FilterDefinition filter = result.getFilters().get(0);
-        String keyResolver = filter.getArgs().get("key-resolver");
-        assertNotNull(keyResolver, "Key resolver should not be null");
-        assertTrue(keyResolver.contains("clientIp"), "Should convert CLIENT_IP to clientIp");
+        return true;
     }
 
     @Test

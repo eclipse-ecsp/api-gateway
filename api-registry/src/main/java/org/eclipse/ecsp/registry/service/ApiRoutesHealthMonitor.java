@@ -31,7 +31,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -140,6 +139,6 @@ public class ApiRoutesHealthMonitor {
         //update the service metrics
         eventPublisher.publishEvent(
                 new ServiceMetricsEvent(this, service, active,
-                        !CollectionUtils.isEmpty(apiRoutes) ? apiRoutes.size() : 0));
+                        apiRoutes != null ? apiRoutes.size() : 0));
     }
 }

@@ -44,7 +44,7 @@ class JarUtilsTest {
     @Test
     void loadClass_ValidJarWithClass_ReturnsClass() throws IOException {
         // Create a test JAR with a class
-        File jarFile = createTestJar(tempDir.toFile(), "test.jar", "java/lang/String.class");
+        createTestJar(tempDir.toFile(), "test.jar", "java/lang/String.class");
 
         // Load String class from the JAR (it exists in JDK)
         Class<?> result = JarUtils.loadClass(

@@ -82,7 +82,6 @@ public class DefaultRateLimitConfigResolver implements RateLimitConfigResolver {
         
         if (registryRateLimits == null) {
             LOGGER.warn("No rate limits found in API Registry");
-            registryRateLimits = Collections.emptyList();
         } else {
             LOGGER.info("Loaded {} rate limits from API Registry", registryRateLimits.size());
             registryRateLimits.forEach(rateLimit -> {

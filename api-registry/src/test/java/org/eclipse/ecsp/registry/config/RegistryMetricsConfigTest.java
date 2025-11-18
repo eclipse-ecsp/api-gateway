@@ -29,6 +29,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,8 +89,8 @@ class RegistryMetricsConfigTest {
         String accessDefault = (String) systemProperties.get("management.endpoints.access.default");
         String metricsExport = (String) systemProperties.get("management.defaults.metrics.export.enabled");
         
-        assertTrue(accessDefault.equals("none"));
-        assertTrue(metricsExport.equals("false"));
+        assertEquals("none", accessDefault);
+        assertEquals("false", metricsExport);
     }
 
     @Test
@@ -120,54 +121,23 @@ class RegistryMetricsConfigTest {
 
     @Test
     void registryEndpointFilter_WithMetricsEndpoint_ReturnsFalse() {
-        ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
-        EndpointId endpointId = mock(EndpointId.class);
-        when(endpoint.getEndpointId()).thenReturn(endpointId);
-        when(endpointId.toLowerCaseString()).thenReturn("metrics");
-
-        EndpointFilter<ExposableWebEndpoint> filter = config.registryEndpointFilter();
-        
-        assertNotNull(filter);
-        assertFalse(filter.match(endpoint));
+        testMetricsEndpoint_ReturnsFalse("metrics");
+        testMetricsEndpoint_ReturnsFalse("beans");
+        testMetricsEndpoint_ReturnsFalse("gateway");
+        testMetricsEndpoint_ReturnsFalse("unknown");
     }
 
-    @Test
-    void registryEndpointFilter_WithBeansEndpoint_ReturnsFalse() {
+    private boolean testMetricsEndpoint_ReturnsFalse(String endpointName) {
         ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
         EndpointId endpointId = mock(EndpointId.class);
         when(endpoint.getEndpointId()).thenReturn(endpointId);
-        when(endpointId.toLowerCaseString()).thenReturn("beans");
+        when(endpointId.toLowerCaseString()).thenReturn(endpointName);
 
         EndpointFilter<ExposableWebEndpoint> filter = config.registryEndpointFilter();
         
         assertNotNull(filter);
         assertFalse(filter.match(endpoint));
-    }
-
-    @Test
-    void registryEndpointFilter_WithGatewayEndpoint_ReturnsFalse() {
-        ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
-        EndpointId endpointId = mock(EndpointId.class);
-        when(endpoint.getEndpointId()).thenReturn(endpointId);
-        when(endpointId.toLowerCaseString()).thenReturn("gateway");
-
-        EndpointFilter<ExposableWebEndpoint> filter = config.registryEndpointFilter();
-        
-        assertNotNull(filter);
-        assertFalse(filter.match(endpoint));
-    }
-
-    @Test
-    void registryEndpointFilter_WithUnknownEndpoint_ReturnsFalse() {
-        ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
-        EndpointId endpointId = mock(EndpointId.class);
-        when(endpoint.getEndpointId()).thenReturn(endpointId);
-        when(endpointId.toLowerCaseString()).thenReturn("unknown");
-
-        EndpointFilter<ExposableWebEndpoint> filter = config.registryEndpointFilter();
-        
-        assertNotNull(filter);
-        assertFalse(filter.match(endpoint));
+        return true;
     }
 
     @Test

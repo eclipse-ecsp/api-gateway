@@ -45,6 +45,8 @@ import static org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimite
  */
 public class RateLimitRouteCustomizer implements RouteCustomizer {
 
+    private static final String KEY_RESOLVER = "KeyResolver";
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitRouteCustomizer.class);
 
     private final RateLimitConfigResolver rateLimitConfigResolver;
@@ -165,8 +167,8 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             default -> {
                 // For custom resolvers, try camelCase conversion
                 resolverName = toCamelCase(originalResolverName);
-                if (!resolverName.endsWith("KeyResolver")) {
-                    resolverName = resolverName + "KeyResolver";
+                if (!resolverName.endsWith(KEY_RESOLVER)) {
+                    resolverName = resolverName + KEY_RESOLVER;
                 }
             }
         }
@@ -183,9 +185,9 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         }
         
         // Try camelCase with KeyResolver suffix
-        String camelCaseWithSuffix = camelCaseName.endsWith("KeyResolver") 
+        String camelCaseWithSuffix = camelCaseName.endsWith(KEY_RESOLVER) 
                 ? camelCaseName 
-                : camelCaseName + "KeyResolver";
+                : camelCaseName + KEY_RESOLVER;
         if (validateIfKeyResolverExists(camelCaseWithSuffix)) {
             return camelCaseWithSuffix;
         }
@@ -231,7 +233,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         if (StringUtils.isEmpty(input)) {
             return input;
         }
-        String[] parts = input.toLowerCase().split("_|-");
+        String[] parts = input.toLowerCase().split("[_-]");
         StringBuilder camelCase = new StringBuilder(parts[0]);
         for (int i = 1; i < parts.length; i++) {
             camelCase.append(StringUtils.capitalize(parts[i]));

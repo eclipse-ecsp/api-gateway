@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for ServicesMetrics.
@@ -113,8 +114,11 @@ class ServicesMetricsTest {
 
     @Test
     void listenHealthStatus_WithNullEvent_DoesNotThrowException() {
-        servicesMetrics.listenHealthStatus(null);
-        // Should not throw exception
+        try {
+            servicesMetrics.listenHealthStatus(null);
+        } catch (Exception e) {
+            fail("Method should not throw exception when event is null");
+        }
     }
 
     @Test

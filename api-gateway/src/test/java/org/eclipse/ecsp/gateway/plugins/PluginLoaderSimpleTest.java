@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -233,8 +234,13 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
-        pluginLoader.destroy();
+        try {
+            pluginLoader.initialize();
+            pluginLoader.destroy();
+        } catch (final Exception e) {
+            Assertions.fail("Destroy should not throw exception", e);
+        }
+        
         // Should complete without exception
     }
 
@@ -248,11 +254,15 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
         // Call multiple times
-        pluginLoader.initialize();
-        pluginLoader.initialize();
-        pluginLoader.initialize();
-
-        // Should not throw exception
+        try {
+            pluginLoader.initialize();
+            pluginLoader.initialize();
+            pluginLoader.initialize();
+            // Should not throw exception
+        } catch (final Exception e) {
+            Assertions.fail("Destroy should not throw exception", e);
+        }
+        
     }
 
     @Test
@@ -262,8 +272,11 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Arrays.asList("com.example.Plugin"));
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
-        // Should complete without exception
+        try {
+            pluginLoader.initialize();
+        } catch (final Exception e) {
+            Assertions.fail("Initialize should not throw exception", e);
+        }
     }
 
     @Test

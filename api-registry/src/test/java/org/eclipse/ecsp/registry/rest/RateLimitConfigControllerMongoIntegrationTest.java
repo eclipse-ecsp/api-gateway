@@ -38,7 +38,8 @@ class RateLimitConfigControllerMongoIntegrationTest extends AbstractRateLimitCon
     private static final String MONGO_AUTH_DB = "admin";
     @SuppressWarnings("resource")
     @Container
-    private static final GenericContainer  MONGO_CONTAINER = new GenericContainer(DockerImageName.parse(MONGO_IMAGE))
+    private static final GenericContainer<?> MONGO_CONTAINER = 
+        new GenericContainer<>(DockerImageName.parse(MONGO_IMAGE))
             .withExposedPorts(MONGO_PORT)
             .withEnv("MONGO_INITDB_ROOT_USERNAME", MONGO_USERNAME)
             .withEnv("MONGO_INITDB_ROOT_PASSWORD", MONGO_PASSWORD)

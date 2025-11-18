@@ -141,6 +141,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         String tokenHeaderValue = null;
         if (tokenHeader != null) {
             Object headerValue = claims.get(tokenHeader);
+           
             if (headerValue instanceof List<?> list) {
                 // If the header value is a list, join it with commas
                 tokenHeaderValue = list.stream()
@@ -422,7 +423,6 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private String validateScope(final Route route, final Claims claims, String requestId, 
                                 String requestPath) {
         if (route == null || claims == null) {

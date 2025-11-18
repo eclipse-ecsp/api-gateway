@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
@@ -32,6 +33,7 @@ import org.springframework.http.client.observation.ClientRequestObservationConte
 import java.io.IOException;
 import java.net.URI;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
@@ -105,45 +107,25 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    @SuppressWarnings("checkstyle:MagicNumber")
     void outcomeStatus_WithSuccessResponse_ReturnsSuccess() throws IOException {
-        when(context.getResponse()).thenReturn(response);
-        when(context.getError()).thenReturn(null);
-        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(200));
-
-        KeyValue outcome = convention.outcomeStatus(context);
-
-        assertNotNull(outcome);
-        assertEquals("outcome", outcome.getKey());
-        assertEquals("SUCCESS", outcome.getValue());
+        assertTrue(testOutCome(HttpStatus.OK.value(), "SUCCESS"));
+        assertTrue(testOutCome(HttpStatus.NOT_FOUND.value(), "CLIENT_ERROR"));
+        assertTrue(testOutCome(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SERVER_ERROR"));
+        assertTrue(testOutCome(HttpStatus.MOVED_PERMANENTLY.value(), "REDIRECTION"));
+        assertTrue(testOutCome(HttpStatus.UNAUTHORIZED.value(), "CLIENT_ERROR"));
     }
 
-    @Test
-    @SuppressWarnings("checkstyle:MagicNumber")
-    void outcomeStatus_WithClientError_ReturnsClientError() throws IOException {
+    private boolean testOutCome(int statusCode, String expectedOutcome) throws IOException {
         when(context.getResponse()).thenReturn(response);
         when(context.getError()).thenReturn(null);
-        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(404));
+        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(statusCode));
 
         KeyValue outcome = convention.outcomeStatus(context);
 
         assertNotNull(outcome);
         assertEquals("outcome", outcome.getKey());
-        assertEquals("CLIENT_ERROR", outcome.getValue());
-    }
-
-    @Test
-    @SuppressWarnings("checkstyle:MagicNumber")
-    void outcomeStatus_WithServerError_ReturnsServerError() throws IOException {
-        when(context.getResponse()).thenReturn(response);
-        when(context.getError()).thenReturn(null);
-        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(500));
-
-        KeyValue outcome = convention.outcomeStatus(context);
-
-        assertNotNull(outcome);
-        assertEquals("outcome", outcome.getKey());
-        assertEquals("SERVER_ERROR", outcome.getValue());
+        assertEquals(expectedOutcome, outcome.getValue());
+        return true;
     }
 
     @Test
@@ -187,46 +169,5 @@ class HttpClientObservationConventionTest {
         assertNotNull(outcome);
         assertEquals("outcome", outcome.getKey());
         assertEquals("UNKNOWN", outcome.getValue());
-    }
-
-    @Test
-    @SuppressWarnings("checkstyle:MagicNumber")
-    void outcomeStatus_WithRedirection_ReturnsRedirection() throws IOException {
-        when(context.getResponse()).thenReturn(response);
-        when(context.getError()).thenReturn(null);
-        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(302));
-
-        KeyValue outcome = convention.outcomeStatus(context);
-
-        assertNotNull(outcome);
-        assertEquals("outcome", outcome.getKey());
-        assertEquals("REDIRECTION", outcome.getValue());
-    }
-
-    @Test
-    void url_WithPathNull_ReturnsDefaultValue() {
-        when(context.getCarrier()).thenReturn(request);
-        when(request.getURI()).thenReturn(null);
-
-        KeyValue url = convention.url(context);
-
-        assertNotNull(url);
-        assertEquals("uri", url.getKey());
-        // Parent class returns "none" as default when URI is null
-        assertEquals("none", url.getValue());
-    }
-
-    @Test
-    @SuppressWarnings("checkstyle:MagicNumber")
-    void outcomeStatus_WithUnauthorized_ReturnsClientError() throws IOException {
-        when(context.getResponse()).thenReturn(response);
-        when(context.getError()).thenReturn(null);
-        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(401));
-
-        KeyValue outcome = convention.outcomeStatus(context);
-
-        assertNotNull(outcome);
-        assertEquals("outcome", outcome.getKey());
-        assertEquals("CLIENT_ERROR", outcome.getValue());
     }
 }

@@ -99,12 +99,12 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
 
         List<RateLimitConfigEntity> entities = config.stream()
             .map(this::convertToEntity)
-            .collect(Collectors.toList());
+            .toList();
 
         // save all configs
         List<RateLimitConfigDto> updatedDtos = rateLimitConfigRepository.saveAll(entities).stream()
             .map(this::convertToDto)
-            .collect(Collectors.toList());
+            .toList();
         LOGGER.info("Added or updated {} rate limit configurations.", updatedDtos.size());
         return updatedDtos;
     }
@@ -167,7 +167,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         LOGGER.info("Retrieving all rate limit configurations.");
         List<RateLimitConfigDto> configs = rateLimitConfigRepository.findAll().stream()
             .map(this::convertToDto)
-            .collect(Collectors.toList());
+            .toList();
         LOGGER.info("Retrieved {} rate limit configurations.", configs.size());
         return configs.isEmpty() ? List.of() : configs;
     }
@@ -291,17 +291,17 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
      */
     private void validateHeaderKeyResolverArgs(RateLimitConfigDto config, String identifier) {
         // validate if the key resolver is header and args contains header name
-        if (config.getKeyResolver().equalsIgnoreCase("header") 
-            || config.getKeyResolver().equals("headerKeyResolver")) {
-            if (config.getArgs() == null || !config.getArgs().containsKey("headerName")
-                || StringUtils.isBlank(config.getArgs().get("headerName"))) {
-                LOGGER.error("Header name is missing in args for header key resolver in the config: {}", config);
-                throw new ResponseStatusException(
+        if ((config.getKeyResolver().equalsIgnoreCase("header") 
+            || config.getKeyResolver().equals("headerKeyResolver"))
+            && (config.getArgs() == null 
+            || !config.getArgs().containsKey("headerName")
+            || StringUtils.isBlank(config.getArgs().get("headerName")))) {
+            LOGGER.error("Header name is missing in args for header key resolver in the config: {}", config);
+            throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     String.format("Header name must be specified in args for header key resolver for %s.",
                         identifier)
-                );
-            }
+            );
         }
     }
 
@@ -336,7 +336,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             LOGGER.error("Invalid replenish rate or burst capacity in the config: {}, {}," 
                 + "should be positive integers", config,
                 "ReplenishRate: " + config.getReplenishRate()
-                + ", BurstCapacity: " + config.getBurstCapacity());
+                + "and BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 String.format("Replenish rate and burst capacity must be positive integers for %s.", identifier)
@@ -364,7 +364,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             LOGGER.error("Burst capacity is less than replenish rate in the config: {}, {}," 
                 + "burst capacity should be greater than or equal to replenish rate", config,
                 "ReplenishRate: " + config.getReplenishRate()
-                + ", BurstCapacity: " + config.getBurstCapacity());
+                + "and BurstCapacity: " + config.getBurstCapacity());
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 String.format("Burst capacity (%d) must be greater than or equal to replenish rate (%d) for %s.",
@@ -441,7 +441,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             .stream()
             .filter(e -> e.getValue() > 1)
             .map(e -> e.getKey())
-            .collect(Collectors.toList());
+            .toList();
 
         if (!routeIds.isEmpty()) {
             throw new ResponseStatusException(
@@ -466,7 +466,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             .stream()
             .filter(e -> e.getValue() > 1)
             .map(e -> e.getKey())
-            .collect(Collectors.toList());
+            .toList();
         
         if (!services.isEmpty()) {
             throw new ResponseStatusException(

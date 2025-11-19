@@ -45,8 +45,14 @@ import static org.mockito.Mockito.when;
  * Unit tests for RateLimitRouteCustomizer.
  */
 @ExtendWith(SpringExtension.class)
-@SuppressWarnings("checkstyle:MagicNumber")
 class RateLimitRouteCustomizerTest {
+
+    private static final int REPLENISH_RATE_50 = 50;
+    private static final int REPLENISH_RATE_100 = 100;
+    private static final int BURST_CAPACITY_100 = 100;
+    private static final int BURST_CAPACITY_200 = 200;
+    private static final int REQUESTED_TOKENS_2 = 2;
+    private static final int MIN_FILTER_COUNT_WITH_REMOVE_HEADERS = 5;
 
     @Mock
     private RateLimitConfigResolver rateLimitConfigResolver;
@@ -102,7 +108,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithValidRateLimit_AddsRateLimitFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 100, 200);
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -118,8 +124,8 @@ class RateLimitRouteCustomizerTest {
     void customize_WithRateLimit_SetsCorrectConfiguration() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("client-ip", 50, 100);
-        rateLimit.setRequestedTokens(2);
+        RateLimit rateLimit = createRateLimit("client-ip", REPLENISH_RATE_50, BURST_CAPACITY_100);
+        rateLimit.setRequestedTokens(REQUESTED_TOKENS_2);
         rateLimit.setIncludeHeaders(false);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
@@ -150,7 +156,7 @@ class RateLimitRouteCustomizerTest {
     private boolean testKeyResolverResolves(String keyResolverName) throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit(keyResolverName, 100, 200);
+        RateLimit rateLimit = createRateLimit(keyResolverName, REPLENISH_RATE_100, BURST_CAPACITY_200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -167,7 +173,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithNonExistentKeyResolver_ThrowsIllegalStateException() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("nonExistentResolver", 100, 200);
+        RateLimit rateLimit = createRateLimit("nonExistentResolver", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -180,7 +186,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithCustomArgs_AddsArgsToMetadata() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 100, 200);
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
         Map<String, String> customArgs = new HashMap<>();
         customArgs.put("customArg1", "value1");
         customArgs.put("customArg2", "value2");
@@ -200,7 +206,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithCustomArgs_AddsArgsToFilterConfig() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 100, 200);
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
         Map<String, String> customArgs = new HashMap<>();
         customArgs.put("headerName", "X-Custom-Header");
         rateLimit.setArgs(customArgs);
@@ -218,7 +224,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithEmptyCustomArgs_DoesNotAddMetadata() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("clientIp", 100, 200);
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
         rateLimit.setArgs(new HashMap<>());
         int originalMetadataSize = routeDef.getMetadata().size();
 
@@ -240,7 +246,7 @@ class RateLimitRouteCustomizerTest {
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
-        RateLimit rateLimit = createRateLimit("userId", 100, 200);
+        RateLimit rateLimit = createRateLimit("userId", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
@@ -276,5 +282,145 @@ class RateLimitRouteCustomizerTest {
         rateLimit.setRequestedTokens(1);
         rateLimit.setIncludeHeaders(true);
         return rateLimit;
+    }
+
+    @Test
+    void customize_WithIncludeHeadersFalse_AddsRemoveHeaderFilters() throws URISyntaxException {
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        rateLimit.setIncludeHeaders(false);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
+
+        // Should have RequestRateLimiter + 4 RemoveResponseHeader filters
+        assertTrue(result.getFilters().size() >= MIN_FILTER_COUNT_WITH_REMOVE_HEADERS,
+            "Should have multiple filters");
+        assertEquals("false", result.getFilters().get(0).getArgs().get("include-headers"),
+            "include-headers should be false");
+    }
+
+    @Test
+    void customize_WithHeaderKeyResolver_ResolvesProperly() throws URISyntaxException {
+        Map<String, KeyResolver> specificResolvers = new HashMap<>();
+        KeyResolver headerResolver = org.mockito.Mockito.mock(KeyResolver.class);
+        specificResolvers.put("headerKeyResolver", headerResolver);
+        RateLimitRouteCustomizer specificCustomizer =
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("header", REPLENISH_RATE_100, BURST_CAPACITY_200);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
+
+        FilterDefinition filter = result.getFilters().get(0);
+        String keyResolver = filter.getArgs().get("key-resolver");
+        assertNotNull(keyResolver);
+        assertTrue(keyResolver.contains("headerKeyResolver"));
+    }
+
+    @Test
+    void customize_WithRoutePathKeyResolver_ResolvesProperly() throws URISyntaxException {
+        Map<String, KeyResolver> specificResolvers = new HashMap<>();
+        specificResolvers.put("userIdKeyResolver", userIdKeyResolver);
+        RateLimitRouteCustomizer specificCustomizer =
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("route_path", REPLENISH_RATE_100, BURST_CAPACITY_200);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
+
+        FilterDefinition filter = result.getFilters().get(0);
+        String keyResolver = filter.getArgs().get("key-resolver");
+        assertNotNull(keyResolver);
+        assertTrue(keyResolver.contains("userIdKeyResolver"));
+    }
+
+    @Test
+    void customize_WithRouteNameKeyResolver_ResolvesProperly() throws URISyntaxException {
+        Map<String, KeyResolver> specificResolvers = new HashMap<>();
+        KeyResolver apiKeyResolver = org.mockito.Mockito.mock(KeyResolver.class);
+        specificResolvers.put("apiKeyKeyResolver", apiKeyResolver);
+        RateLimitRouteCustomizer specificCustomizer =
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("route_name", REPLENISH_RATE_100, BURST_CAPACITY_200);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
+
+        FilterDefinition filter = result.getFilters().get(0);
+        String keyResolver = filter.getArgs().get("key-resolver");
+        assertNotNull(keyResolver);
+        assertTrue(keyResolver.contains("apiKeyKeyResolver"));
+    }
+
+    @Test
+    void customize_WithEmptyKeyResolver_ThrowsIllegalStateException() throws URISyntaxException {
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("", REPLENISH_RATE_100, BURST_CAPACITY_200);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        try {
+            customizer.customize(routeDef, igniteRoute);
+            org.junit.jupiter.api.Assertions.fail("Expected IllegalStateException was not thrown");
+        } catch (IllegalStateException exception) {
+            assertTrue(exception.getMessage().contains("No valid KeyResolver found"));
+        }
+    }
+
+    @Test
+    void customize_WithCustomResolverName_ResolvesCorrectly() throws URISyntaxException {
+        KeyResolver customResolver = org.mockito.Mockito.mock(KeyResolver.class);
+        Map<String, KeyResolver> specificResolvers = new HashMap<>();
+        specificResolvers.put("myCustomResolver", customResolver);
+        RateLimitRouteCustomizer specificCustomizer =
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("myCustomResolver", REPLENISH_RATE_100, BURST_CAPACITY_200);
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
+
+        FilterDefinition filter = result.getFilters().get(0);
+        String keyResolver = filter.getArgs().get("key-resolver");
+        assertNotNull(keyResolver);
+        assertTrue(keyResolver.contains("myCustomResolver"));
+    }
+
+    @Test
+    void customize_WithDenyEmptyKeyAndEmptyKeyStatus_AddsToFilterConfig() throws URISyntaxException {
+        IgniteRouteDefinition igniteRoute = createIgniteRoute();
+        final RouteDefinition routeDef = createRouteDefinition();
+        RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        rateLimit.setDenyEmptyKey(true);
+        rateLimit.setEmptyKeyStatus("429");
+
+        when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
+
+        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
+
+        FilterDefinition filter = result.getFilters().get(0);
+        Map<String, String> args = filter.getArgs();
+
+        assertEquals("true", args.get("denyEmptyKey"));
+        assertEquals("429", args.get("emptyKeyStatus"));
     }
 }

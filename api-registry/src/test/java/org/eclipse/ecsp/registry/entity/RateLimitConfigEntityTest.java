@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.registry.entity;
 
 import org.eclipse.ecsp.domain.Version;
+import org.eclipse.ecsp.entities.IgniteEntity;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -224,6 +225,7 @@ class RateLimitConfigEntityTest {
         // Assert
         assertEquals(Version.V1_0, entity.getSchemaVersion());
         assertNotNull(entity.getSchemaVersion());
+        assertTrue(entity instanceof IgniteEntity);
     }
 
     @Test

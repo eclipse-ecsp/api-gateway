@@ -32,6 +32,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -156,6 +158,7 @@ class RedisCacheEnabledConditionTest {
 
         // Assert
         assertTrue(result);
+        verify(environment, atLeastOnce()).getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS);
     }
 
     @Test
@@ -169,6 +172,7 @@ class RedisCacheEnabledConditionTest {
 
         // Assert
         assertFalse(result);
+        verify(environment, atLeastOnce()).getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE);
     }
 
     @Test

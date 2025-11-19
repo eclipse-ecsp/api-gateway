@@ -33,9 +33,9 @@ import org.springframework.http.client.observation.ClientRequestObservationConte
 import java.io.IOException;
 import java.net.URI;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**

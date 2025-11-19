@@ -41,7 +41,7 @@
       }
     }
   },
-  "postCreateCommand": "sudo chown -R $(id -u):$(id -g) /workspaces && sudo apt-get update && sudo apt-get install -y apache2-utils jq",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
   "portsAttributes": {
     "7000": {
       "label": "api-registry",

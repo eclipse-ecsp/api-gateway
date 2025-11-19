@@ -22,7 +22,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:
     needs: maven_build
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@sonar-report-v2
     with:
       java_version: '21'
       java_distribution: 'temurin'

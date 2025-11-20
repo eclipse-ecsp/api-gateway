@@ -55,7 +55,7 @@ public class RequestHeaderKeyResolver implements KeyResolver {
         String headerName = (String) rateLimitConfig.keySet().stream()
                 .filter(key -> key.equalsIgnoreCase("headerName"))
                 .findFirst()
-                .map(key -> rateLimitConfig.get(key))
+                .map(rateLimitConfig::get)
                 .orElse(null);
         if (headerName == null || headerName.isEmpty()) {
             LOGGER.error("Header name is not configured for RequestHeaderKeyResolver");

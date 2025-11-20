@@ -52,7 +52,11 @@ public class RequestHeaderKeyResolver implements KeyResolver {
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
         Map<String, Object> rateLimitConfig = RouteUtils.getRateLimitArgs(route);
 
-        String headerName = (String) rateLimitConfig.get("headerName");
+        String headerName = (String) rateLimitConfig.keySet().stream()
+                .filter(key -> key.equalsIgnoreCase("headerName"))
+                .findFirst()
+                .map(key -> rateLimitConfig.get(key))
+                .orElse(null);
         if (headerName == null || headerName.isEmpty()) {
             LOGGER.error("Header name is not configured for RequestHeaderKeyResolver");
             return Mono.empty();

@@ -267,6 +267,44 @@ class KeyResolversTest {
                 .verifyComplete();
     }
 
+    @Test
+    void requestHeaderKeyResolver_WithCaseInsensitiveHeaderNameAttribute_ReturnsHeaderValue() {
+        // Arrange - test case insensitive attribute key matching (HEADERNAME, HeaderName, etc.)
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "HEADERNAME", "X-User-ID");
+        headers.add("X-User-ID", "user-12345");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("user-12345")
+                .verifyComplete();
+    }
+
+    @Test
+    void requestHeaderKeyResolver_WithMixedCaseHeaderNameAttribute_ReturnsHeaderValue() {
+        // Arrange - test with mixed case attribute key
+        metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "HeaderName", "X-Client-ID");
+        headers.add("X-Client-ID", "client-98765");
+        
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
+        when(route.getMetadata()).thenReturn(metadata);
+
+        // Act
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext("client-98765")
+                .verifyComplete();
+    }
+
     // ========== RouteNameKeyResolver Tests ==========
 
     @Test

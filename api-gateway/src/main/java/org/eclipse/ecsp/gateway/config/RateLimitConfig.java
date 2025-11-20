@@ -35,14 +35,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
-import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-
-import java.util.Map;
 
 /**
  * configuration class for Rate Limiting.
@@ -97,9 +95,9 @@ public class RateLimitConfig {
     @Bean
     @ConditionalOnMissingBean
     public RateLimitRouteCustomizer rateLimitRouteCustomizer(RateLimitConfigResolver rateLimitConfigResolver,
-        Map<String, KeyResolver> keyResolvers) {
-        LOG.debug("Creating RateLimitRouteCustomizer bean with {} key resolvers", keyResolvers.size());
-        return new RateLimitRouteCustomizer(rateLimitConfigResolver, keyResolvers);
+        ApplicationContext applicationContext) {
+        LOG.debug("Creating RateLimitRouteCustomizer bean with ApplicationContext for dynamic KeyResolver lookup");
+        return new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
     }
 
 }

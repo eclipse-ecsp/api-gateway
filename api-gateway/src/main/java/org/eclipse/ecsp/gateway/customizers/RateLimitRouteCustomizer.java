@@ -30,6 +30,7 @@ import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewa
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.support.NameUtils;
+import org.springframework.context.ApplicationContext;
 
 import java.util.HashMap;
 import java.util.List;
@@ -50,19 +51,19 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitRouteCustomizer.class);
 
     private final RateLimitConfigResolver rateLimitConfigResolver;
-    private final Map<String, KeyResolver> keyResolvers;
+    private final ApplicationContext applicationContext;
 
     /**
      * Constructor to initialize RateLimitRouteCustomizer.
      *
      * @param rateLimitConfigResolver the RateLimitConfigResolver
+     * @param applicationContext the ApplicationContext for dynamic bean lookup
      */
     public RateLimitRouteCustomizer(RateLimitConfigResolver rateLimitConfigResolver, 
-        Map<String, KeyResolver> keyResolvers) {
+        ApplicationContext applicationContext) {
         this.rateLimitConfigResolver = rateLimitConfigResolver;
-        this.keyResolvers = keyResolvers;
-        LOGGER.info("RateLimitRouteCustomizer initialized with {} key resolvers : {}", 
-            keyResolvers.size(), keyResolvers.keySet());
+        this.applicationContext = applicationContext;
+        LOGGER.info("RateLimitRouteCustomizer initialized with ApplicationContext for dynamic KeyResolver lookup");
     }
 
     /** {@inheritDoc} */
@@ -139,7 +140,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
      * Get the KeyResolver bean name based on the RateLimit configuration.
      * Supports multiple formats:
      * - Standard names: CLIENT_IP, client_ip, client-ip, clientIpKeyResolver
-     * - Custom resolvers: customKeyResolver, CustomKeyResolver
+     * - Custom resolvers: customKeyResolver, CustomKeyResolver, VehicleIdKeyResolver
      *
      * @param rateLimit the RateLimit configuration
      * @return the KeyResolver bean name
@@ -147,12 +148,19 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
     private String getKeyResolverBeanName(RateLimit rateLimit) {
         String originalResolverName = rateLimit.getKeyResolver();
         
-        // First, try the original name as-is (handles cases like customKeyResolver, CustomKeyResolver)
+        // First, try the original name as-is (handles cases like customKeyResolver)
         if (validateIfKeyResolverExists(originalResolverName)) {
             return originalResolverName;
         }
         
-        // Normalize the input by removing "KeyResolver" suffix and converting to lowercase
+        // Try Spring bean naming convention (first letter lowercase, rest unchanged)
+        // Example: CustomKeyResolver -> customKeyResolver
+        String springBeanName = toSpringBeanName(originalResolverName);
+        if (validateIfKeyResolverExists(springBeanName)) {
+            return springBeanName;
+        }
+        
+        // Normalize the input by removing "KeyResolver" suffix and converting to lowercase for standard resolvers
         String normalized = originalResolverName.toLowerCase()
                 .replace("keyresolver", "")
                 .replace("-", "_");
@@ -165,7 +173,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             case "route_path", "routepath" -> resolverName = "userIdKeyResolver";
             case "route_name", "routename" -> resolverName = "apiKeyKeyResolver";
             default -> {
-                // For custom resolvers, try camelCase conversion
+                // For custom resolvers with underscores/hyphens, try camelCase conversion
                 resolverName = toCamelCase(originalResolverName);
                 if (!resolverName.endsWith(KEY_RESOLVER)) {
                     resolverName = resolverName + KEY_RESOLVER;
@@ -178,41 +186,58 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             return resolverName;
         }
         
-        // Try camelCase version of original name
-        String camelCaseName = toCamelCase(originalResolverName);
-        if (validateIfKeyResolverExists(camelCaseName)) {
-            return camelCaseName;
-        }
-        
-        // Try camelCase with KeyResolver suffix
-        String camelCaseWithSuffix = camelCaseName.endsWith(KEY_RESOLVER) 
-                ? camelCaseName 
-                : camelCaseName + KEY_RESOLVER;
-        if (validateIfKeyResolverExists(camelCaseWithSuffix)) {
-            return camelCaseWithSuffix;
-        }
-        
         // If still not found, log error and throw exception
         LOGGER.error(
-                "No KeyResolver bean found, attempted resolver names: [{}, {}, {}, {}]", 
-                originalResolverName, resolverName, camelCaseName, camelCaseWithSuffix);
+                "No KeyResolver bean found, attempted resolver names: [{}, {}]", 
+                originalResolverName, springBeanName);
         throw new IllegalStateException(
                 "No valid KeyResolver found for rate limiting: " + originalResolverName);
     }
 
     /**
+     * Convert class name to Spring bean naming convention (first letter lowercase, rest unchanged).
+     * Examples:
+     * <ul>
+     *   <li>VehicleIdKeyResolver -> vehicleIdKeyResolver</li>
+     *   <li>CustomKeyResolver -> customKeyResolver</li>
+     *   <li>ClassA -> classA</li>
+     * </ul>
+     *
+     * @param className the class name or bean name
+     * @return the Spring bean name (camelCase with first letter lowercase)
+     */
+    private String toSpringBeanName(String className) {
+        if (StringUtils.isEmpty(className)) {
+            return className;
+        }
+        // Convert only the first character to lowercase, preserve the rest
+        return Character.toLowerCase(className.charAt(0)) + className.substring(1);
+    }
+
+    /**
      * Validate if a KeyResolver bean exists with the given name.
+     * Dynamically looks up the bean from ApplicationContext to support late-registered plugins.
      *
      * @param resolverName the KeyResolver bean name
      * @return true if the KeyResolver bean exists, false otherwise
      */
     private boolean validateIfKeyResolverExists(String resolverName) {
-        if (keyResolvers.containsKey(resolverName)) {
-            LOGGER.debug("Using KeyResolver: {} for rate limiting", resolverName);
-            return true;
+        try {
+            // Dynamic lookup from ApplicationContext to find beans registered after initialization
+            Map<String, KeyResolver> allKeyResolvers = 
+                applicationContext.getBeansOfType(KeyResolver.class);
+            
+            if (allKeyResolvers.containsKey(resolverName)) {
+                LOGGER.debug("Using KeyResolver: {} for rate limiting", resolverName);
+                return true;
+            }
+            LOGGER.debug("No KeyResolver bean found for name: {} (available: {})", 
+                resolverName, allKeyResolvers.keySet());
+            return false;
+        } catch (Exception e) {
+            LOGGER.debug("Error looking up KeyResolver bean: {}", resolverName, e);
+            return false;
         }
-        LOGGER.debug("No KeyResolver bean found for name: {}", resolverName);
-        return false;
     }
 
     /**

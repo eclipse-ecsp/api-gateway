@@ -18,15 +18,17 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.ecsp.gateway.utils.JarUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.GenericApplicationContext;
@@ -48,48 +50,55 @@ import java.util.stream.Collectors;
 
 /**
  * Load external jar plugin classes and register to spring context.
+ * Implements BeanFactoryPostProcessor to register beans before instantiation.
  */
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class PluginLoader {
+public class PluginLoader implements ApplicationContextAware, BeanFactoryPostProcessor {
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(PluginLoader.class);
     
-    private final GenericApplicationContext applicationContext;
+    private GenericApplicationContext applicationContext;
     private final Object initializationMonitor = new Object();
 
     private volatile boolean initializationAttempted;
     private URLClassLoader pluginClassLoader;
 
-    @Value("${plugin.enabled:false}")
     private boolean pluginEnabled;
-
-    @Value("${plugin.path:}")
     private String pluginJarPath;
-
-    @Value("#{'${plugin.classes:}'.split(',')}")
     private List<String> pluginJarClasses;
-
-    @Value("#{'${plugin.packages:}'.split(',')}")
     private List<String> pluginPackages;
 
     /**
-     * Constructor to initialize the PluginLoader with the application context.
+     * Post-process the bean factory to load and register plugins before beans are instantiated.
+     * This allows plugin @Configuration classes and @Bean methods to be processed by Spring.
      *
-     * @param applicationContext the application context
+     * @param beanFactory the bean factory
+     * @throws BeansException if an error occurs
      */
-    public PluginLoader(ApplicationContext applicationContext) {
-        this.applicationContext = (GenericApplicationContext) applicationContext;
-    }
-
-    @PostConstruct
-    void initialize() {
-        if (pluginEnabled) {
-            pluginJarClasses = sanitize(pluginJarClasses);
-            pluginPackages = sanitize(pluginPackages);
-            ensurePluginInfrastructure();    
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        // Read configuration properties from environment
+        String enabled = applicationContext.getEnvironment().getProperty("plugin.enabled", "false");
+        pluginEnabled = Boolean.parseBoolean(enabled);
+        
+        if (!pluginEnabled) {
+            LOGGER.info("Plugin loading is disabled");
+            return;
         }
         
+        pluginJarPath = applicationContext.getEnvironment().getProperty("plugin.path", "");
+        String classes = applicationContext.getEnvironment().getProperty("plugin.classes", "");
+        String packages = applicationContext.getEnvironment().getProperty("plugin.packages", "");
+        
+        pluginJarClasses = sanitize(classes.isEmpty() ? Collections.emptyList() : 
+            List.of(classes.split(",")));
+        pluginPackages = sanitize(packages.isEmpty() ? Collections.emptyList() : 
+            List.of(packages.split(",")));
+        
+        LOGGER.info("Plugin loading enabled. Path: {}, Classes: {}, Packages: {}", 
+            pluginJarPath, pluginJarClasses.size(), pluginPackages.size());
+        ensurePluginInfrastructure();
     }
 
     @PreDestroy
@@ -181,6 +190,8 @@ public class PluginLoader {
         scanner.setEnvironment(applicationContext.getEnvironment());
         scanner.setResourceLoader(new PathMatchingResourcePatternResolver(pluginClassLoader));
         scanner.addIncludeFilter(new AnnotationTypeFilter(Component.class));
+        scanner.addIncludeFilter(new AnnotationTypeFilter(Configuration.class));
+        scanner.addIncludeFilter(new AnnotationTypeFilter(Bean.class));
         for (String basePackage : pluginPackages) {
             try {
                 Set<BeanDefinition> candidates = scanner.findCandidateComponents(basePackage);
@@ -217,9 +228,61 @@ public class PluginLoader {
             return;
         }
         LOGGER.info("Registering plugin bean {}", pluginClazz.getName());
-        applicationContext.registerBean(pluginClazz.getSimpleName(), pluginClazz);
-        LOGGER.info("Plugin bean {} registered successfully with bean name {}", pluginClazz.getName(), 
-            pluginClazz.getSimpleName());
+        
+        // Generate bean name following Spring's naming convention (camelCase)
+        String beanName = generateBeanName(pluginClazz);
+        
+        // Check if this is a @Configuration class
+        boolean isConfigurationClass = pluginClazz.isAnnotationPresent(Configuration.class);
+        
+        // Register bean definition - Spring will instantiate it later with full support for @Value, @Autowired, etc.
+        applicationContext.registerBean(beanName, pluginClazz, bd -> {
+            bd.setAutowireCandidate(true);
+            bd.setLazyInit(false);
+            bd.setScope(BeanDefinition.SCOPE_SINGLETON);
+            if (isConfigurationClass) {
+                bd.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+            } else {
+                bd.setRole(BeanDefinition.ROLE_APPLICATION);
+            }
+        });
+        
+        LOGGER.info("Plugin bean {} registered successfully with bean name '{}'. " 
+            + "Will be instantiated by Spring with full @Value, @Autowired support", 
+            pluginClazz.getName(), beanName);
+    }
+
+    /**
+     * Generates a bean name following Spring's naming convention.
+     * First checks for explicit bean name in @Component or @Configuration annotations.
+     * If not found, converts simple class name to camelCase (first letter lowercase).
+     *
+     * <p>Examples:
+     * - @Component("classa") -> classa
+     * - @Configuration("myCustomConfig") -> myCustomConfig
+     * - ClassA (no annotation value) -> classA
+     * - VehicleIdKeyResolver (no annotation value) -> vehicleIdKeyResolver
+     *
+     * @param clazz the class to generate bean name for
+     * @return the bean name in camelCase format or custom name from annotation
+     */
+    private String generateBeanName(Class<?> clazz) {
+        // Check for @Component annotation with custom bean name
+        Component componentAnnotation = clazz.getAnnotation(Component.class);
+        if (componentAnnotation != null && StringUtils.hasText(componentAnnotation.value())) {
+            return componentAnnotation.value();
+        }
+        
+        // Check for @Configuration annotation with custom bean name
+        Configuration configAnnotation = clazz.getAnnotation(Configuration.class);
+        if (configAnnotation != null && StringUtils.hasText(configAnnotation.value())) {
+            return configAnnotation.value();
+        }
+        
+        // Fall back to Spring's default naming convention: camelCase
+        String simpleName = clazz.getSimpleName();
+        // Convert first character to lowercase (Spring's bean naming convention)
+        return Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
     }
 
     private List<String> sanitize(List<String> values) {
@@ -232,5 +295,9 @@ public class PluginLoader {
                 .distinct()
                 .collect(Collectors.toList());
     }
-}
 
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = (GenericApplicationContext) applicationContext;
+    }
+}

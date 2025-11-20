@@ -57,7 +57,8 @@ class PluginLoaderSimpleTest {
     void setUp() {
         applicationContext = new GenericApplicationContext();
         applicationContext.refresh();
-        pluginLoader = new PluginLoader(applicationContext);
+        pluginLoader = new PluginLoader();
+        pluginLoader.setApplicationContext(applicationContext);
     }
 
     @Test
@@ -71,7 +72,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "/some/path");
 
         try {
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
         } catch (Exception e) {
             fail("Initialize should not throw exception when plugins are disabled", e);
         }
@@ -83,7 +84,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "");
 
         try {
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
         } catch (Exception e) {
             fail("Initialize should not throw exception when plugins are disabled", e);
         }
@@ -99,7 +100,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
         try {
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
         } catch (Exception e) {
             fail("Initialize should not throw exception when plugins are disabled", e);
         }
@@ -156,7 +157,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
+        pluginLoader.postProcessBeanFactory(null);
 
         final Object result = pluginLoader.loadPlugin("java.lang.String");
 
@@ -173,7 +174,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
+        pluginLoader.postProcessBeanFactory(null);
 
         assertThrows(IllegalArgumentException.class, 
             () -> pluginLoader.loadPlugin("com.nonexistent.Plugin"));
@@ -188,7 +189,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
+        pluginLoader.postProcessBeanFactory(null);
 
         final Object result = pluginLoader.loadPlugin("  java.lang.String  ");
 
@@ -249,7 +250,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
         try {
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
             pluginLoader.destroy();
         } catch (final Exception e) {
             Assertions.fail("Destroy should not throw exception", e);
@@ -269,9 +270,9 @@ class PluginLoaderSimpleTest {
 
         // Call multiple times
         try {
-            pluginLoader.initialize();
-            pluginLoader.initialize();
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
+            pluginLoader.postProcessBeanFactory(null);
+            pluginLoader.postProcessBeanFactory(null);
             // Should not throw exception
         } catch (final Exception e) {
             Assertions.fail("Destroy should not throw exception", e);
@@ -287,7 +288,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
         try {
-            pluginLoader.initialize();
+            pluginLoader.postProcessBeanFactory(null);
         } catch (final Exception e) {
             Assertions.fail("Initialize should not throw exception", e);
         }
@@ -308,7 +309,7 @@ class PluginLoaderSimpleTest {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", classesWithWhitespace);
         ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
 
-        pluginLoader.initialize();
+        pluginLoader.postProcessBeanFactory(null);
 
         @SuppressWarnings("unchecked")
         final List<String> sanitizedClasses = (List<String>) ReflectionTestUtils.getField(

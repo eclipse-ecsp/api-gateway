@@ -29,6 +29,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.route.RouteDefinition;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -63,6 +64,9 @@ class RateLimitRouteCustomizerTest {
     @Mock
     private KeyResolver userIdKeyResolver;
 
+    @Mock
+    private ApplicationContext applicationContext;
+
     private Map<String, KeyResolver> keyResolvers;
     private RateLimitRouteCustomizer customizer;
 
@@ -79,13 +83,17 @@ class RateLimitRouteCustomizerTest {
         keyResolvers.put("useridKeyResolver", userIdKeyResolver);
         keyResolvers.put("clientIpKeyResolver", clientIpKeyResolver);
         keyResolvers.put("userIdKeyResolver", userIdKeyResolver);
-        customizer = new RateLimitRouteCustomizer(rateLimitConfigResolver, keyResolvers);
+        
+        // Mock ApplicationContext to return the keyResolvers map
+        when(applicationContext.getBeansOfType(KeyResolver.class)).thenReturn(keyResolvers);
+        
+        customizer = new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
     }
 
     @Test
     void constructor_WithValidDependencies_InitializesSuccessfully() {
         RateLimitRouteCustomizer testCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, keyResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
         assertNotNull(testCustomizer, "Customizer should be initialized");
     }
 
@@ -241,8 +249,12 @@ class RateLimitRouteCustomizerTest {
         // Create a fresh customizer with only useridKeyResolver (needs suffix)
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("useridKeyResolver", userIdKeyResolver);
+        
+        ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
+        when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
+        
         RateLimitRouteCustomizer specificCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -307,8 +319,12 @@ class RateLimitRouteCustomizerTest {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver headerResolver = org.mockito.Mockito.mock(KeyResolver.class);
         specificResolvers.put("headerKeyResolver", headerResolver);
+        
+        ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
+        when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
+        
         RateLimitRouteCustomizer specificCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -328,8 +344,12 @@ class RateLimitRouteCustomizerTest {
     void customize_WithRoutePathKeyResolver_ResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("userIdKeyResolver", userIdKeyResolver);
+        
+        ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
+        when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
+        
         RateLimitRouteCustomizer specificCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -350,8 +370,12 @@ class RateLimitRouteCustomizerTest {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver apiKeyResolver = org.mockito.Mockito.mock(KeyResolver.class);
         specificResolvers.put("apiKeyKeyResolver", apiKeyResolver);
+        
+        ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
+        when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
+        
         RateLimitRouteCustomizer specificCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -388,8 +412,12 @@ class RateLimitRouteCustomizerTest {
         KeyResolver customResolver = org.mockito.Mockito.mock(KeyResolver.class);
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("myCustomResolver", customResolver);
+        
+        ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
+        when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
+        
         RateLimitRouteCustomizer specificCustomizer =
-            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificResolvers);
+            new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();

@@ -296,18 +296,14 @@ class PluginLoaderSimpleTest {
 
     @Test
     void initialize_WithWhitespaceInClassList_SanitizesCorrectly() {
-        final List<String> classesWithWhitespace = Arrays.asList(
-            "  com.example.Plugin1  ", 
-            "", 
-            "com.example.Plugin2",
-            "  ",
-            null
-        );
+        // Set environment properties before calling postProcessBeanFactory
+        System.setProperty("plugin.enabled", "true");
+        System.setProperty("plugin.path", "/some/path");
+        System.setProperty("plugin.classes", "  com.example.Plugin1  ,,com.example.Plugin2,  ,");
+        System.setProperty("plugin.packages", "");
         
-        ReflectionTestUtils.setField(pluginLoader, "pluginEnabled", true);
-        ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "/some/path");
-        ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", classesWithWhitespace);
-        ReflectionTestUtils.setField(pluginLoader, "pluginPackages", Collections.emptyList());
+        // Refresh context to pick up system properties
+        applicationContext.getEnvironment().getSystemProperties();
 
         pluginLoader.postProcessBeanFactory(null);
 
@@ -319,6 +315,12 @@ class PluginLoaderSimpleTest {
         assertEquals(2, sanitizedClasses.size());
         assertTrue(sanitizedClasses.contains("com.example.Plugin1"));
         assertTrue(sanitizedClasses.contains("com.example.Plugin2"));
+        
+        // Clean up system properties
+        System.clearProperty("plugin.enabled");
+        System.clearProperty("plugin.path");
+        System.clearProperty("plugin.classes");
+        System.clearProperty("plugin.packages");
     }
 
     /**

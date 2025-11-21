@@ -139,7 +139,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
 
     private static String getTokenHeaderValue(Claims claims, String tokenHeader) {
         String tokenHeaderValue = null;
-        if (tokenHeader != null) {
+        if (tokenHeader != null && claims != null && claims.get(tokenHeader) != null) {
             Object headerValue = claims.get(tokenHeader);
             switch (headerValue) {
                 case List<?> list ->

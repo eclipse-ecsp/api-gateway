@@ -82,13 +82,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
                     rateLimit.getReplenishRate(),
                     rateLimit.getBurstCapacity(),
                     igniteRouteDefinition.getId());
-            String resolverName = null;
-            try {
-                resolverName = getKeyResolverBeanName(rateLimit);
-            } catch (IllegalStateException e) {
-                LOGGER.error("Failed to resolve KeyResolver for rate limiting on route {}: {}", 
-                    igniteRouteDefinition.getId(), e.getMessage());
-            }
+            String resolverName = getKeyResolverBeanName(rateLimit);
 
             if (resolverName == null) {
                 LOGGER.error("Skipping rate limiting for route {} due to missing KeyResolver", 
@@ -119,7 +113,6 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             rateLimitFilter.setName(NameUtils.normalizeFilterFactoryName(RequestRateLimiterGatewayFilterFactory.class));
             rateLimitFilter.setArgs(config);
 
-            
             // add custom arguments for KeyResolver if any
             if (rateLimit.getArgs() != null && !rateLimit.getArgs().isEmpty()) {
                 for (Map.Entry<String, String> entry : rateLimit.getArgs().entrySet()) {
@@ -203,8 +196,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         LOGGER.error(
                 "No KeyResolver bean found, attempted resolver names: [{}, {}]", 
                 originalResolverName, springBeanName);
-        throw new IllegalStateException(
-                "No valid KeyResolver found for rate limiting: " + originalResolverName);
+        return null;
     }
 
     /**

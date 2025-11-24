@@ -38,7 +38,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +87,18 @@ class RateLimitRouteCustomizerTest {
         when(applicationContext.getBeansOfType(KeyResolver.class)).thenReturn(keyResolvers);
         
         customizer = new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
+        
+        // Initialize rateLimitResponseHeaders that would normally be injected via @Value
+        org.springframework.test.util.ReflectionTestUtils.setField(
+            customizer, 
+            "rateLimitResponseHeaders", 
+            java.util.Arrays.asList(
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Replenish-Rate",
+                "X-RateLimit-Burst-Capacity",
+                "X-RateLimit-Requested-Tokens"
+            )
+        );
     }
 
     @Test
@@ -178,16 +189,19 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithNonExistentKeyResolver_ThrowsIllegalStateException() throws URISyntaxException {
+    void customize_WithNonExistentKeyResolver_DoesNotAddFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("nonExistentResolver", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        int originalFilterCount = routeDef.getFilters().size();
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
-        assertThrows(IllegalStateException.class,
-            () -> customizer.customize(routeDef, igniteRoute),
-            "Should throw IllegalStateException for non-existent resolver");
+        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
+        
+        assertNotNull(result, "Result should not be null");
+        assertEquals(originalFilterCount, result.getFilters().size(),
+            "Should not add filter when KeyResolver is missing");
     }
 
     @Test
@@ -318,13 +332,25 @@ class RateLimitRouteCustomizerTest {
     void customize_WithHeaderKeyResolver_ResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver headerResolver = org.mockito.Mockito.mock(KeyResolver.class);
-        specificResolvers.put("headerKeyResolver", headerResolver);
+        specificResolvers.put("requestHeaderKeyResolver", headerResolver);
         
         ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
         when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
         
         RateLimitRouteCustomizer specificCustomizer =
             new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
+        
+        // Initialize rateLimitResponseHeaders
+        org.springframework.test.util.ReflectionTestUtils.setField(
+            specificCustomizer, 
+            "rateLimitResponseHeaders", 
+            java.util.Arrays.asList(
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Replenish-Rate",
+                "X-RateLimit-Burst-Capacity",
+                "X-RateLimit-Requested-Tokens"
+            )
+        );
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -334,22 +360,35 @@ class RateLimitRouteCustomizerTest {
 
         RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
 
+        assertTrue(result.getFilters().size() > 0, "Filter should be added");
         FilterDefinition filter = result.getFilters().get(0);
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver);
-        assertTrue(keyResolver.contains("headerKeyResolver"));
+        assertTrue(keyResolver.contains("requestHeaderKeyResolver"));
     }
 
     @Test
     void customize_WithRoutePathKeyResolver_ResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
-        specificResolvers.put("userIdKeyResolver", userIdKeyResolver);
+        specificResolvers.put("routePathKeyResolver", userIdKeyResolver);
         
         ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
         when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
         
         RateLimitRouteCustomizer specificCustomizer =
             new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
+        
+        // Initialize rateLimitResponseHeaders
+        org.springframework.test.util.ReflectionTestUtils.setField(
+            specificCustomizer, 
+            "rateLimitResponseHeaders", 
+            java.util.Arrays.asList(
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Replenish-Rate",
+                "X-RateLimit-Burst-Capacity",
+                "X-RateLimit-Requested-Tokens"
+            )
+        );
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -359,23 +398,36 @@ class RateLimitRouteCustomizerTest {
 
         RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
 
+        assertTrue(result.getFilters().size() > 0, "Filter should be added");
         FilterDefinition filter = result.getFilters().get(0);
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver);
-        assertTrue(keyResolver.contains("userIdKeyResolver"));
+        assertTrue(keyResolver.contains("routePathKeyResolver"));
     }
 
     @Test
     void customize_WithRouteNameKeyResolver_ResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
-        KeyResolver apiKeyResolver = org.mockito.Mockito.mock(KeyResolver.class);
-        specificResolvers.put("apiKeyKeyResolver", apiKeyResolver);
+        KeyResolver routeNameResolver = org.mockito.Mockito.mock(KeyResolver.class);
+        specificResolvers.put("routeNameKeyResolver", routeNameResolver);
         
         ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
         when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
         
         RateLimitRouteCustomizer specificCustomizer =
             new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
+        
+        // Initialize rateLimitResponseHeaders
+        org.springframework.test.util.ReflectionTestUtils.setField(
+            specificCustomizer, 
+            "rateLimitResponseHeaders", 
+            java.util.Arrays.asList(
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Replenish-Rate",
+                "X-RateLimit-Burst-Capacity",
+                "X-RateLimit-Requested-Tokens"
+            )
+        );
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
@@ -385,26 +437,27 @@ class RateLimitRouteCustomizerTest {
 
         RouteDefinition result = specificCustomizer.customize(routeDef, igniteRoute);
 
+        assertTrue(result.getFilters().size() > 0, "Filter should be added");
         FilterDefinition filter = result.getFilters().get(0);
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver);
-        assertTrue(keyResolver.contains("apiKeyKeyResolver"));
+        assertTrue(keyResolver.contains("routeNameKeyResolver"));
     }
 
     @Test
-    void customize_WithEmptyKeyResolver_ThrowsIllegalStateException() throws URISyntaxException {
+    void customize_WithEmptyKeyResolver_DoesNotAddFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        int originalFilterCount = routeDef.getFilters().size();
 
         when(rateLimitConfigResolver.resolveRateLimit(igniteRoute)).thenReturn(rateLimit);
 
-        try {
-            customizer.customize(routeDef, igniteRoute);
-            org.junit.jupiter.api.Assertions.fail("Expected IllegalStateException was not thrown");
-        } catch (IllegalStateException exception) {
-            assertTrue(exception.getMessage().contains("No valid KeyResolver found"));
-        }
+        RouteDefinition result = customizer.customize(routeDef, igniteRoute);
+        
+        assertNotNull(result, "Result should not be null");
+        assertEquals(originalFilterCount, result.getFilters().size(),
+            "Should not add filter when KeyResolver name is empty");
     }
 
     @Test
@@ -418,6 +471,18 @@ class RateLimitRouteCustomizerTest {
         
         RateLimitRouteCustomizer specificCustomizer =
             new RateLimitRouteCustomizer(rateLimitConfigResolver, specificContext);
+        
+        // Initialize rateLimitResponseHeaders
+        org.springframework.test.util.ReflectionTestUtils.setField(
+            specificCustomizer, 
+            "rateLimitResponseHeaders", 
+            java.util.Arrays.asList(
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Replenish-Rate",
+                "X-RateLimit-Burst-Capacity",
+                "X-RateLimit-Requested-Tokens"
+            )
+        );
 
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();

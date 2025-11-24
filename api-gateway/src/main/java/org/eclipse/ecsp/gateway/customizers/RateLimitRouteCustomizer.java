@@ -24,6 +24,7 @@ import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.ratelimit.configresolvers.RateLimitConfigResolver;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
@@ -53,6 +54,10 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
     private final RateLimitConfigResolver rateLimitConfigResolver;
     private final ApplicationContext applicationContext;
 
+    @Value("${api.gateway.rate-limit.response-headers: "
+        + "X-RateLimit-Remaining,X-RateLimit-Replenish-Rate,X-RateLimit-Burst-Capacity,X-RateLimit-Requested-Tokens}")
+    private List<String> rateLimitResponseHeaders;
+
     /**
      * Constructor to initialize RateLimitRouteCustomizer.
      *
@@ -77,6 +82,19 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
                     rateLimit.getReplenishRate(),
                     rateLimit.getBurstCapacity(),
                     igniteRouteDefinition.getId());
+            String resolverName = null;
+            try {
+                resolverName = getKeyResolverBeanName(rateLimit);
+            } catch (IllegalStateException e) {
+                LOGGER.error("Failed to resolve KeyResolver for rate limiting on route {}: {}", 
+                    igniteRouteDefinition.getId(), e.getMessage());
+            }
+
+            if (resolverName == null) {
+                LOGGER.error("Skipping rate limiting for route {} due to missing KeyResolver", 
+                    igniteRouteDefinition.getId());
+                return routeDefinition;
+            }
             Map<String, String> config = new HashMap<>();
             config.put(
                     CONFIGURATION_PROPERTY_NAME + ".replenishRate",
@@ -90,8 +108,8 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             
             config.put("denyEmptyKey", String.valueOf(rateLimit.getDenyEmptyKey()));
             config.put("emptyKeyStatus", String.valueOf(rateLimit.getEmptyKeyStatus()));
-            
-            String resolverName = getKeyResolverBeanName(rateLimit);            
+
+            LOGGER.debug("Using KeyResolver bean name: {}", resolverName);
 
             config.put("key-resolver", "#{@" + resolverName + "}");
 
@@ -123,12 +141,7 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
             
             // Add a filter to remove rate limit headers if includeHeaders is false
             if (!rateLimit.isIncludeHeaders()) {
-                List.of("X-RateLimit-Remaining", 
-                    "X-RateLimit-Replenish-Rate", 
-                    "X-RateLimit-Burst-Capacity", 
-                    "X-RateLimit-Requested-Tokens")
-                    .forEach(header -> addRemoveHeaderFilter(routeDefinition, header));
-                
+                rateLimitResponseHeaders.forEach(header -> addRemoveHeaderFilter(routeDefinition, header));
                 LOGGER.debug("Added filters to remove rate limit headers for route {}", 
                     igniteRouteDefinition.getId());
             }
@@ -168,10 +181,10 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         // Map standard resolver names to their bean names
         String resolverName;
         switch (normalized) {
-            case "client_ip", "clientip" -> resolverName = "clientIpKeyResolver";
-            case "header" -> resolverName = "headerKeyResolver";
-            case "route_path", "routepath" -> resolverName = "userIdKeyResolver";
-            case "route_name", "routename" -> resolverName = "apiKeyKeyResolver";
+            case "client_ip", "client-ip", "clientip" -> resolverName = "clientIpKeyResolver";
+            case "header", "request-header", "request_header"  -> resolverName = "requestHeaderKeyResolver";
+            case "route_path", "route-path", "routepath" -> resolverName = "routePathKeyResolver";
+            case "route_name", "route-name", "routename" -> resolverName = "routeNameKeyResolver";
             default -> {
                 // For custom resolvers with underscores/hyphens, try camelCase conversion
                 resolverName = toCamelCase(originalResolverName);

@@ -195,8 +195,8 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         
         // If still not found, log error and throw exception
         LOGGER.error(
-                "No KeyResolver bean found, attempted resolver names: [{}, {}]", 
-                originalResolverName, springBeanName);
+                "No KeyResolver bean found, attempted resolver names: [{}, {}], available key resolvers: {}", 
+                originalResolverName, springBeanName, applicationContext.getBeansOfType(KeyResolver.class).keySet());
         return null;
     }
 

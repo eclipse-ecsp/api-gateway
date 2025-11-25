@@ -79,7 +79,8 @@ public class DefaultRateLimitConfigResolver implements RateLimitConfigResolver {
     public void initialize() {
         LOGGER.info("Initializing GatewayRateLimiter and loading rate limits from API Registry");
         List<RateLimit> registryRateLimits = apiRegistryClient.getRateLimits();
-        
+        routeRateLimitMap.clear();
+        serviceRateLimitMap.clear();
         if (registryRateLimits == null) {
             LOGGER.warn("No rate limits found in API Registry");
         } else {

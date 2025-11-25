@@ -134,7 +134,7 @@ public class GatewayRateLimiter extends RedisRateLimiter {
 
             LOGGER.debug("Rate limit response for route {} (namespace: {}): allowed={}, tokensLeft={}",
                     routeId, namespace, allowed, tokensLeft);
-
+            
             return response;
         });
     }

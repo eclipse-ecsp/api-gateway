@@ -39,6 +39,7 @@ import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
+import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.support.ConfigurationService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -115,7 +116,7 @@ public class RateLimitConfig {
     @Bean
     @Primary
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    public RateLimiter<GatewayRateLimiter.Config> gatewayRateLimiter(
+    public RateLimiter<RedisRateLimiter.Config> gatewayRateLimiter(
             ReactiveStringRedisTemplate redisTemplate,
             RedisScript<List<Long>> script,
             ConfigurationService configurationService,

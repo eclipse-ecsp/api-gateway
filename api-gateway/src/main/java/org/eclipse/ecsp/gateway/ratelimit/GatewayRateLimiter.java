@@ -94,12 +94,7 @@ public class GatewayRateLimiter extends RedisRateLimiter {
         // Load per-route configuration using the actual routeId
         // getConfig() returns the configuration map from parent class
         Config routeConfig = getConfig().getOrDefault(routeId, getConfig().get("defaultFilters"));
-        if (routeConfig == null) {
-            // Fallback to default config from constructor if route config not found
-            LOGGER.debug("No specific config found for route {}, using defaults", routeId);
-            routeConfig = getConfig().values().stream().findFirst().orElse(null);
-        }
-
+        
         if (routeConfig == null) {
             LOGGER.warn("No rate limit config available for route {}, allowing request", routeId);
             return Mono.just(new Response(true, getHeaders(routeConfig, DEFAULT_TOKENS_ON_ERROR)));

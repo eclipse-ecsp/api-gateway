@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.ratelimit.configresolvers.RateLimitConfigResolver;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -174,10 +175,10 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
         // Map standard resolver names to their bean names
         String resolverName;
         switch (normalized) {
-            case "client_ip", "client-ip", "clientip" -> resolverName = "clientIpKeyResolver";
-            case "header", "request-header", "request_header"  -> resolverName = "requestHeaderKeyResolver";
-            case "route_path", "route-path", "routepath" -> resolverName = "routePathKeyResolver";
-            case "route_name", "route-name", "routename" -> resolverName = "routeNameKeyResolver";
+            case "client_ip", "client-ip", "clientip" -> resolverName = GatewayConstants.CLIENT_IP_KEY_RESOLVER;
+            case "header", "request-header", "request_header"  -> resolverName = GatewayConstants.HEADER_KEY_RESOLVER;
+            case "route_path", "route-path", "routepath" -> resolverName = GatewayConstants.ROUTE_PATH_KEY_RESOLVER;
+            case "route_name", "route-name", "routename" -> resolverName = GatewayConstants.ROUTE_NAME_KEY_RESOLVER;
             default -> {
                 // For custom resolvers with underscores/hyphens, try camelCase conversion
                 resolverName = toCamelCase(originalResolverName);

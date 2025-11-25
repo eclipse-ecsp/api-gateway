@@ -22,12 +22,14 @@ import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.conditions.RateLimitEnabledCondition;
 import org.eclipse.ecsp.gateway.customizers.RateLimitRouteCustomizer;
 import org.eclipse.ecsp.gateway.plugins.PluginLoader;
+import org.eclipse.ecsp.gateway.ratelimit.GatewayRateLimiter;
 import org.eclipse.ecsp.gateway.ratelimit.configresolvers.DefaultRateLimitConfigResolver;
 import org.eclipse.ecsp.gateway.ratelimit.configresolvers.RateLimitConfigResolver;
 import org.eclipse.ecsp.gateway.ratelimit.keyresolvers.ClientIpKeyResolver;
 import org.eclipse.ecsp.gateway.ratelimit.keyresolvers.RequestHeaderKeyResolver;
 import org.eclipse.ecsp.gateway.ratelimit.keyresolvers.RouteNameKeyResolver;
 import org.eclipse.ecsp.gateway.ratelimit.keyresolvers.RoutePathKeyResolver;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -35,12 +37,19 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
+import org.springframework.cloud.gateway.support.ConfigurationService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
+
+import java.util.List;
 
 /**
  * configuration class for Rate Limiting.
@@ -67,29 +76,53 @@ public class RateLimitConfig {
         return new DefaultRateLimitConfigResolver(apiRegistryClient, rateLimitProperties);
     }
 
-    @Bean
+    @Bean(GatewayConstants.CLIENT_IP_KEY_RESOLVER)
     @Primary
-    public ClientIpKeyResolver clientIpKeyResolver() {
+    public KeyResolver clientIpKeyResolver() {
         LOG.debug("Creating ClientIpKeyResolver bean");
         return new ClientIpKeyResolver();
     }
 
-    @Bean("headerKeyResolver")
-    public RequestHeaderKeyResolver requestHeaderKeyResolver() {
+    @Bean(GatewayConstants.HEADER_KEY_RESOLVER)
+    public KeyResolver requestHeaderKeyResolver() {
         LOG.debug("Creating RequestHeaderKeyResolver bean");
         return new RequestHeaderKeyResolver();
     }
 
-    @Bean("routePathKeyResolver")
-    public RoutePathKeyResolver routePathKeyResolver() {
+    @Bean(GatewayConstants.ROUTE_PATH_KEY_RESOLVER)
+    public KeyResolver routePathKeyResolver() {
         LOG.debug("Creating RoutePathKeyResolver bean");
         return new RoutePathKeyResolver();
     }
 
-    @Bean("routeNameKeyResolver")
-    public RouteNameKeyResolver routeNameKeyResolver() {
+    @Bean(GatewayConstants.ROUTE_NAME_KEY_RESOLVER)
+    public KeyResolver routeNameKeyResolver() {
         LOG.debug("Creating RouteNameKeyResolver bean");
         return new RouteNameKeyResolver();
+    }
+
+    /**
+     * Creates a GatewayRateLimiter that uses a configurable namespace instead of routeId.
+     * This enables all routes to share the same rate limit bucket based on the namespace,
+     * while still respecting per-route rate limit configurations.
+     *
+     * @param redisTemplate the Redis template for executing commands
+     * @param script the Lua script for rate limiting
+     * @param configurationService the configuration service for per-route config resolution
+     * @param rateLimitProperties the rate limit properties containing namespace configuration
+     * @return the gateway rate limiter
+     */
+    @Bean
+    @Primary
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    public RateLimiter<GatewayRateLimiter.Config> gatewayRateLimiter(
+            ReactiveStringRedisTemplate redisTemplate,
+            RedisScript<List<Long>> script,
+            ConfigurationService configurationService,
+            RateLimitProperties rateLimitProperties) {
+        LOG.info("Creating GatewayRateLimiter with namespace: {}", rateLimitProperties.getNamespace());
+        return new GatewayRateLimiter(redisTemplate, script, configurationService, 
+                rateLimitProperties.getNamespace());
     }
 
     @Bean

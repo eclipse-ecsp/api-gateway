@@ -44,6 +44,7 @@ public class RateLimitProperties {
     private long maxReplenishRate = 10000;
     private long maxRequestedTokens = 100;
     private List<String> keyResolvers;
+    private String namespace = "default";
 
     /** 
      * Validate the rate limit properties after they have been set.

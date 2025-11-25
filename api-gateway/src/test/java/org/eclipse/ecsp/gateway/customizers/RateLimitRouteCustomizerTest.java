@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.customizers;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.ratelimit.configresolvers.RateLimitConfigResolver;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -332,7 +333,7 @@ class RateLimitRouteCustomizerTest {
     void customize_WithHeaderKeyResolver_ResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver headerResolver = org.mockito.Mockito.mock(KeyResolver.class);
-        specificResolvers.put("requestHeaderKeyResolver", headerResolver);
+        specificResolvers.put(GatewayConstants.HEADER_KEY_RESOLVER, headerResolver);
         
         ApplicationContext specificContext = org.mockito.Mockito.mock(ApplicationContext.class);
         when(specificContext.getBeansOfType(KeyResolver.class)).thenReturn(specificResolvers);
@@ -364,7 +365,7 @@ class RateLimitRouteCustomizerTest {
         FilterDefinition filter = result.getFilters().get(0);
         String keyResolver = filter.getArgs().get("key-resolver");
         assertNotNull(keyResolver);
-        assertTrue(keyResolver.contains("requestHeaderKeyResolver"));
+        assertTrue(keyResolver.contains(GatewayConstants.HEADER_KEY_RESOLVER));
     }
 
     @Test

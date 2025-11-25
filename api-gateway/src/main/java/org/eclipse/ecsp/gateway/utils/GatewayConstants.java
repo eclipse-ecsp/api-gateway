@@ -303,5 +303,23 @@ public class GatewayConstants {
      */
     public static final String RATE_LIMITING_METADATA_PREFIX = "X-Rate-Limit-Args-";
 
+    /**
+     * Key resolver for header-based rate limiting.
+     */
+    public static final String HEADER_KEY_RESOLVER = "headerKeyResolver";
+    
+    /**
+     * Key resolver for route path-based rate limiting.
+     */
+    public static final String ROUTE_PATH_KEY_RESOLVER = "routePathKeyResolver";
+    /**
+     * Key resolver for route name-based rate limiting.
+     */
+    public static final String ROUTE_NAME_KEY_RESOLVER = "routeNameKeyResolver";
+    /**
+     * Key resolver for client IP-based rate limiting.
+     */
+    public static final String CLIENT_IP_KEY_RESOLVER = "clientIpKeyResolver";
+
     
 }

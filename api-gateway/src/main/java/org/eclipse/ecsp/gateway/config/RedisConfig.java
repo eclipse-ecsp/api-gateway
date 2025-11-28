@@ -18,13 +18,18 @@
 
 package org.eclipse.ecsp.gateway.config;
 
+import org.eclipse.ecsp.gateway.conditions.RedisCacheEnabledCondition;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -41,7 +46,8 @@ import java.util.Map;
  */
 @Configuration
 @EnableCaching
-@ConditionalOnExpression("${api.caching.enabled:true} and '${api.caching.type}' == 'redis'")
+@Conditional(RedisCacheEnabledCondition.class)
+@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
     /**
@@ -51,12 +57,12 @@ public class RedisConfig {
     /**
      * Property holds cacheName.
      */
-    @Value("${api.caching.cacheName}")
+    @Value("${" + GatewayConstants.CACHING_PREFIX + ".cacheName}")
     private String cacheName;
     /**
      * property holds cache ttl.
      */
-    @Value("${api.caching.ttl}")
+    @Value("${" + GatewayConstants.CACHING_PREFIX + ".ttl}")
     private long ttl;
 
     /**

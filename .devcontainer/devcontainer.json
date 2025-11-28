@@ -30,14 +30,18 @@
         "ms-azuretools.vscode-docker",
         "cweijan.vscode-redis-client",
         "mongodb.mongodb-vscode",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "shengchen.vscode-checkstyle",
+        "ms-ossdata.vscode-pgsql",
+        "humao.rest-client",
+        "sonarsource.sonarlint-vscode"
       ],
       "settings": {
         "remote.autoForwardPorts": false
       }
     }
   },
-  "postCreateCommand": "sudo chown -R $(id -u):$(id -g) /workspaces",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
   "portsAttributes": {
     "7000": {
       "label": "api-registry",

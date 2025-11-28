@@ -22,6 +22,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.Config;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.GlobalHeaderConfig;
 import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
@@ -63,6 +64,9 @@ class RequestHeaderFilterTest {
 
     @MockitoBean
     PublicKeyService publicKeyService;
+
+    @MockitoBean
+    ApiRegistryClient apiRegistryClient;
 
     @Autowired
     WebTestClient webTestClient;

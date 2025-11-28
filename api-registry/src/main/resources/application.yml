@@ -71,6 +71,24 @@ api-registry:
       prefix: "service.health.status"
     service-routes:
       prefix: "service.route.count"
+    ## Rate Limit validation settings
+  rate-limit:
+    maxReplenishRate: 10000
+    maxBurstCapacity: 10000
+    maxRequestedTokens: 100
+    keyResolvers: 
+    - CLIENT_IP
+    - client-ip
+    - clientIpKeyResolver
+    - HEADER
+    - header
+    - headerKeyResolver
+    - ROUTE_PATH
+    - route-path
+    - routePathKeyResolver
+    - ROUTE_NAME
+    - route-name
+    - routeNameKeyResolver
 
 service:
   name: ${service_name:api-registry}
@@ -204,4 +222,3 @@ management:
   health:
     db:
       enabled: false
-  

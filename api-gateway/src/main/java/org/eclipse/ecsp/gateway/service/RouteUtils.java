@@ -24,11 +24,14 @@ import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
+import org.springframework.cloud.gateway.route.Route;
 import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for route related operations.
@@ -101,6 +104,25 @@ public class RouteUtils {
             LOGGER.error("Exception occurred {}", e);
         }
         return dummy;
+    }
+
+    /**
+     * Extracts rate limit arguments from the route metadata.
+     *
+     * @param route the route from which to extract rate limit arguments
+     * @return a map of rate limit argument names to their values
+     */
+    public static Map<String, Object> getRateLimitArgs(Route route) {
+        if (route.getMetadata() == null || route.getMetadata().isEmpty()) {
+            return Map.of();
+        }
+        return route.getMetadata().entrySet()
+                .stream()
+                .filter((entry) -> entry.getKey().startsWith(GatewayConstants.RATE_LIMITING_METADATA_PREFIX))
+                .map(entry -> Map.entry(
+                        entry.getKey().substring(GatewayConstants.RATE_LIMITING_METADATA_PREFIX.length()),
+                        entry.getValue()))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
 }

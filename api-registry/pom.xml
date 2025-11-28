@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.eclipse.ecsp</groupId>
         <artifactId>api-gateway-parent</artifactId>
-        <version>1.4.0-M1-SNAPSHOT</version>
+        <version>1.4.0-M3.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>api-registry</artifactId>
@@ -122,6 +122,21 @@
             <groupId>org.eclipse.ecsp</groupId>
             <artifactId>nosql-dao</artifactId>
             <version>${nosql.dao.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

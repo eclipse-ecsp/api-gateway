@@ -46,7 +46,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;
@@ -121,14 +121,31 @@ public class AccessLog implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         long startTime = System.currentTimeMillis();
+        AtomicBoolean logged = new AtomicBoolean(false);
+        
+        // Use beforeCommit to ensure logging happens for all responses,
+        // including those that are short-circuited (e.g., rate limiting)
+        exchange.getResponse().beforeCommit(() -> {
+            if (!logged.getAndSet(true)) {
+                HttpStatusCode statusCode = exchange.getResponse().getStatusCode();
+                // For short-circuited responses (like 429), log without body
+                accesslog(exchange, startTime, statusCode, null);
+            }
+            return Mono.empty();
+        });
+        
         return chain.filter(exchange.mutate()
-                        .response(getServerHttpResponse(exchange, startTime))
+                        .response(getServerHttpResponse(exchange, startTime, logged))
                         .build())
-                .doOnError(throwable -> accesslog(exchange,
-                        startTime,
-                        IgniteGlobalExceptionHandler.determineHttpStatus(throwable),
-                        ObjectMapperUtil.toJson(IgniteGlobalExceptionHandler.prepareResponse(throwable))
-                ));
+                .doOnError(throwable -> {
+                    if (!logged.getAndSet(true)) {
+                        accesslog(exchange,
+                                startTime,
+                                IgniteGlobalExceptionHandler.determineHttpStatus(throwable),
+                                ObjectMapperUtil.toJson(IgniteGlobalExceptionHandler.prepareResponse(throwable))
+                        );
+                    }
+                });
 
     }
 
@@ -221,9 +238,10 @@ public class AccessLog implements GlobalFilter, Ordered {
      *
      * @param exchange   The ServerWebExchange object
      * @param startTime  The start time of the request for logging
+     * @param logged     Flag to track if logging has already occurred
      * @return A decorated ServerHttpResponse that captures the response body
      */
-    private ServerHttpResponse getServerHttpResponse(ServerWebExchange exchange, Long startTime) {
+    private ServerHttpResponse getServerHttpResponse(ServerWebExchange exchange, Long startTime, AtomicBoolean logged) {
         LOGGER.debug("request from accesslog#getServerHttpResponse {} ", exchange.getRequest().getPath());
         final ServerHttpResponse originalResponse = exchange.getResponse();
         final DataBufferFactory dataBufferFactory = originalResponse.bufferFactory();
@@ -232,43 +250,106 @@ public class AccessLog implements GlobalFilter, Ordered {
             public Mono<Void> writeWith(@NonNull Publisher<? extends DataBuffer> body) {
                 HttpStatusCode statusCode = originalResponse.getStatusCode();
                 MediaType contentType = originalResponse.getHeaders().getContentType();
-                AtomicReference<String> responseBody = new AtomicReference<>();
-                if (logErrorResponse && isErrorResponse(statusCode) && isTextBasedResponse(contentType)) {
-                    LOGGER.debug("accesslog: for request {} response is error and text",
-                            exchange.getRequest().getPath());
-                    try {
-                        LOGGER.debug("accesslog: for request {} ", exchange.getRequest().getPath());
-                        if (body instanceof Flux<? extends DataBuffer> fluxData) {
-                            LOGGER.debug("accesslog: response for request {} is Flux",
-                                    exchange.getRequest().getPath());
-                            return super.writeWith(fluxData.buffer()
-                                    .map(dataBuffers -> {
-                                        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                                        dataBuffers.forEach(dataBuffer -> {
-                                            final byte[] responseContent = new byte[dataBuffer.readableByteCount()];
-                                            dataBuffer.read(responseContent);
-                                            try {
-                                                outputStream.write(responseContent);
-                                            } catch (IOException e) {
-                                                LOGGER.error("accesslog: Error while reading api {} response stream {}",
-                                                    exchange.getRequest().getPath(), e);
-                                            }
-                                        });
-                                        accesslog(exchange, startTime, statusCode,
-                                            outputStream.toString(StandardCharsets.UTF_8));
-                                        responseBody.set(outputStream.toString(StandardCharsets.UTF_8));
-                                        return dataBufferFactory.wrap(outputStream.toByteArray());
-                                    }));
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Error occurred during accessing response body for access logging", e);
-                    }
+                
+                if (shouldCaptureResponseBody(statusCode, contentType)) {
+                    return captureAndLogResponseBody(exchange, startTime, statusCode, body, 
+                            dataBufferFactory, logged);
                 }
 
-                accesslog(exchange, startTime, statusCode, responseBody.get());
+                // Log without body if not already logged
+                logIfNotAlreadyLogged(exchange, startTime, statusCode, null, logged);
                 return super.writeWith(body);
             }
         };
+    }
+
+    /**
+     * Check if response body should be captured for logging.
+     *
+     * @param statusCode   HTTP status code
+     * @param contentType  Content type of the response
+     * @return true if body should be captured, false otherwise
+     */
+    private boolean shouldCaptureResponseBody(HttpStatusCode statusCode, MediaType contentType) {
+        return logErrorResponse && isErrorResponse(statusCode) && isTextBasedResponse(contentType);
+    }
+
+    /**
+     * Capture and log the response body from Flux data buffers.
+     *
+     * @param exchange         ServerWebExchange object
+     * @param startTime        Start time of the request
+     * @param statusCode       HTTP status code
+     * @param body             Publisher of DataBuffer
+     * @param dataBufferFactory Factory for creating data buffers
+     * @param logged           Flag to track if logging has occurred
+     * @return Mono of Void
+     */
+    private Mono<Void> captureAndLogResponseBody(ServerWebExchange exchange, Long startTime, 
+            HttpStatusCode statusCode, Publisher<? extends DataBuffer> body, 
+            DataBufferFactory dataBufferFactory, AtomicBoolean logged) {
+        LOGGER.debug("accesslog: for request {} response is error and text",
+                exchange.getRequest().getPath());
+        try {
+            if (body instanceof Flux<? extends DataBuffer> fluxData) {
+                LOGGER.debug("accesslog: response for request {} is Flux",
+                        exchange.getRequest().getPath());
+                ServerHttpResponse delegateResponse = exchange.getResponse();
+                if (delegateResponse instanceof ServerHttpResponseDecorator decorator) {
+                    delegateResponse = decorator.getDelegate();
+                }
+                final ServerHttpResponse finalResponse = delegateResponse;
+                return finalResponse.writeWith(fluxData.buffer()
+                                .map(dataBuffers -> {
+                                    String responseBodyText = extractResponseBody(dataBuffers, exchange);
+                                    // Log with response body and mark as logged
+                                    logIfNotAlreadyLogged(exchange, startTime, statusCode, 
+                                            responseBodyText, logged);
+                                    return dataBufferFactory.wrap(responseBodyText.getBytes(StandardCharsets.UTF_8));
+                                }));
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error occurred during accessing response body for access logging", e);
+        }
+        return exchange.getResponse().writeWith(body);
+    }
+
+    /**
+     * Extract response body from data buffers.
+     *
+     * @param dataBuffers List of data buffers
+     * @param exchange    ServerWebExchange object
+     * @return Response body as string
+     */
+    private String extractResponseBody(java.util.List<? extends DataBuffer> dataBuffers, ServerWebExchange exchange) {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        dataBuffers.forEach(dataBuffer -> {
+            final byte[] responseContent = new byte[dataBuffer.readableByteCount()];
+            dataBuffer.read(responseContent);
+            try {
+                outputStream.write(responseContent);
+            } catch (IOException e) {
+                LOGGER.error("accesslog: Error while reading api {} response stream {}",
+                        exchange.getRequest().getPath(), e);
+            }
+        });
+        return outputStream.toString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Log access log entry if not already logged.
+     *
+     * @param exchange     ServerWebExchange object
+     * @param startTime    Start time of the request
+     * @param statusCode   HTTP status code
+     * @param responseBody Response body (may be null)
+     * @param logged       Flag to track if logging has occurred
+     */
+    private void logIfNotAlreadyLogged(ServerWebExchange exchange, Long startTime, 
+            HttpStatusCode statusCode, String responseBody, AtomicBoolean logged) {
+        if (!logged.getAndSet(true)) {
+            accesslog(exchange, startTime, statusCode, responseBody);
+        }
     }
 
     private boolean isErrorResponse(HttpStatusCode statusCode) {

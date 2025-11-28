@@ -22,10 +22,12 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.util.ClassUtils;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -43,35 +45,55 @@ public class JarUtils {
      * @param parentClassLoader the parent class loader
      * @return the loaded class
      */
-    @SuppressWarnings("java:S2095")
     public static Class<?> loadClass(String path, String clazzName, ClassLoader parentClassLoader) {
-        LOGGER.info("Loading external jars from: {}", path);
-        File externalJarPath = new File(path);
-        if (externalJarPath.exists() && externalJarPath.isDirectory()) {
-            List<URL> urls = new ArrayList<>();
-            for (File jarFile : externalJarPath.listFiles(((dir, name) -> name.endsWith(".jar")))) {
-                try {
-                    LOGGER.info("Jar {} found at directory: {}", jarFile.getName(), path);
-                    urls.add(jarFile.toURI().toURL());
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Error while loading external jars from path:"
-                            + externalJarPath, e);
-                }
-            }
-            if (!urls.isEmpty()) {
-                try {
-                    URLClassLoader urlClassLoader = new URLClassLoader("urlClassLoader",
-                            urls.toArray(new URL[urls.size()]), parentClassLoader);
-                    Class<?> clazz = urlClassLoader.loadClass(clazzName.trim());
-                    LOGGER.info("Successfully loaded class: {}", clazz);
-                    return clazz;
-                } catch (Exception e) {
-                    LOGGER.error("Error occurred while loading class: " + clazzName, e);
-                }
-            }
-        } else {
-            LOGGER.warn("Invalid external library path : {}, doesn't exists", path);
+        URLClassLoader pluginClassLoader = createClassLoader(path, parentClassLoader);
+        if (pluginClassLoader == null) {
+            LOGGER.error("Unable to create class loader for path: {}", path);
+            return null;
+        }
+        try {
+            Class<?> clazz = ClassUtils.forName(clazzName.trim(), pluginClassLoader);
+            LOGGER.info("Successfully loaded class: {}", clazz);
+            return clazz;
+        } catch (Exception e) {
+            LOGGER.error("Error occurred while loading class: " + clazzName, e);
         }
         return null;
+    }
+
+    /**
+     * Creates a {@link URLClassLoader} for all jars under the given path.
+     *
+     * @param path              the path to the jar directory
+     * @param parentClassLoader the parent class loader
+     * @return configured {@link URLClassLoader} or {@code null} when the path is invalid
+     */
+    public static URLClassLoader createClassLoader(String path, ClassLoader parentClassLoader) {
+        File externalJarPath = new File(path);
+        if (!externalJarPath.exists() || !externalJarPath.isDirectory()) {
+            LOGGER.warn("Invalid external library path : {}, doesn't exists", path);
+            return null;
+        }
+        File[] jarFiles = externalJarPath.listFiles((dir, name) -> name.endsWith(".jar"));
+        if (jarFiles == null || jarFiles.length == 0) {
+            LOGGER.warn("No jar files discovered under plugin path: {}", path);
+            return null;
+        }
+        List<URL> urls = new ArrayList<>(jarFiles.length);
+        Arrays.stream(jarFiles).sorted().forEach(jarFile -> {
+            try {
+                LOGGER.info("Jar {} found at directory: {}", jarFile.getName(), path);
+                urls.add(jarFile.toURI().toURL());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error while loading external jars from path:"
+                        + externalJarPath, e);
+            }
+        });
+        if (urls.isEmpty()) {
+            LOGGER.warn("No plugin jars resolved for path: {}", path);
+            return null;
+        }
+        LOGGER.info("Creating class loader for {} plugin jar(s)", urls.size());
+        return new URLClassLoader(urls.toArray(new URL[0]), parentClassLoader);
     }
 }

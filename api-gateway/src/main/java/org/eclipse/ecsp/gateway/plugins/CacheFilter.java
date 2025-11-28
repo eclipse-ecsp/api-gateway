@@ -25,12 +25,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.ecsp.gateway.conditions.RedisCacheEnabledCondition;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.GlobalFilterUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.cache.Cache;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -38,6 +38,7 @@ import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.cache.LocalResponseCacheUtils;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.http.HttpHeaders;
@@ -60,7 +61,7 @@ import java.util.regex.Pattern;
  * Filter to cache the response data.
  */
 @Component
-@ConditionalOnExpression("${api.caching.enabled:true} and '${api.caching.type}' == 'redis'")
+@Conditional(RedisCacheEnabledCondition.class)
 public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config> {
     /**
      * Creating the instance of logger.

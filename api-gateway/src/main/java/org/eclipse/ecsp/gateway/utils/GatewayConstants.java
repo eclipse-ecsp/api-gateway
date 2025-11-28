@@ -272,4 +272,54 @@ public class GatewayConstants {
      * Default metric name for public key source refresh time.
      */
     public static final String DEFAULT_SOURCE_REFRESH_TIME_METRIC = "public_key_source_refresh_time";
+
+    /**
+     * Prefix for caching-related properties.
+     */
+    public static final String CACHING_PREFIX = "api.caching";
+
+    /**
+     * Property to enable or disable caching.
+     */
+    public static final String CACHING_ENABLED = CACHING_PREFIX + ".enabled";
+
+    /**
+     * Property to specify the caching type.
+     */
+    public static final String CACHING_TYPE = CACHING_PREFIX + ".type";
+
+    /**
+     * Prefix for rate limiting-related properties.
+     */
+    public static final String RATE_LIMITING_PREFIX = "api.gateway.rate-limit";
+
+    /**
+     * Property to enable or disable rate limiting.
+     */
+    public static final String RATE_LIMITING_ENABLED = RATE_LIMITING_PREFIX + ".enabled";
+
+    /**
+     * Prefix for rate limiting metadata headers.
+     */
+    public static final String RATE_LIMITING_METADATA_PREFIX = "X-Rate-Limit-Args-";
+
+    /**
+     * Key resolver for header-based rate limiting.
+     */
+    public static final String HEADER_KEY_RESOLVER = "headerKeyResolver";
+    
+    /**
+     * Key resolver for route path-based rate limiting.
+     */
+    public static final String ROUTE_PATH_KEY_RESOLVER = "routePathKeyResolver";
+    /**
+     * Key resolver for route name-based rate limiting.
+     */
+    public static final String ROUTE_NAME_KEY_RESOLVER = "routeNameKeyResolver";
+    /**
+     * Key resolver for client IP-based rate limiting.
+     */
+    public static final String CLIENT_IP_KEY_RESOLVER = "clientIpKeyResolver";
+
+    
 }

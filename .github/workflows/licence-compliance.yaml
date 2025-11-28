@@ -15,6 +15,7 @@ jobs:
     name: Analyse Licences
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       create-review: true
     secrets:
       token: ${{ secrets.GITLAB_API_TOKEN }}

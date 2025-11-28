@@ -14,6 +14,7 @@ jobs:
     name: Maven Build
     with:
       java_version: '21'
+      java_distribution: 'temurin'
       maven_args: 'clean package --file pom.xml'
       test-report: true
       summaries-test-report: true
@@ -24,6 +25,7 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
     with:
       java_version: '21'
+      java_distribution: 'temurin'
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
@@ -32,6 +34,7 @@ jobs:
     secrets: inherit
     with:
       java_version: '21'
+      java_distribution: 'temurin'
     permissions:
       pull-requests: write
       contents: read
@@ -45,6 +48,7 @@ jobs:
       context_path: ./api-registry
       maven_args: 'clean package --file pom.xml'
       java_version: '21'
+      java_distribution: 'temurin'
 
   docker_push_api-gateway:
     needs: sonar_analysis
@@ -55,3 +59,4 @@ jobs:
       context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'
       java_version: '21'
+      java_distribution: 'temurin'

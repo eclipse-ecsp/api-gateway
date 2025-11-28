@@ -1,0 +1,11 @@
+api-registry:
+  metrics:
+    enabled: false
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+logging:
+  level:
+    root: WARN

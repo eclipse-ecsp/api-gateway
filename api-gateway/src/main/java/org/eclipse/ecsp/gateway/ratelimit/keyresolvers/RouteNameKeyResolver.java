@@ -16,44 +16,49 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.gateway.config;
+package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.stereotype.Service;
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import java.net.InetSocketAddress;
+
+import static org.eclipse.ecsp.gateway.utils.GatewayConstants.SERVICE_NAME;
 
 /**
- * Class to get the hostname from server web exchange object.
+ * Key Resolver to get the route name from server web exchange object for rate limiting.
+ *
+ * @author Abhishek Kumar
  */
-@Service
-public class RequestKeyResolver implements KeyResolver {
+public class RouteNameKeyResolver implements KeyResolver {
 
     /**
      * Creates a logger instance.
      */
     private static final IgniteLogger LOGGER
-            = IgniteLoggerFactory.getLogger(RequestKeyResolver.class);
+            = IgniteLoggerFactory.getLogger(RouteNameKeyResolver.class);
 
     /**
-     * method to return the host name.
+     * Returns the route name for rate limiting.
      *
      * @param exchange ServerWebExchange object
-     * @return hostname returns hostname from ServerWebExchange object
+     * @return route name from ServerWebExchange object
      */
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        InetSocketAddress remoteAddress = exchange
-                .getRequest().getRemoteAddress();
-        if (remoteAddress == null) {
-            LOGGER.error("Remote Address is null");
+        LOGGER.debug("Resolving Route Name for Rate Limiting");
+        Route route = (Route) exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+
+        String serviceName = (String) route.getMetadata().get(SERVICE_NAME);
+        if (serviceName == null || serviceName.isEmpty()) {
+            LOGGER.error("Service name is not configured in route metadata for RouteNameKeyResolver");
             return Mono.empty();
         }
-        String hostName = remoteAddress.getHostName();
-        LOGGER.debug("Client Key -> {}", hostName);
-        return Mono.just(hostName);
+        LOGGER.debug("Route Name Key Resolver - Service Name: {}, Route ID: {}", serviceName, route.getId());
+        return Mono.just(serviceName + ":" + route.getId());
+        
     }
 }

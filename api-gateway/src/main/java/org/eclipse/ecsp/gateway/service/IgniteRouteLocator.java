@@ -24,6 +24,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
+import org.eclipse.ecsp.gateway.customizers.RouteCustomizer;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.plugins.PluginLoader;
@@ -108,6 +109,8 @@ public class IgniteRouteLocator implements RouteLocator {
 
     private boolean isCustomPluginsEnabled = false;
 
+    List<RouteCustomizer> routeCustomizers;
+
     /**
      * Constructor to initialize the IgniteRouteLocator with required dependencies.
      *
@@ -129,12 +132,14 @@ public class IgniteRouteLocator implements RouteLocator {
                               ApiRegistryClient apiRegistryClient,
                               RouteLocatorBuilder routeLocatorBuilder,
                               ApplicationEventPublisher applicationEventPublisher,
-                              SpringCloudGatewayConfig springCloudGatewayConfig) {
+                              SpringCloudGatewayConfig springCloudGatewayConfig,
+                              List<RouteCustomizer> routeCustomizers) {
         this.configurationService = configurationService;
         this.apiRegistryClient = apiRegistryClient;
         this.routeLocatorBuilder = routeLocatorBuilder;
         this.applicationEventPublisher = applicationEventPublisher;
         this.springCloudGatewayConfig = springCloudGatewayConfig;
+        this.routeCustomizers = routeCustomizers;
         gatewayFilterFactories.forEach(factory -> this.gatewayFilterFactories.put(factory.name(), factory));
         if (pluginEnabled) {
             isCustomPluginsEnabled = true;
@@ -263,6 +268,15 @@ public class IgniteRouteLocator implements RouteLocator {
             filters.addAll(
                     loadGatewayFilters(apiRoute.getId(), new ArrayList<>(this.gatewayProperties.getDefaultFilters())));
         }
+        
+        // apply route customizers if any
+        if (routeCustomizers != null && !routeCustomizers.isEmpty()) {
+            LOGGER.debug("Applying route customizers...");
+            for (RouteCustomizer customizer : routeCustomizers) {
+                apiRoute = (IgniteRouteDefinition) customizer.customize(apiRoute, apiRoute);
+            }
+        }
+        
         Buildable<Route> route = booleanSpec.uri(apiRoute.getUri());
         LOGGER.debug("route---{}", route);
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
@@ -271,6 +285,7 @@ public class IgniteRouteLocator implements RouteLocator {
             filters.addAll(getFilters(apiRoute));
             LOGGER.debug("Gateway Filters: " + filters);
         }
+        
         // add the configured filters
         ((AbstractBuilder) route).filters(filters);
         if (apiRoute.getMetadata() != null) {
@@ -360,6 +375,7 @@ public class IgniteRouteLocator implements RouteLocator {
             });
             filters.addAll(loadGatewayFilters(apiRoute.getId(), filterDefinitions));
         }
+
         AnnotationAwareOrderComparator.sort(filters);
         LOGGER.debug("Filters -> {}", filters);
         return filters;

@@ -43,7 +43,7 @@ from the command line interface.
 ### Prerequisites
 
 The list of tools required to build and run the project:
-1. Java 17
+1. Java 21
 2. Apache Maven 3.8 or higher
 
 ### Installation

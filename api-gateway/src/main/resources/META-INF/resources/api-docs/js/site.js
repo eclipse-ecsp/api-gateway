@@ -102,7 +102,7 @@ $(document).ready(function () {
                     'Accept': 'application/json',
                     'Authorization': localStorage.access_token ? `Bearer ${localStorage.access_token}` : ''
                 }
-            }, 30000); // 30 second timeout
+            }, 10000); // 10 second timeout
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);

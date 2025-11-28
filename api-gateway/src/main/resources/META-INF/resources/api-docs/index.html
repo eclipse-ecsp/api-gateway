@@ -21,6 +21,71 @@
     </div>
 </div>
 <div class="content">
+    <div id="loading-indicator" style="display: none; text-align: center; padding: 80px 20px;">
+        <div style="display: inline-block; position: relative; width: 80px; height: 80px; margin-bottom: 30px;">
+            <div style="position: absolute; border: 4px solid transparent; border-top-color: #667eea; 
+                 border-radius: 50%; width: 64px; height: 64px; animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;"></div>
+            <div style="position: absolute; border: 4px solid transparent; border-top-color: #764ba2; 
+                 border-radius: 50%; width: 64px; height: 64px; animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; 
+                 animation-delay: -0.4s;"></div>
+            <div style="position: absolute; border: 4px solid transparent; border-top-color: #f093fb; 
+                 border-radius: 50%; width: 64px; height: 64px; animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; 
+                 animation-delay: -0.8s;"></div>
+        </div>
+        <div style="font-size: 18px; font-weight: 600; color: #667eea; margin-bottom: 8px;">Loading API Specification</div>
+        <div style="font-size: 14px; color: #6c757d;">Please wait while we fetch the documentation...</div>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <div id="error-container" style="display: none; max-width: 700px; margin: 50px auto; 
+         padding: 30px; background: #fff; border: 2px solid #dc3545; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; color: #dc3545; margin-bottom: 20px;">⚠️</div>
+            <h2 style="color: #dc3545; margin-bottom: 15px; font-size: 24px;">Failed to Load API Specification</h2>
+        </div>
+        <div id="error-details" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+            <p style="margin: 0 0 10px 0; color: #666;"><strong>URL:</strong></p>
+            <code id="error-url" style="display: block; padding: 10px; background: #e9ecef; border-radius: 4px; 
+                 word-break: break-all; font-size: 13px; color: #495057;"></code>
+            <p style="margin: 15px 0 5px 0; color: #666;"><strong>Error:</strong></p>
+            <p id="error-message" style="color: #dc3545; margin: 0;"></p>
+        </div>
+        <div style="text-align: center; margin-top: 25px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="retryLoadSpec()" 
+                 style="padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; 
+                 border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; 
+                 box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; 
+                 display: inline-flex; align-items: center; gap: 8px;"
+                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)'"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+                Retry
+            </button>
+            <button onclick="location.reload()" 
+                 style="padding: 12px 28px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; 
+                 border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; 
+                 box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4); transition: all 0.3s ease; 
+                 display: inline-flex; align-items: center; gap: 8px;"
+                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(245, 87, 108, 0.6)'"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(245, 87, 108, 0.4)'">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                </svg>
+                Reload Page
+            </button>
+        </div>
+    </div>
+    
     <openapi-explorer hide-authentication="true" hide-server-selection="true" spec-url=""></openapi-explorer>
 </div>
 

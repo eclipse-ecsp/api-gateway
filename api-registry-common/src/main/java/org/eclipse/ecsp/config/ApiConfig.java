@@ -120,42 +120,36 @@ public class ApiConfig {
     }
 
     /**
-     * Normalizes server URLs to prevent duplication and ensure proper scheme.
+     * Normalizes server URLs to ensure proper scheme.
+     * 
+     * <p>This method ensures that server URLs always have a scheme (https:// by default).
+     * When a URL has a scheme, OpenAPI Explorer treats it as an absolute URL and will not
+     * concatenate it with the current page URL, preventing URL duplication issues.
      *
      * @param raw the raw server URL
-     * @return the normalized server URL
+     * @return the normalized server URL with proper scheme
      */
     private String normalizeServerUrl(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
             return raw;
         }
-        
+
         String trimmed = raw.trim();
-        
-        // Check for duplicate domain patterns and clean them up
-        if (trimmed.contains("api-gateway.")
-                && trimmed.indexOf("api-gateway.") != trimmed.lastIndexOf("api-gateway.")) {
-            // Extract the first occurrence of the domain pattern
-            int firstIndex = trimmed.indexOf("api-gateway.");
-            int secondIndex = trimmed.indexOf("api-gateway.", firstIndex + 1);
-            if (secondIndex > firstIndex) {
-                trimmed = trimmed.substring(0, secondIndex);
-                LOGGER.warn("Detected duplicate domain pattern in URL '{}', cleaned to '{}'", raw, trimmed);
-            }
-        }
-        
+
         // Add https scheme if no scheme is present
+        // This ensures the URL is absolute, preventing OpenAPI Explorer from
+        // concatenating it with the current page URL
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
             if (trimmed.startsWith("//")) {
-                // Protocol-relative URL
+                // Protocol-relative URL (e.g., //domain.com)
                 trimmed = "https:" + trimmed;
             } else {
-                // No scheme at all
+                // No scheme at all (e.g., domain.com)
                 trimmed = "https://" + trimmed;
             }
             LOGGER.debug("Added https scheme to URL '{}' -> '{}'", raw, trimmed);
         }
-        
+
         return trimmed;
     }
 

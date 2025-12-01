@@ -104,7 +104,8 @@ public class ApiConfig {
         List<Server> servers = new ArrayList<>();
         for (String serverUrl : serverUrls.split(",")) {
             Server server = new Server();
-            server.setUrl(serverUrl);
+            String normalizedUrl = normalizeServerUrl(serverUrl.trim());
+            server.setUrl(normalizedUrl);
             servers.add(server);
         }
         LOGGER.info("API serverUrls : {}", Collections.singletonList(serverUrls));
@@ -116,6 +117,40 @@ public class ApiConfig {
                         .version(applicationVersion())
                         .description(desc))
                 .servers(servers);
+    }
+
+    /**
+     * Normalizes server URLs to ensure proper scheme.
+     * 
+     * <p>This method ensures that server URLs always have a scheme (https:// by default).
+     * When a URL has a scheme, OpenAPI Explorer treats it as an absolute URL and will not
+     * concatenate it with the current page URL, preventing URL duplication issues.
+     *
+     * @param raw the raw server URL
+     * @return the normalized server URL with proper scheme
+     */
+    private String normalizeServerUrl(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return raw;
+        }
+
+        String trimmed = raw.trim();
+
+        // Add https scheme if no scheme is present
+        // This ensures the URL is absolute, preventing OpenAPI Explorer from
+        // concatenating it with the current page URL
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            if (trimmed.startsWith("//")) {
+                // Protocol-relative URL (e.g., //domain.com)
+                trimmed = "https:" + trimmed;
+            } else {
+                // No scheme at all (e.g., domain.com)
+                trimmed = "https://" + trimmed;
+            }
+            LOGGER.debug("Added https scheme to URL '{}' -> '{}'", raw, trimmed);
+        }
+
+        return trimmed;
     }
 
     /**

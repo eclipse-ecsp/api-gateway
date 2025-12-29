@@ -25,6 +25,8 @@ import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.eclipse.ecsp.gateway.utils.JwtTestTokenGenerator;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
 /**
@@ -57,7 +60,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("JwtAuthFilter REAL Performance Test")
 class JwtAuthFilterPerformanceTest {
-
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory
+            .getLogger(JwtAuthFilterPerformanceTest.class);
     private static final int WARMUP_ITERATIONS = 500;
     private static final int MEASUREMENT_ITERATIONS = 50_000;
     private static final int NUMBER_OF_RUNS = 5;
@@ -132,18 +136,16 @@ class JwtAuthFilterPerformanceTest {
     @Test
     @DisplayName("Measure REAL JwtAuthFilter Performance with Regex Validation")
     void testRealJwtAuthFilterPerformance() {
-        System.out.println("============================================================");
-        System.out.println("REAL JwtAuthFilter Performance Test");
-        System.out.println("============================================================");
-        System.out.println("Testing ACTUAL JwtAuthFilter.filter() method");
-        System.out.println("Bottleneck: Pattern.compile() in validateClaims()");
-        System.out.println("Warmup: " + WARMUP_ITERATIONS + " iterations");
-        System.out.println("Measurement: " + MEASUREMENT_ITERATIONS + " iterations");
-        System.out.println();
-        System.out.println("Configuration:");
-        System.out.println("- 3 regex validations per request (sub, email, tenantId)");
-        System.out.println("- Each regex pattern is compiled on EVERY request (BOTTLENECK)");
-        System.out.println();
+        LOGGER.info("============================================================");
+        LOGGER.info("REAL JwtAuthFilter Performance Test");
+        LOGGER.info("============================================================");
+        LOGGER.info("Testing ACTUAL JwtAuthFilter.filter() method");
+        LOGGER.info("Bottleneck: Pattern.compile() in validateClaims()");
+        LOGGER.info("Warmup: " + WARMUP_ITERATIONS + " iterations");
+        LOGGER.info("Measurement: " + MEASUREMENT_ITERATIONS + " iterations");
+        LOGGER.info("Configuration:");
+        LOGGER.info("- 3 regex validations per request (sub, email, tenantId)");
+        LOGGER.info("- Each regex pattern is compiled on EVERY request (BOTTLENECK)");
 
         long totalTime = 0;
 
@@ -166,31 +168,28 @@ class JwtAuthFilterPerformanceTest {
 
             totalTime += runTime;
 
-            System.out.printf("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
-                    run, runTimeMs, avgTimePerCallNs);
+            LOGGER.info(String.format("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
+                    run, runTimeMs, avgTimePerCallNs));
         }
 
         double avgTotalTimeMs = (totalTime / NUMBER_OF_RUNS) / NANOSECONDS_TO_MILLISECONDS;
         double avgTimePerRequestNs = (double) totalTime / (NUMBER_OF_RUNS * MEASUREMENT_ITERATIONS);
 
-        System.out.println();
-        System.out.println("=== Performance Results ===");
-        System.out.printf("Average total time: %.2f ms%n", avgTotalTimeMs);
-        System.out.printf("Average time per request: %.2f ns%n", avgTimePerRequestNs);
-        System.out.println("===========================");
-        System.out.println();
-        System.out.println("IMPORTANT:");
-        System.out.println("1. Save these results as 'BEFORE optimization' baseline");
-        System.out.println("2. Run this test with IntelliJ Profiler to see Pattern.compile() hotspot");
-        System.out.println("3. After optimization, run THIS SAME TEST again");
-        System.out.println("4. Compare the results to measure improvement");
-        System.out.println();
-        System.out.println("Expected bottleneck in profiler:");
-        System.out.println("- Pattern.compile() should show high CPU time");
-        System.out.println("- Called 3 times per request (3 regex validations)");
-        System.out.println("- At " + MEASUREMENT_ITERATIONS + " iterations = " 
+        LOGGER.info("=== Performance Results ===");
+        LOGGER.info(String.format("Average total time: %.2f ms%n", avgTotalTimeMs));
+        LOGGER.info(String.format("Average time per request: %.2f ns%n", avgTimePerRequestNs));
+        LOGGER.info("===========================");
+        LOGGER.info("IMPORTANT:");
+        LOGGER.info("1. Save these results as 'BEFORE optimization' baseline");
+        LOGGER.info("2. Run this test with IntelliJ Profiler to see Pattern.compile() hotspot");
+        LOGGER.info("3. After optimization, run THIS SAME TEST again");
+        LOGGER.info("4. Compare the results to measure improvement");
+        LOGGER.info("Expected bottleneck in profiler:");
+        LOGGER.info("- Pattern.compile() should show high CPU time");
+        LOGGER.info("- Called 3 times per request (3 regex validations)");
+        LOGGER.info("- At " + MEASUREMENT_ITERATIONS + " iterations = " 
                 + (MEASUREMENT_ITERATIONS * NUMBER_THREE) + " Pattern.compile() calls!");
-        System.out.println("============================================================");
+        LOGGER.info("============================================================");
     }
 
     /**
@@ -252,12 +251,11 @@ class JwtAuthFilterPerformanceTest {
     @Test
     @DisplayName("Measure ISOLATED Regex Compilation Bottleneck")
     void testIsolatedRegexCompilationBottleneck() {
-        System.out.println("============================================================");
-        System.out.println("ISOLATED Regex Compilation Bottleneck Test");
-        System.out.println("============================================================");
-        System.out.println("Measuring ONLY the Pattern.compile() overhead");
-        System.out.println("This is the exact code from JwtAuthFilter line 296");
-        System.out.println();
+        LOGGER.info("============================================================");
+        LOGGER.info("ISOLATED Regex Compilation Bottleneck Test");
+        LOGGER.info("============================================================");
+        LOGGER.info("Measuring ONLY the Pattern.compile() overhead");
+        LOGGER.info("This is the exact code from JwtAuthFilter line 296");
 
         String[] regexPatterns = {
             "^[a-zA-Z0-9-_]+$",
@@ -297,24 +295,23 @@ class JwtAuthFilterPerformanceTest {
 
             totalTime += runTime;
 
-            System.out.printf("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
-                    run, runTimeMs, avgTimePerCallNs);
+            LOGGER.info(String.format("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
+                    run, runTimeMs, avgTimePerCallNs));
         }
 
         double avgTotalTimeMs = (totalTime / NUMBER_OF_RUNS) / NANOSECONDS_TO_MILLISECONDS;
         double avgTimePerRequestNs = (double) totalTime / (NUMBER_OF_RUNS * MEASUREMENT_ITERATIONS);
 
-        System.out.println();
-        System.out.println("=== Isolated Bottleneck Results ===");
-        System.out.printf("Average total time: %.2f ms%n", avgTotalTimeMs);
-        System.out.printf("Average time per request: %.2f ns%n", avgTimePerRequestNs);
-        System.out.println("====================================");
-        System.out.println();
-        System.out.println("This test isolates the EXACT bottleneck:");
-        System.out.println("Pattern.compile(regex).matcher(value).matches()");
-        System.out.println();
-        System.out.println("SAVE THESE RESULTS as 'BEFORE optimization' baseline!");
-        System.out.println("============================================================");
+        LOGGER.info("=== Isolated Bottleneck Results ===");
+        LOGGER.info(String.format("Average total time: %.2f ms%n", avgTotalTimeMs));
+        LOGGER.info(String.format("Average time per request: %.2f ns%n", avgTimePerRequestNs));
+        LOGGER.info("====================================");
+        LOGGER.info("This test isolates the EXACT bottleneck:");
+        LOGGER.info("Pattern.compile(regex).matcher(value).matches()");
+        LOGGER.info("SAVE THESE RESULTS as 'BEFORE optimization' baseline!");
+        LOGGER.info("============================================================");
+        assertTrue(avgTotalTimeMs > 0, "Average total time should be positive");
+        assertTrue(avgTimePerRequestNs > 0, "Average time per request should be positive");
     }
 }
 

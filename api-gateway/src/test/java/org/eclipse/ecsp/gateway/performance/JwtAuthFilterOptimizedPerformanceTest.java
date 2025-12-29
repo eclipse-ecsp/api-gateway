@@ -25,6 +25,8 @@ import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.eclipse.ecsp.gateway.utils.JwtTestTokenGenerator;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
 /**
@@ -54,6 +57,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 @DisplayName("JwtAuthFilter AFTER Optimization Performance Test")
 class JwtAuthFilterOptimizedPerformanceTest {
 
+    private static final IgniteLogger LOGGER =
+            IgniteLoggerFactory.getLogger(JwtAuthFilterOptimizedPerformanceTest.class);
     private static final int WARMUP_ITERATIONS = 500;
     private static final int MEASUREMENT_ITERATIONS = 50_000;
     private static final int NUMBER_OF_RUNS = 5;
@@ -122,14 +127,13 @@ class JwtAuthFilterOptimizedPerformanceTest {
     @Test
     @DisplayName("Measure OPTIMIZED Performance with Pattern Caching")
     void testOptimizedPerformance() {
-        System.out.println("============================================================");
-        System.out.println("AFTER OPTIMIZATION - Pattern Caching Enabled");
-        System.out.println("============================================================");
-        System.out.println("Testing OPTIMIZED approach with PATTERN_CACHE");
-        System.out.println("This is what JwtAuthFilter does NOW after optimization");
-        System.out.println("Warmup: " + WARMUP_ITERATIONS + " iterations");
-        System.out.println("Measurement: " + MEASUREMENT_ITERATIONS + " iterations");
-        System.out.println();
+        LOGGER.info("============================================================");
+        LOGGER.info("AFTER OPTIMIZATION - Pattern Caching Enabled");
+        LOGGER.info("============================================================");
+        LOGGER.info("Testing OPTIMIZED approach with PATTERN_CACHE");
+        LOGGER.info("This is what JwtAuthFilter does NOW after optimization");
+        LOGGER.info("Warmup: " + WARMUP_ITERATIONS + " iterations");
+        LOGGER.info("Measurement: " + MEASUREMENT_ITERATIONS + " iterations");
 
         long totalTime = 0;
 
@@ -152,27 +156,24 @@ class JwtAuthFilterOptimizedPerformanceTest {
 
             totalTime += runTime;
 
-            System.out.printf("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
+            LOGGER.info(String.format("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
                     run, runTimeMs, avgTimePerCallNs);
         }
 
         double avgTotalTimeMs = (totalTime / NUMBER_OF_RUNS) / NANOSECONDS_TO_MILLISECONDS;
         double avgTimePerRequestNs = (double) totalTime / (NUMBER_OF_RUNS * MEASUREMENT_ITERATIONS);
 
-        System.out.println();
-        System.out.println("=== AFTER OPTIMIZATION Results ===");
-        System.out.printf("Average total time: %.2f ms%n", avgTotalTimeMs);
-        System.out.printf("Average time per request: %.2f ns%n", avgTimePerRequestNs);
-        System.out.println("===================================");
-        System.out.println();
-        System.out.println("COMPARE WITH BEFORE:");
-        System.out.println("- BEFORE: ~68.24 ms total, ~1364.74 ns per request");
-        System.out.println("- AFTER:  (see above results)");
-        System.out.println();
-        System.out.println("Calculate improvement:");
-        System.out.println("- Improvement factor = BEFORE / AFTER");
-        System.out.println("- E.g., if AFTER is 10ms: 68.24 / 10 = 6.8x faster!");
-        System.out.println("============================================================");
+        LOGGER.info("=== AFTER OPTIMIZATION Results ===");
+        LOGGER.info(String.format("Average total time: %.2f ms%n", avgTotalTimeMs));
+        LOGGER.info(String.format("Average time per request: %.2f ns%n", avgTimePerRequestNs));
+        LOGGER.info("===================================");
+        LOGGER.info("COMPARE WITH BEFORE:");
+        LOGGER.info("- BEFORE: ~68.24 ms total, ~1364.74 ns per request");
+        LOGGER.info("- AFTER:  (see above results)");
+        LOGGER.info("Calculate improvement:");
+        LOGGER.info("- Improvement factor = BEFORE / AFTER");
+        LOGGER.info("- E.g., if AFTER is 10ms: 68.24 / 10 = 6.8x faster!");
+        LOGGER.info("============================================================");
     }
 
     private void executeOptimizedValidation() {
@@ -219,11 +220,10 @@ class JwtAuthFilterOptimizedPerformanceTest {
     @Test
     @DisplayName("Measure ISOLATED Optimized Regex with Cache")
     void testIsolatedOptimizedRegex() {
-        System.out.println("============================================================");
-        System.out.println("ISOLATED Optimized Regex Test with Pattern Cache");
-        System.out.println("============================================================");
-        System.out.println("Measuring optimized Pattern lookup (cache hit)");
-        System.out.println();
+        LOGGER.info("============================================================");
+        LOGGER.info("ISOLATED Optimized Regex Test with Pattern Cache");
+        LOGGER.info("============================================================");
+        LOGGER.info("Measuring optimized Pattern lookup (cache hit)");
 
         String[] regexPatterns = {
             "^[a-zA-Z0-9-_]+$",
@@ -271,21 +271,22 @@ class JwtAuthFilterOptimizedPerformanceTest {
 
             totalTime += runTime;
 
-            System.out.printf("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
-                    run, runTimeMs, avgTimePerCallNs);
+            LOGGER.info(String.format("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
+                    run, runTimeMs, avgTimePerCallNs));
         }
 
         double avgTotalTimeMs = (totalTime / NUMBER_OF_RUNS) / NANOSECONDS_TO_MILLISECONDS;
         double avgTimePerRequestNs = (double) totalTime / (NUMBER_OF_RUNS * MEASUREMENT_ITERATIONS);
 
-        System.out.println();
-        System.out.println("=== Isolated AFTER OPTIMIZATION Results ===");
-        System.out.printf("Average total time: %.2f ms%n", avgTotalTimeMs);
-        System.out.printf("Average time per request: %.2f ns%n", avgTimePerRequestNs);
-        System.out.println("============================================");
-        System.out.println();
-        System.out.println("SAVE THESE RESULTS as 'AFTER optimization'!");
-        System.out.println("============================================================");
+        LOGGER.info("=== Isolated AFTER OPTIMIZATION Results ===");
+        LOGGER.info(String.format("Average total time: %.2f ms%n", avgTotalTimeMs));
+        LOGGER.info(String.format("Average time per request: %.2f ns%n", avgTimePerRequestNs));
+        LOGGER.info("============================================");
+        LOGGER.info("SAVE THESE RESULTS as 'AFTER optimization'!");
+        LOGGER.info("============================================================");
+        assertTrue(avgTotalTimeMs > 0, "Average total time should be positive");
+        assertTrue(avgTimePerRequestNs > 0, "Average time per request should be positive");
+        
     }
 }
 

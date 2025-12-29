@@ -157,7 +157,7 @@ class JwtAuthFilterOptimizedPerformanceTest {
             totalTime += runTime;
 
             LOGGER.info(String.format("Run %d: Total: %8.2f ms | Avg per request: %8.2f ns%n",
-                    run, runTimeMs, avgTimePerCallNs);
+                    run, runTimeMs, avgTimePerCallNs));
         }
 
         double avgTotalTimeMs = (totalTime / NUMBER_OF_RUNS) / NANOSECONDS_TO_MILLISECONDS;

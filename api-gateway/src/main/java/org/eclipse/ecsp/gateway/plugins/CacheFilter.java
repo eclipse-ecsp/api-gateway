@@ -67,6 +67,13 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
      * Creating the instance of logger.
      */
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CacheFilter.class);
+    
+    /**
+     * PERFORMANCE OPTIMIZATION: Pre-compiled regex pattern for placeholder matching.
+     * Pattern compilation is expensive, so we compile it once at class loading time.
+     */
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([a-zA-Z0-9-]+)\\}");
+    
     /**
      * RediscacheManager instance connection to Redis.
      */
@@ -202,15 +209,16 @@ public class CacheFilter extends AbstractGatewayFilterFactory<CacheFilter.Config
 
     /**
      * Replace headers in the string with the values from the headers map.
+     * PERFORMANCE OPTIMIZATION: Uses pre-compiled PLACEHOLDER_PATTERN.
      *
      * @param key     The string containing placeholders for headers.
      * @param headers The map of headers to replace in the string.
      * @return The string with placeholders replaced by actual header values.
      */
     public static String replaceHeadersInString(String key, Map<String, String> headers) {
-        Pattern pattern = Pattern.compile("\\{([a-zA-Z0-9-]+)\\}");
+        // OPTIMIZATION: Use pre-compiled PLACEHOLDER_PATTERN instead of compiling on every call
         StringBuilder resultBuffer = new StringBuilder();
-        Matcher matcher = pattern.matcher(key);
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(key);
         while (matcher.find()) {
             String placeHolderName = matcher.group(1);
             String lookupKey = placeHolderName.toLowerCase();

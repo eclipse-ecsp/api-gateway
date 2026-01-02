@@ -61,7 +61,7 @@
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.19.2</jackson-bom.version>
-        <jjwt.version>0.12.7</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.40</lombok.version>
         <spring-boot.version>3.5.8</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>

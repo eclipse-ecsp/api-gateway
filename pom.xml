@@ -141,7 +141,7 @@
         <license-tool-plugin.version>1.1.0</license-tool-plugin.version>
         <skipDash>true</skipDash>
         <failWhenReviewNeeded>false</failWhenReviewNeeded>
-        <logback-gelf.version>6.1.1</logback-gelf.version>
+        <logback-gelf.version>6.1.2</logback-gelf.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <skipCheckstyle>false</skipCheckstyle>
         <skipJavadocs>false</skipJavadocs>

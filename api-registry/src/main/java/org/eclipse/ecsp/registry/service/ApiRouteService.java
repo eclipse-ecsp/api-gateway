@@ -20,6 +20,7 @@ package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -36,14 +37,17 @@ public class ApiRouteService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteService.class);
 
     private final ApiRouteRepo apiRouteRepo;
+    private final RouteEventPublisher eventPublisher;
 
     /**
      * Constructor to initialize the ApiRouteService.
      *
-     * @param apiRouteRepo the ApiRouteRepo
+     * @param apiRouteRepo   the ApiRouteRepo
+     * @param eventPublisher the RouteEventPublisher (optional)
      */
-    public ApiRouteService(ApiRouteRepo apiRouteRepo) {
+    public ApiRouteService(ApiRouteRepo apiRouteRepo, Optional<RouteEventPublisher> eventPublisher) {
         this.apiRouteRepo = apiRouteRepo;
+        this.eventPublisher = eventPublisher.orElse(null);
     }
 
     /**
@@ -75,6 +79,12 @@ public class ApiRouteService {
         entity.setActive(Boolean.TRUE);
         entity = apiRouteRepo.save(entity);
         LOGGER.info("Created/Updated ApiRoute: {}", entity.getId());
+        
+        // Publish event if event publisher is available
+        if (eventPublisher != null && model.getService() != null) {
+            eventPublisher.publishRouteChangeEvent(model.getService());
+        }
+        
         return ApiRouteUtil.convert(entity);
     }
 
@@ -119,7 +129,13 @@ public class ApiRouteService {
         }
         // deactivate ApiRoute in DB
         ApiRouteEntity entity = result.get();
+        String serviceName = entity.getService();
         apiRouteRepo.delete(entity);
         LOGGER.info("Deleted ApiRoute: {}", entity.getId());
+        
+        // Publish event if event publisher is available
+        if (eventPublisher != null && serviceName != null) {
+            eventPublisher.publishRouteChangeEvent(serviceName);
+        }
     }
 }

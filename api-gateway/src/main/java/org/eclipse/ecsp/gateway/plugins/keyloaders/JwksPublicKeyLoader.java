@@ -31,7 +31,9 @@ import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.PublicKeyType;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -57,14 +59,17 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
     private static final int THIRTY_SECONDS = 30;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final WebClient webClient;
+    private final RetryTemplate retryTemplate;
 
     /**
      * Constructor to initialize the JwksPublicKeyLoader with a WebClient.
      *
      * @param webClientBuilder the WebClient builder to create the WebClient instance
      */
-    public JwksPublicKeyLoader(WebClient.Builder webClientBuilder) {
+    public JwksPublicKeyLoader(WebClient.Builder webClientBuilder,
+            @Qualifier("jwkRefreshRetryTemplate") RetryTemplate retryTemplate) {
         this.webClient = webClientBuilder.build();
+        this.retryTemplate =  retryTemplate;
     }
 
     /**
@@ -82,7 +87,11 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
         Map<String, PublicKey> publicKeys = new HashMap<>();
         try {
             LOGGER.info("Fetching JWKS from URL: {}", config.getUrl());
-            String jwksResponse = fetchJwksWithAuthentication(config);
+            String jwksResponse = retryTemplate.execute(context -> {
+                LOGGER.info("Attempt {} to fetch JWKS from URL: {}", 
+                        context.getRetryCount() + 1, config.getUrl());
+                return fetchJwksWithAuthentication(config); // The actual return value is not used
+            });
             JWKSet jwkSet = JWKSet.parse(jwksResponse);
             List<JWK> jwkList = jwkSet.getKeys();
 

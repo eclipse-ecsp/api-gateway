@@ -35,17 +35,17 @@ class ApiRouteRefreshSchedulerTest {
     private ApiRoutesRefreshScheduler apiRoutesRefreshScheduler;
 
     @Mock
-    private IgniteRouteLocator igniteRouteLocator;
+    private RouteRefreshService routeRefreshService;
 
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
-        apiRoutesRefreshScheduler = new ApiRoutesRefreshScheduler(igniteRouteLocator);
+        apiRoutesRefreshScheduler = new ApiRoutesRefreshScheduler(routeRefreshService);
     }
 
     @Test
     void testReload() {
         apiRoutesRefreshScheduler.reload();
-        Mockito.verify(igniteRouteLocator, Mockito.atLeastOnce()).refreshRoutes();
+        Mockito.verify(routeRefreshService, Mockito.atLeastOnce()).refreshRoutes();
     }
 }

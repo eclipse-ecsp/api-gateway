@@ -88,7 +88,7 @@ public class GatewayConfig {
     public static final String FALLBACK_URI = "/fallback/**";
 
     /**
-     * This is a work around override in order to support
+     * This is a work around override in order to support.
      * HTTP2 Procotol on netty.
      * Refer - <a href="https://github.com/spring-cloud/spring-cloud-gateway/issues/2580">...</a>
      * By doing this, we can still use HTTPS on the gateway and HTTP

@@ -20,6 +20,7 @@ package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.Assertions;
@@ -43,10 +44,13 @@ class ApiRouteServiceTest {
     @Mock
     private ApiRouteRepo apiRouteRepo;
 
+    @Mock
+    private RouteEventPublisher routeEventPublisher;
+
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
-        apiRouteService = new ApiRouteService(apiRouteRepo);
+        apiRouteService = new ApiRouteService(apiRouteRepo, Optional.of(routeEventPublisher));
     }
 
     @Test
@@ -101,6 +105,48 @@ class ApiRouteServiceTest {
     void testDeleteException() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.delete(null));
+    }
+
+    @Test
+    void testCreateOrUpdate_PublishesEvent() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
+        apiRouteEntity.setService("test-service");
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        routeDefinition.setService("test-service");
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+
+        // Act
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        // Assert
+        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishRouteChangeEvent("test-service");
+    }
+
+    @Test
+    void testDelete_PublishesEvent() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
+        apiRouteEntity.setService("test-service");
+        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+
+        // Act
+        apiRouteService.delete("routeId");
+
+        // Assert
+        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishRouteChangeEvent("test-service");
+    }
+
+    @Test
+    void testCreateOrUpdate_WithoutEventPublisher() {
+        // Arrange - create service without event publisher
+        ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
+        ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+
+        // Act & Assert - should not throw exception
+        Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.createOrUpdate(routeDefinition));
     }
 
 }

@@ -21,6 +21,7 @@ package org.eclipse.ecsp.registry.service;
 import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +85,9 @@ class RateLimitConfigServiceImplTest {
     @Mock
     private RateLimitConfigRepository rateLimitConfigRepository;
 
+    @Mock
+    private RouteEventPublisher eventPublisher;
+
     @Captor
     private ArgumentCaptor<RateLimitConfigEntity> entityCaptor;
 
@@ -99,7 +103,8 @@ class RateLimitConfigServiceImplTest {
         rateLimitProperties.setMaxRequestedTokens(MAX_REQUESTED_TOKENS);
         rateLimitProperties.getKeyResolvers().addAll(Arrays.asList("CLIENT_IP", "HEADER", "ROUTE_NAME", "ROUTE_PATH"));
         
-        rateLimitConfigService = new RateLimitConfigServiceImpl(rateLimitConfigRepository, rateLimitProperties);
+        rateLimitConfigService = new RateLimitConfigServiceImpl(rateLimitConfigRepository, 
+            rateLimitProperties, Optional.of(eventPublisher));
     }
 
     // ==================== addOrUpdateRateLimitConfigs Tests ====================

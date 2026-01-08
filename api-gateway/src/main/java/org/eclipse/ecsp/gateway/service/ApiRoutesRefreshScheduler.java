@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.service;
 
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,31 +32,33 @@ import org.springframework.stereotype.Service;
  * ApiRoutesRefreshScheduler to load the routes dynamically.
  */
 @Service
-@EnableScheduling
 @EnableAsync
-@ConditionalOnProperty(value = "api.dynamic.routes.enabled", havingValue = "true", matchIfMissing = false)
+@EnableScheduling
+@ConditionalOnProperty(name = GatewayConstants.ROUTE_REFRESH_EVENT_STRATEGY, havingValue = GatewayConstants.POLLING)
 public class ApiRoutesRefreshScheduler {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesRefreshScheduler.class);
 
-    private final IgniteRouteLocator igniteRouteLocator;
+    private final RouteRefreshService routeRefreshService;
 
     /**
-     * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.
+     * Constructor to initialize the ApiRoutesRefreshScheduler with RouteRefreshService.
      *
-     * @param igniteRouteLocator the IgniteRouteLocator
+     * @param routeRefreshService the RouteRefreshService instance
      */
-    public ApiRoutesRefreshScheduler(IgniteRouteLocator igniteRouteLocator) {
-        this.igniteRouteLocator = igniteRouteLocator;
+    public ApiRoutesRefreshScheduler(RouteRefreshService routeRefreshService) {
+        this.routeRefreshService = routeRefreshService;
     }
 
     /**
-     * Constructor to initialize the ApiRoutesRefreshScheduler with IgniteRouteLocator.
+     * Constructor to initialize the ApiRoutesRefreshScheduler with RouteRefreshService.
      */
-    @Scheduled(cron = "${api.routes.refreshCronJob}")
     @Async()
+    @Scheduled(
+        cron = "${" + GatewayConstants.ROUTE_REFRESH_POLLING_CRON_EXPR + ":0/30 * * * * *}"
+    )
     public void reload() {
         LOGGER.debug("Reload ApiRoutes Event");
-        igniteRouteLocator.refreshRoutes();
+        routeRefreshService.refreshRoutes();
     }
 
 }

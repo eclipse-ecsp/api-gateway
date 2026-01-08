@@ -28,7 +28,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation can be used to define filters that are applied to HTTP requests
+ * This annotation can be used to define filters that are applied to HTTP requests.
  * before they reach the target method. It supports specifying a filter name, arguments,
  * and key-value argument pairs.
  *

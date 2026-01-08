@@ -35,8 +35,6 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -45,12 +43,17 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.web.client.RestClientException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * configuration class for Rate Limiting.
@@ -60,8 +63,19 @@ import java.util.List;
 @Configuration
 @AutoConfigureAfter(PluginLoader.class)
 @Conditional(RateLimitEnabledCondition.class)
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class })
 public class RateLimitConfig {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitConfig.class);
+    private final RateLimitProperties properties;
+
+    /**
+     * Constructor for RateLimitConfig.
+     *
+     * @param rateLimitProperties rate limit properties
+     */
+    public RateLimitConfig(RateLimitProperties rateLimitProperties) {
+        this.properties = rateLimitProperties;
+        LOG.info("RateLimitConfig loaded");
+    }
 
     /**
      * Creates a logger instance for this configuration.
@@ -132,6 +146,42 @@ public class RateLimitConfig {
         ApplicationContext applicationContext) {
         LOG.debug("Creating RateLimitRouteCustomizer bean with ApplicationContext for dynamic KeyResolver lookup");
         return new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
+    }
+
+    /**
+     * Configure RetryTemplate with exponential backoff.
+     *
+     * @return configured RetryTemplate
+     */
+    @Bean("jwkRefreshRetryTemplate")
+    public RetryTemplate jwkRefreshRetryTemplate() {
+        // Configure exponential backoff policy
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(properties.getRetry().getInitialIntervalMs());
+        backOffPolicy.setMultiplier(properties.getRetry().getMultiplier());
+        backOffPolicy.setMaxInterval(properties.getRetry().getMaxIntervalMs());
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+
+        // Configure retry policy with max attempts
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions = new HashMap<>();
+        retryableExceptions.put(RestClientException.class, true);
+        retryableExceptions.put(Exception.class, true);
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
+                properties.getRetry().getMaxAttempts(),
+                retryableExceptions
+        );
+        retryTemplate.setRetryPolicy(retryPolicy);
+
+        LOGGER.info("Jwks Refresh RetryTemplate configured:" 
+                + "maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
+                properties.getRetry().getMaxAttempts(),
+                properties.getRetry().getInitialIntervalMs(),
+                properties.getRetry().getMultiplier(),
+                properties.getRetry().getMaxIntervalMs());
+
+        return retryTemplate;
     }
 
 }

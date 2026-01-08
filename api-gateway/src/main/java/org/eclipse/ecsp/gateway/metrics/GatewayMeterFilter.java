@@ -31,11 +31,10 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.util.CollectionUtils;
 import java.time.Duration;
 import java.util.OptionalDouble;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 /**
- * GatewayMeterFilter is a custom implementation of MeterFilter that filters and configures
+ * GatewayMeterFilter is a custom implementation of MeterFilter that filters and configures.
  * meters based on the provided metrics configuration.
  *
  * <p>This class is responsible for filtering out meters based on their names and configuring
@@ -94,7 +93,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     }
 
     /**
-     * Configures the distribution statistics for the specified meter ID and distribution
+     * Configures the distribution statistics for the specified meter ID and distribution.
      * statistic configuration.
      *
      * @param id     The meter ID to configure.
@@ -132,7 +131,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     }
 
     /**
-     * Converts an array of Duration objects to an array of double values representing the
+     * Converts an array of Duration objects to an array of double values representing the.
      * service level objectives.
      *
      * @param sloDurations The array of Duration objects to convert.
@@ -140,13 +139,12 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      */
     public double[] convertServiceLevelObjectives(Duration[] sloDurations) {
         return Stream.of(sloDurations)
-                .map(Duration::toNanos)
-                .flatMapToDouble(DoubleStream::of)
+                .mapToDouble(Duration::toNanos)
                 .toArray();
     }
 
     /**
-     * Converts an array of Duration objects to an array of double values representing the
+     * Converts an array of Duration objects to an array of double values representing the.
      * service level objectives and get the min value.
      *
      * @param durations The array of Duration objects to convert.
@@ -154,8 +152,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      */
     public double getMinimumValue(Duration[] durations) {
         OptionalDouble minValue = Stream.of(durations)
-                .map(Duration::toNanos)
-                .flatMapToDouble(DoubleStream::of)
+                .mapToDouble(Duration::toNanos)
                 .min();
         if (minValue.isPresent()) {
             return minValue.getAsDouble();
@@ -165,7 +162,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
     }
 
     /**
-     * Converts an array of Duration objects to an array of double values representing the
+     * Converts an array of Duration objects to an array of double values representing the.
      * service level objectives and get the max value.
      *
      * @param durations The array of Duration objects to convert.
@@ -173,8 +170,7 @@ public class GatewayMeterFilter<T extends BaseMetrics> implements MeterFilter {
      */
     public double getMaximumValue(Duration[] durations) {
         OptionalDouble maxValue = Stream.of(durations)
-                .map(Duration::toNanos)
-                .flatMapToDouble(DoubleStream::of)
+                .mapToDouble(Duration::toNanos)
                 .max();
         if (maxValue.isPresent()) {
             return maxValue.getAsDouble();

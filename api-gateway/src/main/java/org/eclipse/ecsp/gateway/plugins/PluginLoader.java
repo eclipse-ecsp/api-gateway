@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Load external jar plugin classes and register to spring context.
@@ -64,7 +63,6 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
     private volatile boolean initializationAttempted;
     private URLClassLoader pluginClassLoader;
 
-    private boolean pluginEnabled;
     private String pluginJarPath;
     private List<String> pluginJarClasses;
     private List<String> pluginPackages;
@@ -80,7 +78,7 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         // Read configuration properties from environment
         String enabled = applicationContext.getEnvironment().getProperty("plugin.enabled", "false");
-        pluginEnabled = Boolean.parseBoolean(enabled);
+        boolean pluginEnabled = Boolean.parseBoolean(enabled);
         
         if (!pluginEnabled) {
             LOGGER.info("Plugin loading is disabled");
@@ -137,10 +135,10 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
      * @return instance of the pluginClassName
      */
     public Object loadPlugin(String pluginClassName) {
-        ensurePluginInfrastructure();
         if (!StringUtils.hasText(pluginClassName)) {
             throw new IllegalArgumentException("Plugin class name must not be blank");
         }
+        ensurePluginInfrastructure();
         if (pluginClassLoader == null) {
             throw new IllegalStateException("Plugin class loader is not initialized. Check plugin.path configuration.");
         }
@@ -164,19 +162,21 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
             if (initializationAttempted) {
                 return;
             }
-            initializationAttempted = true;
             if (!StringUtils.hasText(pluginJarPath)) {
                 LOGGER.info("No plugin.path configured; skipping external plugin initialization");
+                initializationAttempted = true;
                 return;
             }
             pluginClassLoader = JarUtils.createClassLoader(pluginJarPath, PluginLoader.class.getClassLoader());
             if (pluginClassLoader == null) {
                 LOGGER.warn("Plugin class loader could not be created for path: {}", pluginJarPath);
+                initializationAttempted = true;
                 return;
             }
             applicationContext.setClassLoader(pluginClassLoader);
             applicationContext.getDefaultListableBeanFactory().setBeanClassLoader(pluginClassLoader);
             registerPackages();
+            initializationAttempted = true;
         }
     }
 
@@ -293,7 +293,7 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
                 .filter(value -> value != null && StringUtils.hasText(value.trim()))
                 .map(String::trim)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -111,6 +111,10 @@ public class RouteEventSubscriber implements MessageListener {
 
     @Override
     public void onMessage(Message message, byte[] pattern) {
+        if (message == null) {
+            LOGGER.warn("Received null message");
+            return;
+        }
         try {
             String messageBody = new String(message.getBody());
             LOGGER.debug("Received route change event: {}", messageBody);
@@ -138,7 +142,8 @@ public class RouteEventSubscriber implements MessageListener {
                 try {
                     LOGGER.debug("Route refresh attempt {}", attemptCount);
                     routeRefreshService.refreshRoutes();
-                    LOGGER.info("Successfully refreshed routes for {} services", event.getServices().size());
+                    LOGGER.info("Successfully refreshed routes for {} services", 
+                            event.getServices() != null ? event.getServices().size() : 0);
                     
                     // Increment success counter only on first successful attempt after retries
                     if (context.getRetryCount() == 0 || attemptCount > 1) {

@@ -74,7 +74,7 @@ public class RateLimitConfig {
      */
     public RateLimitConfig(RateLimitProperties rateLimitProperties) {
         this.properties = rateLimitProperties;
-        LOG.info("RateLimitConfig loaded");
+        LOGGER.info("RateLimitConfig loaded");
     }
 
     /**
@@ -174,8 +174,8 @@ public class RateLimitConfig {
         );
         retryTemplate.setRetryPolicy(retryPolicy);
 
-        LOGGER.info("Jwks Refresh RetryTemplate configured:" 
-                + "maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
+        LOGGER.info("Jwks Refresh RetryTemplate configured: " 
+            + "maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
                 properties.getRetry().getMaxAttempts(),
                 properties.getRetry().getInitialIntervalMs(),
                 properties.getRetry().getMultiplier(),

@@ -26,7 +26,7 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
- * Condition to check if Rate Limiting is enabled for the Gateway.
+ * Condition to check if Route Refresh Event-Driven strategy is enabled for the Gateway.
  *
  * @author Abhishek Kumar
  */

@@ -300,4 +300,19 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = (GenericApplicationContext) applicationContext;
     }
+
+    /**
+     * Clean up resources on shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        if (pluginClassLoader != null) {
+            try {
+                pluginClassLoader.close();
+                LOGGER.info("Plugin class loader closed successfully");
+            } catch (IOException e) {
+                LOGGER.error("Error closing plugin class loader", e);
+            }
+        }
+    }
 }

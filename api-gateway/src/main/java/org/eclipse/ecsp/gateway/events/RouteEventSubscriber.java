@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.events;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.gateway.conditions.RouteRefreshEventEnabledCondition;
 import org.eclipse.ecsp.gateway.model.RouteChangeEvent;
 import org.eclipse.ecsp.gateway.model.RouteEventType;
@@ -50,11 +51,13 @@ public class RouteEventSubscriber implements MessageListener {
     private final RouteRefreshService routeRefreshService;
     private final RetryTemplate retryTemplate;
     private final ObjectMapper objectMapper;
-    private final Counter routeChangeEventReceivedCounter;
-    private final Counter rateLimitConfigChangeEventReceivedCounter;
-    private final Counter serviceHealthChangeEventReceivedCounter;
-    private final Counter refreshSuccessCounter;
-    private final Counter refreshFailureCounter;
+    private final MeterRegistry meterRegistry;
+    private Counter routeChangeEventReceivedCounter;
+    private Counter rateLimitConfigChangeEventReceivedCounter;
+    private Counter serviceHealthChangeEventReceivedCounter;
+    private Counter refreshSuccessCounter;
+    private Counter refreshFailureCounter;
+    
 
     @Value("${route.events.received.total.metric.name:route.events.received.total}")
     private String totalEventsReceivedMetricName;
@@ -80,7 +83,15 @@ public class RouteEventSubscriber implements MessageListener {
         this.routeRefreshService = routeRefreshService;
         this.retryTemplate = retryTemplate;
         this.objectMapper = objectMapper;
-        
+        this.meterRegistry = meterRegistry;
+        LOGGER.info("RouteEventSubscriber initialized");
+    }
+
+    /**
+     * Initialize metrics.
+     */
+    @PostConstruct
+    public void initializeMetrics() {
         // Initialize counters for events received by type
         this.routeChangeEventReceivedCounter = Counter.builder(totalEventsReceivedMetricName)
                 .tag(EVENT_TYPE, RouteEventType.ROUTE_CHANGE.name())
@@ -105,8 +116,7 @@ public class RouteEventSubscriber implements MessageListener {
         this.refreshFailureCounter = Counter.builder(refreshFailureMetricName)
                 .description("Total number of failed route refreshes")
                 .register(meterRegistry);
-        
-        LOGGER.info("RouteEventSubscriber initialized with metrics");
+        LOGGER.info("RouteEventSubscriber metrics initialized");
     }
 
     @Override

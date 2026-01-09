@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
@@ -82,6 +83,10 @@ class RouteEventSubscriberTest {
         
         meterRegistry = new SimpleMeterRegistry();
         subscriber = new RouteEventSubscriber(routeRefreshService, retryTemplate, objectMapper, meterRegistry);
+        ReflectionTestUtils.setField(subscriber, "totalEventsReceivedMetricName", "route.events.received.total");
+        ReflectionTestUtils.setField(subscriber, "refreshSuccessMetricName", "route.refresh.success.total");
+        ReflectionTestUtils.setField(subscriber, "refreshFailureMetricName", "route.refresh.failure.total");
+        subscriber.initializeMetrics();
     }
 
     @Test

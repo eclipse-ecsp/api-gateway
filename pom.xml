@@ -81,7 +81,7 @@
         <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
 
         <!--Checkstyle plugin properties -->
-        <checkstyle.version>12.1.1</checkstyle.version>
+         <checkstyle.version>11.0.0</checkstyle.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <checkstyle.suppressions.location>checkstyle-suppressions.xml</checkstyle.suppressions.location>

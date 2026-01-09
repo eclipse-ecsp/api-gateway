@@ -123,7 +123,7 @@ api:
           multiplier: ${RETRY_MULTIPLIER:2.0}
           max-interval-ms: ${RETRY_MAX_INTERVAL:16000}
         polling:
-          cron-expression: ${ROUTE_REFRESH_POLLING_CRON:"*/30 * * * * *"}
+          cron-expression: ${ROUTE_REFRESH_POLLING_CRON:*/30 * * * * *}
 ## Rate Limiting Configuration
     rate-limit:
       enabled: true 

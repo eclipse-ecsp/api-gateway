@@ -20,12 +20,14 @@ package org.eclipse.ecsp.registry.integration;
 
 import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.events.RouteEventThrottler;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -33,6 +35,8 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -45,15 +49,18 @@ import static org.awaitility.Awaitility.await;
     properties = {
         "api-registry.events.enabled=true",
         "api-registry.events.redis.channel=route-changes-it",
-        "api-registry.events.redis.debounce-delay-ms=100"
+        "api-registry.events.redis.debounce-delay-ms=100",
+        "REDIS_CLUSTER_NODES="
     }
 )
+@TestPropertySource("classpath:application-test.yml")
 @Testcontainers
 class EventDrivenRouteRefreshIntegrationTest {
 
     private static final int REDIS_PORT = 6379;
     private static final int TEST_TIMEOUT_SECONDS = 10;
-    private static final long DEBOUNCE_WAIT_MS = 200L;
+    private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
+    private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
 
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
@@ -63,6 +70,14 @@ class EventDrivenRouteRefreshIntegrationTest {
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (redis != null && redis.isRunning()) {
+            redis.stop();
+            redis.close();
+        }
     }
 
     @Autowired
@@ -109,18 +124,35 @@ class EventDrivenRouteRefreshIntegrationTest {
     }
 
     @Test
-    void testEventPublisher_CanPublishEvent() {
-        // Test that event publisher can be invoked without errors
+    void testEventPublisher_CanPublishEvent() throws InterruptedException {
+        // Test that event publisher can be invoked without errors and publishes to Redis
         String serviceId = "test-service-" + UUID.randomUUID();
-        
+        CountDownLatch latch = new CountDownLatch(1);
+        String channel = "route-changes-it";
+
+        // Subscribe to channel in a separate thread
+        Thread subscriber = new Thread(() -> {
+            redisTemplate.getConnectionFactory().getConnection().subscribe((message, pattern) -> {
+                if (new String(message.getBody()).contains(serviceId)) {
+                    latch.countDown();
+                }
+            }, channel.getBytes());
+        });
+        subscriber.start();
+
+        // Allow time for subscription to start
+        latch.await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
+
         // This should not throw an exception
         eventPublisher.publishRouteChangeEvent(serviceId);
-        
-        // Wait for debouncing delay to complete
-        await().pollDelay(Duration.ofMillis(DEBOUNCE_WAIT_MS)).until(() -> true);
-        
-        // Verify the event was processed (throttler didn't crash)
-        assertThat(eventThrottler).isNotNull();
+
+        // Wait for debouncing delay to complete and event to be received
+        // Debounce is 100ms.
+        boolean received = latch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+
+        assertThat(received)
+                .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)
+                .isTrue();
     }
 
     @Test

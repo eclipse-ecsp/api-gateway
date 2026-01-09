@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.events;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.nio.charset.StandardCharsets;
 import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.gateway.conditions.RouteRefreshEventEnabledCondition;
 import org.eclipse.ecsp.gateway.model.RouteChangeEvent;
@@ -126,7 +127,7 @@ public class RouteEventSubscriber implements MessageListener {
             return;
         }
         try {
-            String messageBody = new String(message.getBody());
+            String messageBody = new String(message.getBody(), StandardCharsets.UTF_8);
             LOGGER.debug("Received route change event: {}", messageBody);
 
             // Parse event
@@ -161,14 +162,14 @@ public class RouteEventSubscriber implements MessageListener {
                     }
                     return null;
                 } catch (Exception e) {
-                    LOGGER.error("Failed to refresh routes (attempt {}): {}", attemptCount, e.getMessage());
+                    LOGGER.error("Failed to refresh routes (attempt {}): {}", attemptCount, e.getMessage(), e);
                     // Don't increment failure counter here - only in the exhausted handler below
                     throw e;
                 }
             }, context -> {
                 // This recovery callback is invoked only when all retries are exhausted
                 refreshFailureCounter.increment();
-                LOGGER.error("All retry attempts exhausted for route refresh");
+                LOGGER.error("All retry attempts exhausted for route refresh", context.getLastThrowable());
                 return null;
             });
 

@@ -151,9 +151,11 @@ public class RouteEventThrottler {
             return true;
 
         } catch (JsonProcessingException e) {
-            LOGGER.error("Failed to serialize route change event", e);
+            LOGGER.error("Failed to serialize route change event. EventType: {}, Services: {}, Routes: {}", 
+                    eventType, serviceName, routeIds, e);
         } catch (Exception e) {
-            LOGGER.error("Failed to publish route change event to Redis", e);
+            LOGGER.error("Failed to publish route change event to Redis. EventType: {}, Services: {}, Routes: {}", 
+                    eventType, serviceName, routeIds, e);
         }
         return false;
     }

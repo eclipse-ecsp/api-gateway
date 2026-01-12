@@ -74,7 +74,7 @@ public class RouteRefreshFallbackScheduler {
         }
         
         // Execute polling refresh if in fallback mode
-        if (fallbackActive.get()) {
+        if (!currentRedisStatus && fallbackActive.get()) {
             LOGGER.debug("Executing fallback polling route refresh (Redis unavailable)");
             try {
                 routeRefreshService.refreshRoutes();

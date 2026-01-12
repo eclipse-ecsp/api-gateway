@@ -20,6 +20,8 @@ package org.eclipse.ecsp.registry.events;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.eclipse.ecsp.registry.config.EventProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 
@@ -65,11 +68,13 @@ class RouteEventThrottlerTest {
     @Mock
     private EventProperties.RedisConfig redisConfig;
 
+    private MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private ObjectMapper objectMapper;
     private RouteEventThrottler throttler;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // Use real ObjectMapper for proper JSON serialization
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -78,7 +83,9 @@ class RouteEventThrottlerTest {
         when(redisConfig.getChannel()).thenReturn("route-updates");
         when(redisConfig.getDebounceDelayMs()).thenReturn(TEST_DEBOUNCE_DELAY_MS); // Short delay for testing
         
-        throttler = new RouteEventThrottler(eventProperties, redisTemplate, objectMapper);
+        throttler = new RouteEventThrottler(eventProperties, redisTemplate, objectMapper, meterRegistry);
+        ReflectionTestUtils.setField(throttler, "totalPublishedMetricsName", "route.events.published.total");
+        throttler.initializeMetrics();
     }
 
     @AfterEach
@@ -255,4 +262,158 @@ class RouteEventThrottlerTest {
         // Assert
         verify(redisTemplate, atLeast(AT_LEAST_THREE_INVOCATIONS)).convertAndSend(anyString(), anyString());
     }
+
+    @Test
+    void testScheduleEvent_IncrementsMetric() {
+        // Arrange
+        String serviceName = "test-service";
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter(
+                "route.events.published.total",
+                "event_type", RouteEventType.ROUTE_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.scheduleEvent(serviceName);
+        
+        // Wait for debounce
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS)).until(() -> counter.count() > initialCount);
+
+        // Assert
+        assertThat(counter.count()).isEqualTo(initialCount + 1);
+    }
+
+    @Test
+    void testScheduleEvent_NullServiceName_DoesNotIncrementMetric() {
+        // Arrange
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
+                "event_type", RouteEventType.ROUTE_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.scheduleEvent(null);
+
+        // Assert
+        // Should settle quickly as it returns immediately
+        await().pollDelay(Duration.ofMillis(PRE_DEBOUNCE_SLEEP_MS)).until(() -> true); 
+        assertThat(counter.count()).isEqualTo(initialCount);
+    }
+    
+    @Test
+    void testScheduleEvent_EmptyServiceName_DoesNotIncrementMetric() {
+        // Arrange
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
+                "event_type", RouteEventType.ROUTE_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.scheduleEvent("");
+
+        // Assert
+        await().pollDelay(Duration.ofMillis(PRE_DEBOUNCE_SLEEP_MS)).until(() -> true);
+        assertThat(counter.count()).isEqualTo(initialCount);
+    }
+    
+    @Test
+    void testSendEvent_RateLimit_IncrementsMetric() {
+        // Arrange
+        java.util.List<String> serviceNames = java.util.List.of("service-1");
+        java.util.List<String> routeIds = java.util.List.of("route-1");
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
+                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE, serviceNames, routeIds);
+
+        // Assert
+        assertThat(counter.count()).isEqualTo(initialCount + 1);
+    }
+    
+    @Test
+    void testSendEvent_RateLimit_NullServiceNames_DoesNotIncrementMetric() {
+        // Arrange
+        java.util.List<String> routeIds = java.util.List.of();
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
+                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE, null, routeIds);
+
+        // Assert
+        assertThat(counter.count()).isEqualTo(initialCount);
+    }
+
+    @Test
+    void testSendEvent_ServiceHealth_IncrementsMetric() {
+        // Arrange
+        java.util.List<String> serviceNames = java.util.List.of("service-1", "service-2");
+        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
+                "event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name());
+        double initialCount = counter.count();
+
+        // Act
+        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE, serviceNames, java.util.List.of());
+
+        // Assert
+        assertThat(counter.count()).isEqualTo(initialCount + 1);
+    }
+
+    @Test
+    void testMultipleEventTypes_TrackSeparateMetrics() {
+        // Arrange
+        io.micrometer.core.instrument.Counter routeChangeCounter = meterRegistry.counter(
+                "route.events.published.total",
+                "event_type", RouteEventType.ROUTE_CHANGE.name());
+        io.micrometer.core.instrument.Counter rateLimitCounter = meterRegistry.counter(
+                "route.events.published.total",
+                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
+        io.micrometer.core.instrument.Counter healthCounter = meterRegistry.counter(
+                "route.events.published.total",
+                "event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name());
+
+        final double routeChangeInitial = routeChangeCounter.count();
+        final double rateLimitInitial = rateLimitCounter.count();
+        final double healthInitial = healthCounter.count();
+
+        // Act
+        throttler.scheduleEvent("service-1"); // route change
+        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE,
+                java.util.List.of("service-1"), java.util.List.of("route-1"));
+        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
+                java.util.List.of("service-1", "service-2"), java.util.List.of());
+        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
+                java.util.List.of("service-3"), java.util.List.of());
+
+        // Wait for scheduled event
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
+                .until(() -> routeChangeCounter.count() > routeChangeInitial);
+
+        // Assert
+        assertThat(routeChangeCounter.count()).isEqualTo(routeChangeInitial + 1);
+        assertThat(rateLimitCounter.count()).isEqualTo(rateLimitInitial + 1);
+        assertThat(healthCounter.count()).isEqualTo(healthInitial + AT_LEAST_TWO_INVOCATIONS);
+    }
+
+    @Test
+    void testMetricsCounterNames_AreCorrect() {
+        // Act
+        throttler.scheduleEvent("service-1");
+        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE,
+                java.util.List.of("service-1"), java.util.List.of("route-1"));
+        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
+                java.util.List.of("service-1"), java.util.List.of());
+
+        // Assert
+        assertThat(meterRegistry.find("route.events.published.total")
+                .tag("event_type", RouteEventType.ROUTE_CHANGE.name())
+                .counter()).isNotNull();
+        assertThat(meterRegistry.find("route.events.published.total")
+                .tag("event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
+                .counter()).isNotNull();
+        assertThat(meterRegistry.find("route.events.published.total")
+                .tag("event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name())
+                .counter()).isNotNull();
+    }
 }
+

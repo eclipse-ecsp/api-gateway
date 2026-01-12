@@ -96,7 +96,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1", "service-2")
+                List.of("service-1", "service-2"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -136,6 +137,7 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
+                List.of(),
                 List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
@@ -155,7 +157,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -178,7 +181,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1", "service-2", "service-3", "service-4")
+                List.of("service-1", "service-2", "service-3", "service-4"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -197,7 +201,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -220,7 +225,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.RATE_LIMIT_CONFIG_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -243,7 +249,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.SERVICE_HEALTH_CHANGE,
-                List.of("service-1", "service-2")
+                List.of("service-1", "service-2"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -266,7 +273,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -288,7 +296,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());
@@ -346,19 +355,19 @@ class RouteEventSubscriberTest {
         // Act - send different event types
         RouteChangeEvent routeEvent = new RouteChangeEvent(
                 UUID.randomUUID().toString(), Instant.now(),
-                RouteEventType.ROUTE_CHANGE, List.of("service-1"));
+                RouteEventType.ROUTE_CHANGE, List.of("service-1"), List.of());
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(routeEvent).getBytes());
         subscriber.onMessage(message, null);
 
         RouteChangeEvent rateLimitEvent = new RouteChangeEvent(
                 UUID.randomUUID().toString(), Instant.now(),
-                RouteEventType.RATE_LIMIT_CONFIG_CHANGE, List.of("service-2"));
+                RouteEventType.RATE_LIMIT_CONFIG_CHANGE, List.of("service-2"), List.of("route-id-1"));
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(rateLimitEvent).getBytes());
         subscriber.onMessage(message, null);
 
         RouteChangeEvent healthEvent = new RouteChangeEvent(
                 UUID.randomUUID().toString(), Instant.now(),
-                RouteEventType.SERVICE_HEALTH_CHANGE, List.of("service-3"));
+                RouteEventType.SERVICE_HEALTH_CHANGE, List.of("service-3"), List.of());
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(healthEvent).getBytes());
         subscriber.onMessage(message, null);
 
@@ -380,7 +389,8 @@ class RouteEventSubscriberTest {
                     UUID.randomUUID().toString(),
                     Instant.now(),
                     RouteEventType.ROUTE_CHANGE,
-                    List.of("service-" + i)
+                    List.of("service-" + i),
+                    List.of()
             );
             when(message.getBody()).thenReturn(objectMapper.writeValueAsString(event).getBytes());
             subscriber.onMessage(message, null);
@@ -401,7 +411,7 @@ class RouteEventSubscriberTest {
         // Act - first event succeeds
         RouteChangeEvent event1 = new RouteChangeEvent(
                 UUID.randomUUID().toString(), Instant.now(),
-                RouteEventType.ROUTE_CHANGE, List.of("service-1"));
+                RouteEventType.ROUTE_CHANGE, List.of("service-1"), List.of());
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(event1).getBytes());
         subscriber.onMessage(message, null);
 
@@ -410,7 +420,7 @@ class RouteEventSubscriberTest {
             .when(routeRefreshService).refreshRoutes();
         RouteChangeEvent event2 = new RouteChangeEvent(
                 UUID.randomUUID().toString(), Instant.now(),
-                RouteEventType.ROUTE_CHANGE, List.of("service-2"));
+                RouteEventType.ROUTE_CHANGE, List.of("service-2"), List.of());
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(event2).getBytes());
         subscriber.onMessage(message, null);
 
@@ -426,7 +436,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         when(message.getBody()).thenReturn(objectMapper.writeValueAsString(event).getBytes());
         subscriber.onMessage(message, null);
@@ -446,7 +457,8 @@ class RouteEventSubscriberTest {
                 UUID.randomUUID().toString(),
                 Instant.now(),
                 RouteEventType.ROUTE_CHANGE,
-                List.of("service-1")
+                List.of("service-1"),
+                List.of()
         );
         String eventJson = objectMapper.writeValueAsString(event);
         when(message.getBody()).thenReturn(eventJson.getBytes());

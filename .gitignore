@@ -39,3 +39,4 @@ replay_pid*
 .scripts/
 
 docs/*
+*.http

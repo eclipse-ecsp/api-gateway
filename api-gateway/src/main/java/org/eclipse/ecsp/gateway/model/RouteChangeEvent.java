@@ -20,11 +20,11 @@ package org.eclipse.ecsp.gateway.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -32,6 +32,8 @@ import java.util.UUID;
  *
  * <p>Contains minimal information (service names) to trigger route refresh on API Gateway instances.
  */
+@Getter
+@EqualsAndHashCode
 public class RouteChangeEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -40,14 +42,15 @@ public class RouteChangeEvent implements Serializable {
     private final Instant timestamp;
     private final RouteEventType eventType;
     private final List<String> services;
+    private final List<String> routes;
 
     /**
      * Constructor for RouteChangeEvent.
      *
      * @param services list of service names that changed
      */
-    public RouteChangeEvent(List<String> services) {
-        this(UUID.randomUUID().toString(), Instant.now(), RouteEventType.ROUTE_CHANGE, services);
+    public RouteChangeEvent(List<String> services, List<String> routes) {
+        this(UUID.randomUUID().toString(), Instant.now(), RouteEventType.ROUTE_CHANGE, services, routes);
     }
 
     /**
@@ -57,82 +60,19 @@ public class RouteChangeEvent implements Serializable {
      * @param timestamp event generation time
      * @param eventType type of route event
      * @param services  list of service names that changed
+     * @param routes    list of route IDs that changed
      */
     @JsonCreator
     public RouteChangeEvent(
             @JsonProperty("eventId") String eventId,
             @JsonProperty("timestamp") Instant timestamp,
             @JsonProperty("eventType") RouteEventType eventType,
-            @JsonProperty("services") List<String> services) {
+            @JsonProperty("services") List<String> services,
+            @JsonProperty("routes") List<String> routes) {
         this.eventId = eventId;
         this.timestamp = timestamp;
         this.eventType = eventType;
         this.services = services;
-    }
-
-    /**
-     * Get event ID.
-     *
-     * @return event ID
-     */
-    public String getEventId() {
-        return eventId;
-    }
-
-    /**
-     * Get event timestamp.
-     *
-     * @return timestamp
-     */
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-
-    /**
-     * Get event type.
-     *
-     * @return event type
-     */
-    public RouteEventType getEventType() {
-        return eventType;
-    }
-
-    /**
-     * Get list of services that changed.
-     *
-     * @return list of service names
-     */
-    public List<String> getServices() {
-        return services;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        RouteChangeEvent that = (RouteChangeEvent) o;
-        return Objects.equals(eventId, that.eventId)
-                && Objects.equals(timestamp, that.timestamp)
-                && eventType == that.eventType
-                && Objects.equals(services, that.services);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(eventId, timestamp, eventType, services);
-    }
-
-    @Override
-    public String toString() {
-        return "RouteChangeEvent{"
-                + "eventId='" + eventId + '\''
-                + ", timestamp=" + timestamp
-                + ", eventType=" + eventType
-                + ", services=" + services
-                + '}';
+        this.routes = routes;
     }
 }

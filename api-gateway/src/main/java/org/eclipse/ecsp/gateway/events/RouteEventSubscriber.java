@@ -21,7 +21,6 @@ package org.eclipse.ecsp.gateway.events;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.nio.charset.StandardCharsets;
 import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.gateway.conditions.RouteRefreshEventEnabledCondition;
 import org.eclipse.ecsp.gateway.model.RouteChangeEvent;
@@ -36,6 +35,7 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Redis message listener for route change events.
@@ -141,12 +141,11 @@ public class RouteEventSubscriber implements MessageListener {
             // Increment counter based on event type
             incrementEventReceivedCounter(event.getEventType());
 
-            LOGGER.info("Processing route change event: eventId={}, eventType={}, serviceCount={}, services={}",
+            LOGGER.info("Processing route change event: eventId={}, eventType={}, services={}, routes={}",
                     event.getEventId(),
                     event.getEventType(),
-                    event.getServices() != null ? event.getServices().size() : 0, 
-                    event.getServices());
-
+                    event.getServices(),
+                    event.getRoutes());
             // Refresh routes with retry
             retryTemplate.execute(context -> {
                 int attemptCount = context.getRetryCount() + 1;

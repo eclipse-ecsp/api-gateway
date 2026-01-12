@@ -18,16 +18,12 @@
 
 package org.eclipse.ecsp.registry.events;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -38,51 +34,18 @@ import java.util.List;
 @Component
 @ConditionalOnProperty(name = "api-registry.events.enabled", havingValue = "true")
 public class RouteEventPublisher {
-
-    private static final String EVENT_TYPE = "event_type";
-
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteEventPublisher.class);
 
     private final RouteEventThrottler throttler;
-    private final MeterRegistry meterRegistry;
-    private Counter routeChangeEventCounter;
-    private Counter rateLimitConfigChangeEventCounter;
-    private Counter serviceHealthChangeEventCounter;
-
-    @Value("${api-registry.events.metrics.total.published.metrics-name:route.events.published.total}")
-    private String totalPublishedMetricsName;
-
+    
     /**
      * Constructor for RouteEventPublisher.
      *
      * @param throttler event throttler with debouncing
-     * @param meterRegistry Micrometer meter registry for metrics
      */
-    public RouteEventPublisher(RouteEventThrottler throttler, MeterRegistry meterRegistry) {
+    public RouteEventPublisher(RouteEventThrottler throttler) {
         this.throttler = throttler;
-        this.meterRegistry = meterRegistry;
         LOGGER.info("RouteEventPublisher initialized");
-    }
-
-    /**
-     * Initialize metrics counters after construction.
-     */
-    @PostConstruct
-    public void initializeMetrics() {
-        this.routeChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.ROUTE_CHANGE.name())
-                .description("Total number of route change events published")
-                .register(meterRegistry);
-
-        this.rateLimitConfigChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
-                .description("Total number of rate limit config change events published")
-                .register(meterRegistry);
-
-        this.serviceHealthChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.SERVICE_HEALTH_CHANGE.name())
-                .description("Total number of service health change events published")
-                .register(meterRegistry);
     }
 
     /**
@@ -99,7 +62,6 @@ public class RouteEventPublisher {
 
         LOGGER.debug("Publishing route change event for service: {}", serviceName);
         throttler.scheduleEvent(serviceName);
-        routeChangeEventCounter.increment();
     }
 
     /**
@@ -108,14 +70,13 @@ public class RouteEventPublisher {
      * @param serviceName list of service names that changed
      */
     public void publishRateLimitConfigChangeEvent(List<String> serviceName, List<String> routeIds) {
-        if (CollectionUtils.isEmpty(serviceName) || CollectionUtils.isEmpty(routeIds)) {
-            LOGGER.warn("Cannot publish event with null or empty service name or route IDs");
+        if (CollectionUtils.isEmpty(serviceName) && CollectionUtils.isEmpty(routeIds)) {
+            LOGGER.warn("Cannot publish event with null or empty service name and route IDs");
             return;
         }
 
         LOGGER.debug("Publishing rate limit config change event for service: {}, route IDs: {}", serviceName, routeIds);
         throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE, serviceName, routeIds);
-        rateLimitConfigChangeEventCounter.increment();
     }
 
     /**
@@ -131,6 +92,5 @@ public class RouteEventPublisher {
 
         LOGGER.debug("Publishing service health change event for services: {}", serviceNames);
         throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE, serviceNames, Collections.emptyList());
-        serviceHealthChangeEventCounter.increment();
     }
 }

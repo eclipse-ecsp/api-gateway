@@ -20,10 +20,14 @@ package org.eclipse.ecsp.registry.events;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.ecsp.registry.config.EventProperties;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -47,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RouteEventThrottler {
 
     private static final int FIVE = 5;
-
+    private static final String EVENT_TYPE = "event_type";
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteEventThrottler.class);
 
     private final ScheduledExecutorService scheduler;
@@ -57,6 +61,13 @@ public class RouteEventThrottler {
     private final String channel;
     private final ObjectMapper objectMapper;
     private final AtomicReference<ScheduledFuture<?>> scheduledFlush = new AtomicReference<>();
+    private final MeterRegistry meterRegistry;
+    private Counter routeChangeEventCounter;
+    private Counter rateLimitConfigChangeEventCounter;
+    private Counter serviceHealthChangeEventCounter;
+
+    @Value("${api-registry.events.metrics.total.published.metrics-name:route.events.published.total}")
+    private String totalPublishedMetricsName;
 
     /**
      * Constructor for RouteEventThrottler.
@@ -67,11 +78,13 @@ public class RouteEventThrottler {
      */
     public RouteEventThrottler(EventProperties eventProperties,
                                RedisTemplate<String, String> redisTemplate,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,
+                               MeterRegistry meterRegistry) {
         this.debounceDelayMs = eventProperties.getRedis().getDebounceDelayMs();
         this.channel = eventProperties.getRedis().getChannel();
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r, "route-event-throttler");
             thread.setDaemon(true);
@@ -81,6 +94,28 @@ public class RouteEventThrottler {
         LOGGER.info("RouteEventThrottler initialized with debounce delay: {}ms, channel: {}",
                 debounceDelayMs, channel);
     }
+
+    /**
+     * Initialize metrics counters after construction.
+     */
+    @PostConstruct
+    public void initializeMetrics() {
+        this.routeChangeEventCounter = Counter.builder(totalPublishedMetricsName)
+                .tag(EVENT_TYPE, RouteEventType.ROUTE_CHANGE.name())
+                .description("Total number of route change events published")
+                .register(meterRegistry);
+
+        this.rateLimitConfigChangeEventCounter = Counter.builder(totalPublishedMetricsName)
+                .tag(EVENT_TYPE, RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
+                .description("Total number of rate limit config change events published")
+                .register(meterRegistry);
+
+        this.serviceHealthChangeEventCounter = Counter.builder(totalPublishedMetricsName)
+                .tag(EVENT_TYPE, RouteEventType.SERVICE_HEALTH_CHANGE.name())
+                .description("Total number of service health change events published")
+                .register(meterRegistry);
+    }
+
 
     /**
      * Schedule an event for a service. Resets the debounce timer.
@@ -148,6 +183,21 @@ public class RouteEventThrottler {
 
             LOGGER.info("Published {} change event: eventId={}, serviceCount={}, services={}",
                     eventType, event.getEventId(), event.getServices().size(), event.getServices());
+            
+            // Increment appropriate counter
+            switch (eventType) {
+                case ROUTE_CHANGE:
+                    routeChangeEventCounter.increment();
+                    break;
+                case RATE_LIMIT_CONFIG_CHANGE:
+                    rateLimitConfigChangeEventCounter.increment();
+                    break;
+                case SERVICE_HEALTH_CHANGE:
+                    serviceHealthChangeEventCounter.increment();
+                    break;
+                default:
+                    LOGGER.warn("Unknown event type for metrics increment: {}", eventType);
+            }
             return true;
 
         } catch (JsonProcessingException e) {

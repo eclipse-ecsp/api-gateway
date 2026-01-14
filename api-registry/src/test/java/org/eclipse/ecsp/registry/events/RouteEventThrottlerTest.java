@@ -74,7 +74,7 @@ class RouteEventThrottlerTest {
     private RouteEventThrottler throttler;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         // Use real ObjectMapper for proper JSON serialization
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());

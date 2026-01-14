@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.registry.events;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.List;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -114,6 +115,36 @@ class RouteEventPublisherTest {
         // Assert
         verify(throttler, times(1)).sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE, 
                 serviceNames, Collections.emptyList());
+    }
+
+    @Test
+    void testPublishRouteChangeEvent_NullOrEmptyServiceName_DoesNothing() {
+        // Act
+        publisher.publishRouteChangeEvent(null);
+        publisher.publishRouteChangeEvent("");
+
+        // Assert
+        verify(throttler, times(0)).scheduleEvent(any());
+    }
+
+    @Test
+    void testPublishRateLimitConfigChangeEvent_NullOrEmpty_DoesNothing() {
+        // Act
+        publisher.publishRateLimitConfigChangeEvent(null, null);
+        publisher.publishRateLimitConfigChangeEvent(Collections.emptyList(), Collections.emptyList());
+
+        // Assert
+        verify(throttler, times(0)).sendEvent(any(), any(), any());
+    }
+
+    @Test
+    void testPublishServiceHealthChangeEvent_NullOrEmpty_DoesNothing() {
+        // Act
+        publisher.publishServiceHealthChangeEvent(null);
+        publisher.publishServiceHealthChangeEvent(Collections.emptyList());
+
+        // Assert
+        verify(throttler, times(0)).sendEvent(any(), any(), any());
     }
 }
 

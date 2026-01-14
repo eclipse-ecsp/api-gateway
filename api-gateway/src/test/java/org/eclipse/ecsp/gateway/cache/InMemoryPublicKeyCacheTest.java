@@ -757,4 +757,31 @@ class InMemoryPublicKeyCacheTest {
         // Test null sourceId
         assertThrows(IllegalArgumentException.class, () -> invalidInfo.setSourceId(null));
     }
+
+    @Test
+    void put_whenKeyOrValueIsNull_thenDoesNotPutIntoCache() {
+        // Given
+        PublicKeyInfo info = createTestPublicKeyInfo("kid1", testPublicKey1);
+
+        // When
+        cache.put(null, info);
+        cache.put("", info);
+        cache.put("key", null);
+
+        // Then
+        assertEquals(0, cache.size());
+    }
+
+    @Test
+    void remove_whenKeyIsNull_thenDoesNothing() {
+        // Given
+        cache.put("key1", createTestPublicKeyInfo("kid1", testPublicKey1));
+
+        // When
+        cache.remove((String) null);
+        cache.remove("");
+
+        // Then
+        assertEquals(1, cache.size());
+    }
 }

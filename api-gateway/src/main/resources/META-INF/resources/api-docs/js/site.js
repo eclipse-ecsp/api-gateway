@@ -96,13 +96,15 @@ $(document).ready(function () {
         
         try {
             // Fetch the API specification with timeout
+            // Get timeout from env if available, otherwise default to 15000ms
+            const timeout = window.env && window.env.API_TIMEOUT ? parseInt(window.env.API_TIMEOUT) : 15000;
             const response = await fetchWithTimeout(specUrl, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': localStorage.access_token ? `Bearer ${localStorage.access_token}` : ''
                 }
-            }, 10000); // 10 second timeout
+            }, timeout);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);

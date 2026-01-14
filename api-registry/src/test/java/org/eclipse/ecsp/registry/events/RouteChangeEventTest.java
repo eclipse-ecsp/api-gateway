@@ -55,7 +55,7 @@ class RouteChangeEventTest {
         RouteChangeEvent event2 = new RouteChangeEvent(eventId, now, RouteEventType.ROUTE_CHANGE, services, routes);
         
         assertThat(event1).isEqualTo(event2);
-        assertThat(event1.hashCode()).isEqualTo(event2.hashCode());
+        assertThat(event1.hashCode()).hasSameHashCodeAs(event2.hashCode());
         
         assertThat(event1.toString()).contains(eventId);
     }

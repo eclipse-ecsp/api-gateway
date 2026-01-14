@@ -36,6 +36,7 @@ class RouteRefreshFallbackSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        // Reset fallback state before each test
     }
 
     @Test

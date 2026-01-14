@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link PublicKeyRefreshEvent}.
  */
-public class PublicKeyRefreshEventTest {
+class PublicKeyRefreshEventTest {
 
     @Test
-    public void testPublicKeyRefreshEvent() {
+    void testPublicKeyRefreshEvent() {
         PublicKeyRefreshEvent event = new PublicKeyRefreshEvent(RefreshType.PUBLIC_KEY, "test-source");
 
         Assertions.assertEquals(RefreshType.PUBLIC_KEY, event.getRefreshType());

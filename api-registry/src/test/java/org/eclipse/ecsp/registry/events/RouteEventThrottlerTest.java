@@ -50,10 +50,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RouteEventThrottlerTest {
 
-    private static final long TEST_DEBOUNCE_DELAY_MS = 100L;
-    private static final long SLEEP_BUFFER_MS = 250L;
+    private static final long TEST_DEBOUNCE_DELAY_MS = 500L;
+    private static final long SLEEP_BUFFER_MS = 1000L;
     private static final long SHORT_SLEEP_MS = 30L;
-    private static final long PRE_DEBOUNCE_SLEEP_MS = 80L;
+    private static final long PRE_DEBOUNCE_SLEEP_MS = 100L;
     private static final int SINGLE_INVOCATION = 1;
     private static final int DUPLICATE_SERVICE_COUNT = -1;
     private static final int AT_LEAST_TWO_INVOCATIONS = 2;

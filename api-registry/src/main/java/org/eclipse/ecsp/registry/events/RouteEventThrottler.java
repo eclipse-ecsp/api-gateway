@@ -158,9 +158,10 @@ public class RouteEventThrottler {
             LOGGER.trace("No pending services to flush");
             return;
         }
-        boolean sent = sendEvent(RouteEventType.ROUTE_CHANGE, List.copyOf(pendingServiceNames), List.of());
+        List<String> servicesToSend = List.copyOf(pendingServiceNames);
+        boolean sent = sendEvent(RouteEventType.ROUTE_CHANGE, servicesToSend, List.of());
         if (sent) {
-            pendingServiceNames.clear();
+            pendingServiceNames.removeAll(servicesToSend);
         }
     }
 

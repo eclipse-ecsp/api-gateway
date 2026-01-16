@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.config;
 
+import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
@@ -31,6 +32,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @ConditionOnRedisEnabled
+@NoArgsConstructor
 @Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
     // configuration class for redis

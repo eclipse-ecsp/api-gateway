@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.conditions;
 
+import lombok.NoArgsConstructor;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
@@ -27,6 +28,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  *
  * @author Abhishek Kumar
  */
+@NoArgsConstructor
 public class RedisEnabledCondition implements Condition {
 
     private final RateLimitEnabledCondition rateLimitCondition = new RateLimitEnabledCondition();

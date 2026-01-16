@@ -67,6 +67,7 @@ public class RouteEventPublisher {
      * Publish a rate limit config change event for a service.
      *
      * @param serviceName list of service names that changed
+     * @param routeIds    list of route IDs that changed
      */
     public void publishRateLimitConfigChangeEvent(List<String> serviceName, List<String> routeIds) {
         if (CollectionUtils.isEmpty(serviceName) && CollectionUtils.isEmpty(routeIds)) {

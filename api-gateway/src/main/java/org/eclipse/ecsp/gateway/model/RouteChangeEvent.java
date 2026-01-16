@@ -38,10 +38,25 @@ public class RouteChangeEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Unique identifier for the event.
+     */
     private final String eventId;
+    /**
+     * Timestamp when the event was generated.
+     */
     private final Instant timestamp;
+    /**
+     * Type of route event.
+     */
     private final RouteEventType eventType;
+    /**
+     * List of service names that changed.
+     */
     private final List<String> services;
+    /**
+     * List of route IDs that changed.
+     */
     private final List<String> routes;
 
     /**

@@ -89,6 +89,8 @@ public class PublicKeyMetrics {
 
     /**
      * Public API for recording source refresh - delegates to specialized component.
+     *
+     * @param sourceId the ID of the public key source that was refreshed
      */
     public void recordSourceRefresh(String sourceId) {
         refreshMetricsRecorder.recordSourceRefresh(sourceId);

@@ -40,16 +40,36 @@ public class RouteChangeEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Unique identifier for the event.
+     */
     private final String eventId;
+
+    /**
+     * Timestamp when the event was generated.
+     */
     private final Instant timestamp;
+    
+    /**
+     * Type of route event.
+     */
     private final RouteEventType eventType;
+
+    /**
+     * List of service names that changed.
+     */
     private final List<String> services;
+
+    /**
+     * List of route IDs that changed.
+     */
     private final List<String> routes;
 
     /**
      * Constructor for RouteChangeEvent.
      *
      * @param services list of service names that changed
+     * @param routes list of route IDs that changed
      */
     public RouteChangeEvent(List<String> services, List<String> routes) {
         this(UUID.randomUUID().toString(), Instant.now(), RouteEventType.ROUTE_CHANGE, services, routes);
@@ -60,6 +80,7 @@ public class RouteChangeEvent implements Serializable {
      *
      * @param eventType type of route event
      * @param services list of service names that changed
+     * @param routes list of route IDs that changed
      */
     public RouteChangeEvent(RouteEventType eventType, List<String> services, List<String> routes) {
         this(UUID.randomUUID().toString(), Instant.now(), eventType, services, routes);
@@ -72,6 +93,7 @@ public class RouteChangeEvent implements Serializable {
      * @param timestamp event generation time
      * @param eventType type of route event
      * @param services  list of service names that changed
+     * @param routes    list of route IDs that changed
      */
     @JsonCreator
     public RouteChangeEvent(

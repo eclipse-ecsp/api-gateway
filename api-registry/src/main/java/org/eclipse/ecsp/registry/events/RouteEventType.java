@@ -7,5 +7,15 @@ public enum RouteEventType {
     /**
      * Indicates a route change occurred (create, update, or delete).
      */
-    ROUTE_CHANGE, RATE_LIMIT_CONFIG_CHANGE, SERVICE_HEALTH_CHANGE
+    ROUTE_CHANGE, 
+
+    /**
+     * Indicates a rate limit configuration change occurred.
+     */
+    RATE_LIMIT_CONFIG_CHANGE, 
+    
+    /**
+     * Indicates a service health change occurred.
+     */
+    SERVICE_HEALTH_CHANGE
 }

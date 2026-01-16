@@ -65,6 +65,7 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
      * Constructor to initialize the JwksPublicKeyLoader with a WebClient.
      *
      * @param webClientBuilder the WebClient builder to create the WebClient instance
+     * @param retryTemplate the RetryTemplate for retrying JWKS fetches
      */
     public JwksPublicKeyLoader(WebClient.Builder webClientBuilder,
             @Qualifier("jwkRefreshRetryTemplate") RetryTemplate retryTemplate) {

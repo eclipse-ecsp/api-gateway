@@ -75,6 +75,7 @@ public class RouteEventThrottler {
      * @param eventProperties configuration properties
      * @param redisTemplate   Redis template for publishing events
      * @param objectMapper    JSON object mapper
+     * @param meterRegistry   Meter registry for metrics
      */
     public RouteEventThrottler(EventProperties eventProperties,
                                RedisTemplate<String, String> redisTemplate,
@@ -169,7 +170,9 @@ public class RouteEventThrottler {
      * Send event immediately.
      *
      * @param eventType   type of route event
-     * @param serviceName list of service names that changed
+     * @param serviceName list of service names that changed 
+     * @param routeIds    list of route IDs that changed
+     * @return true if event was sent successfully, false otherwise
      */
     public boolean sendEvent(RouteEventType eventType, List<String> serviceName, List<String> routeIds) {
         try {

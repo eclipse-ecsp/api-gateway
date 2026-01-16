@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.config;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
@@ -39,6 +40,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Component
+@NoArgsConstructor
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
 

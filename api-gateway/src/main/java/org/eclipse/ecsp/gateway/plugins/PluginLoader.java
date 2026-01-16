@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.plugins;
 
 import jakarta.annotation.PreDestroy;
+import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.utils.JarUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -51,6 +52,7 @@ import java.util.Set;
  * Load external jar plugin classes and register to spring context.
  * Implements BeanFactoryPostProcessor to register beans before instantiation.
  */
+@NoArgsConstructor
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class PluginLoader implements ApplicationContextAware, BeanFactoryPostProcessor {

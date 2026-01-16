@@ -28,7 +28,7 @@ import org.springframework.cloud.gateway.support.tagsprovider.GatewayTagsProvide
 import java.util.List;
 
 /**
- * Custom Gateway Metrics Filter that extends Spring's GatewayMetricsFilter
+ * Custom Gateway Metrics Filter that extends Spring's GatewayMetricsFilter.
  * with a modified execution order to ensure all requests are captured,
  * including authentication failures.
  *

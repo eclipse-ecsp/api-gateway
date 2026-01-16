@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * ScopeValidator.
+ * Aspect to validate scopes from SecurityRequirement annotation.
  */
 @Aspect
 @Component

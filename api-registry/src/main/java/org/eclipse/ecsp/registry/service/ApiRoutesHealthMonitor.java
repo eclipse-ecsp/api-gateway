@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.metrics.ServiceMetricsEvent;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
@@ -34,8 +35,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * ApiRoutesHealthMonitor.
@@ -50,6 +54,7 @@ public class ApiRoutesHealthMonitor {
     private final ApiRouteRepo apiRouteRepo;
     private final RestTemplate restTemplate;
     private final ApplicationEventPublisher eventPublisher;
+    private final RouteEventPublisher routeEventPublisher;
 
     /**
      * Constructor to initialize the ApiRoutesHealthMonitor.
@@ -57,13 +62,16 @@ public class ApiRoutesHealthMonitor {
      * @param apiRouteRepo   the ApiRouteRepo
      * @param restTemplate   the RestTemplate
      * @param eventPublisher the ApplicationEventPublisher
+     * @param routeEventPublisher the RouteEventPublisher
      */
     public ApiRoutesHealthMonitor(ApiRouteRepo apiRouteRepo,
                                   RestTemplate restTemplate,
-                                  ApplicationEventPublisher eventPublisher) {
+                                  ApplicationEventPublisher eventPublisher,
+                                  Optional<RouteEventPublisher> routeEventPublisher) {
         this.apiRouteRepo = apiRouteRepo;
         this.restTemplate = restTemplate;
         this.eventPublisher = eventPublisher;
+        this.routeEventPublisher = routeEventPublisher.orElse(null);
     }
 
     /**
@@ -80,6 +88,9 @@ public class ApiRoutesHealthMonitor {
             LOGGER.info("Empty Routes found.");
             return;
         }
+
+        Map<String, Boolean> previousStatus = new HashMap<>();
+        Set<String> changedServices = new HashSet<>();
         // find out servers and each server apis
         entities.forEach(entity -> {
             String url = entity.getRoute().getUri().toString();
@@ -90,22 +101,29 @@ public class ApiRoutesHealthMonitor {
                 url = url + contextPath + RegistryConstants.PATH_DELIMITER;
                 LOGGER.info("health check url: {}", url);
             }
-            services.put(entity.getService(), url);
+            services.putIfAbsent(entity.getService(), url);
+            previousStatus.putIfAbsent(entity.getService(), entity.getActive());
             // Add Api Routes
-            List<ApiRouteEntity> apiRoutes = serviceApiRoutes.get(entity.getService());
-            if (apiRoutes == null) {
-                apiRoutes = new ArrayList<>();
-            }
-            apiRoutes.add(entity);
-            LOGGER.debug("apiRoutes: {}", apiRoutes);
-            serviceApiRoutes.put(entity.getService(), apiRoutes);
+            serviceApiRoutes.computeIfAbsent(entity.getService(), k -> new ArrayList<>()).add(entity);
         });
         LOGGER.debug("Services: {}", services);
         // check health of each server
         services.forEach((name, url) -> {
-            boolean status = getHealth(name, url, "actuator/health") || getHealth(name, url, "v1/health");
-            update(name, status);
+            boolean currentStatus = getHealth(name, url, "actuator/health") || getHealth(name, url, "v1/health");
+            Boolean prevStatus = previousStatus.get(name);
+            // Track status changes
+            if (prevStatus != null && !currentStatus == prevStatus) {
+                changedServices.add(name);
+                LOGGER.info("Service: {}, health status changed from: {} to: {}", name, prevStatus, currentStatus);
+                update(name, currentStatus);
+            }
         });
+        // get the services which status has changed
+        // Send event for all changed services at once
+        if (!changedServices.isEmpty() && routeEventPublisher != null) {
+            LOGGER.info("Services with health status changes: {}", changedServices);
+            routeEventPublisher.publishServiceHealthChangeEvent(new ArrayList<>(changedServices));
+        }
         LOGGER.info("Route Header Checker ends...");
     }
 

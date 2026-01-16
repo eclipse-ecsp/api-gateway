@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
+import java.util.Optional;
 
 /**
  * Test class for ApiRoutesHealthMonitor.
@@ -51,10 +53,14 @@ class ApiRoutesHealthMonitorTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private RouteEventPublisher routeEventPublisher;
+
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
-        apiRoutesHealthMonitor = new ApiRoutesHealthMonitor(apiRouteRepo, restTemplate, eventPublisher);
+        apiRoutesHealthMonitor = new ApiRoutesHealthMonitor(apiRouteRepo, 
+                restTemplate, eventPublisher, Optional.of(routeEventPublisher));
     }
 
     @Test

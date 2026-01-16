@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.conditions;
 
+import lombok.NoArgsConstructor;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
@@ -27,14 +28,19 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  *
  * @author Abhishek Kumar
  */
+@NoArgsConstructor
 public class RedisEnabledCondition implements Condition {
 
     private final RateLimitEnabledCondition rateLimitCondition = new RateLimitEnabledCondition();
     private final RedisCacheEnabledCondition redisCacheCondition = new RedisCacheEnabledCondition();
+    private final RouteRefreshEventEnabledCondition routeRefreshEventCondition = 
+        new RouteRefreshEventEnabledCondition();
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return rateLimitCondition.matches(context, metadata) || redisCacheCondition.matches(context, metadata);
+        return rateLimitCondition.matches(context, metadata) 
+            || redisCacheCondition.matches(context, metadata) 
+            || routeRefreshEventCondition.matches(context, metadata);
     }
 
 }

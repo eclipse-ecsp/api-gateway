@@ -35,8 +35,6 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -45,11 +43,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-
 import java.util.List;
 
 /**
@@ -60,8 +56,19 @@ import java.util.List;
 @Configuration
 @AutoConfigureAfter(PluginLoader.class)
 @Conditional(RateLimitEnabledCondition.class)
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class })
 public class RateLimitConfig {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RateLimitConfig.class);
+    private final RateLimitProperties properties;
+
+    /**
+     * Constructor for RateLimitConfig.
+     *
+     * @param rateLimitProperties rate limit properties
+     */
+    public RateLimitConfig(RateLimitProperties rateLimitProperties) {
+        this.properties = rateLimitProperties;
+        LOGGER.info("RateLimitConfig loaded, rate limiting is enabled: {}", properties.isEnabled());
+    }
 
     /**
      * Creates a logger instance for this configuration.
@@ -77,6 +84,11 @@ public class RateLimitConfig {
         return new DefaultRateLimitConfigResolver(apiRegistryClient, rateLimitProperties);
     }
 
+    /**
+     * Bean definition for ClientIpKeyResolver.
+     *
+     * @return the ClientIpKeyResolver bean
+     */
     @Bean(GatewayConstants.CLIENT_IP_KEY_RESOLVER)
     @Primary
     public KeyResolver clientIpKeyResolver() {
@@ -84,18 +96,33 @@ public class RateLimitConfig {
         return new ClientIpKeyResolver();
     }
 
+    /**
+     * Bean definition for RequestHeaderKeyResolver.
+     *
+     * @return the RequestHeaderKeyResolver bean
+     */
     @Bean(GatewayConstants.HEADER_KEY_RESOLVER)
     public KeyResolver requestHeaderKeyResolver() {
         LOG.debug("Creating RequestHeaderKeyResolver bean");
         return new RequestHeaderKeyResolver();
     }
 
+    /**
+     * Bean definition for RoutePathKeyResolver.
+     *
+     * @return the RoutePathKeyResolver bean
+     */
     @Bean(GatewayConstants.ROUTE_PATH_KEY_RESOLVER)
     public KeyResolver routePathKeyResolver() {
         LOG.debug("Creating RoutePathKeyResolver bean");
         return new RoutePathKeyResolver();
     }
 
+    /**
+     * Bean definition for RouteNameKeyResolver.
+     *
+     * @return the RouteNameKeyResolver bean
+     */
     @Bean(GatewayConstants.ROUTE_NAME_KEY_RESOLVER)
     public KeyResolver routeNameKeyResolver() {
         LOG.debug("Creating RouteNameKeyResolver bean");
@@ -126,6 +153,13 @@ public class RateLimitConfig {
                 rateLimitProperties.getNamespace());
     }
 
+    /**
+     * Bean definition for RateLimitRouteCustomizer.
+     *
+     * @param rateLimitConfigResolver the rate limit config resolver
+     * @param applicationContext the application context for dynamic key resolver lookup
+     * @return the RateLimitRouteCustomizer bean
+     */
     @Bean
     @ConditionalOnMissingBean
     public RateLimitRouteCustomizer rateLimitRouteCustomizer(RateLimitConfigResolver rateLimitConfigResolver,
@@ -133,5 +167,4 @@ public class RateLimitConfig {
         LOG.debug("Creating RateLimitRouteCustomizer bean with ApplicationContext for dynamic KeyResolver lookup");
         return new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
     }
-
 }

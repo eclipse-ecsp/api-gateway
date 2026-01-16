@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.security.PublicKey;
 import java.util.Map;
 
@@ -30,6 +32,7 @@ import java.util.Map;
  * @author Abhishek Kumar
  */
 @Getter
+@NoArgsConstructor
 public class PublicKeyInfo {
     /** The key identifier (kid) from JWT header used to locate the correct public key. */
     private String kid;

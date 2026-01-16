@@ -37,3 +37,6 @@ replay_pid*
 **/*.java.bak
 .sonarlint/
 .scripts/
+
+docs/*
+*.http

@@ -55,6 +55,12 @@ public class PublicKeyRefreshMetricsRecorder {
     // Track source-specific refresh times
     private final Map<String, AtomicLong> sourceRefreshTimes = new ConcurrentHashMap<>();
 
+    /**
+     * Constructor for PublicKeyRefreshMetricsRecorder.
+     *
+     * @param meterRegistry the MeterRegistry to use for recording metrics
+     * @param gatewayMetricsProperties the gateway metrics properties for configuration
+     */
     public PublicKeyRefreshMetricsRecorder(MeterRegistry meterRegistry,
                                           GatewayMetricsProperties gatewayMetricsProperties) {
         this.meterRegistry = meterRegistry;
@@ -71,6 +77,8 @@ public class PublicKeyRefreshMetricsRecorder {
 
     /**
      * Record an individual public key source refresh event.
+     *
+     * @param sourceId the ID of the public key source that was refreshed
      */
     public void recordSourceRefresh(String sourceId) {
         if (StringUtils.isBlank(sourceId)) {
@@ -84,6 +92,8 @@ public class PublicKeyRefreshMetricsRecorder {
 
     /**
      * Record source refresh count metric.
+     *
+     * @param sourceId the ID of the public key source that was refreshed
      */
     private void recordSourceRefreshCount(String sourceId) {
         String metricName = configAccessor.getMetricName(
@@ -103,6 +113,8 @@ public class PublicKeyRefreshMetricsRecorder {
 
     /**
      * Record source refresh time metric.
+     *
+     * @param sourceId the ID of the public key source that was refreshed
      */
     private void recordSourceRefreshTime(String sourceId) {
         try {
@@ -128,6 +140,9 @@ public class PublicKeyRefreshMetricsRecorder {
 
     /**
      * Register gauge for individual source refresh time.
+     *
+     * @param sourceId the ID of the public key source
+     * @param refreshTime the AtomicLong tracking the last refresh time
      */
     private void registerSourceRefreshTimeGauge(String sourceId, AtomicLong refreshTime) {
         String refreshTimeMetricName = configAccessor.getMetricName(

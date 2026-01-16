@@ -43,6 +43,7 @@ public class PublicKeyServiceImpl implements PublicKeyService {
      * @param sourceProviders list of public key source providers
      * @param keyLoaders map of public key loaders by type
      * @param publicKeyCache cache for public keys
+     * @param eventPublisher event publisher for refresh events
      */
     public PublicKeyServiceImpl(List<PublicKeySourceProvider> sourceProviders,
                                 List<PublicKeyLoader> keyLoaders,

@@ -97,7 +97,7 @@ $(document).ready(function () {
         try {
             // Fetch the API specification with timeout
             // Get timeout from env if available, otherwise default to 15000ms
-            const timeout = window.env && window.env.API_TIMEOUT ? parseInt(window.env.API_TIMEOUT) : 15000;
+            const timeout = 15000;
             const response = await fetchWithTimeout(specUrl, {
                 method: 'GET',
                 headers: {

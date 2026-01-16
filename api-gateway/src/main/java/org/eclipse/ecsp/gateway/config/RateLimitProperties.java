@@ -45,7 +45,6 @@ public class RateLimitProperties {
     private long maxRequestedTokens = 100;
     private List<String> keyResolvers;
     private String namespace = "default";
-    private RetryConfig retry = new RetryConfig();
 
     /** 
      * Validate the rate limit properties after they have been set.

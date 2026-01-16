@@ -64,4 +64,9 @@ public class JwtProperties {
      * A set of prefixes used to filter or match JWT scope claims.
      */
     private Set<String> scopePrefixes;
+
+    /**
+     * Retry configuration for JWKS fetching.
+     */
+    private RetryConfig retry = new RetryConfig();
 }

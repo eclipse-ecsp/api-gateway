@@ -34,7 +34,7 @@ maven/mavencentral/commons-codec/commons-codec/1.18.0, Apache-2.0 AND (Apache-2.
 maven/mavencentral/commons-fileupload/commons-fileupload/1.6.0, Apache-2.0, approved, #21847
 maven/mavencentral/commons-io/commons-io/2.16.1, Apache-2.0, approved, #14190
 maven/mavencentral/commons-io/commons-io/2.19.0, Apache-2.0, approved, #20657
-maven/mavencentral/de.siegmar/logback-gelf/6.1.1, LGPL-2.1-or-later AND (LGPL-2.1-or-later AND MIT), approved, #20666
+maven/mavencentral/de.siegmar/logback-gelf/6.1.2, LGPL-2.1-or-later AND (LGPL-2.1-or-later AND MIT), approved, #20666
 maven/mavencentral/dev.morphia.morphia/morphia-core/2.2.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.dropwizard.metrics/metrics-core/4.2.19, Apache-2.0, approved, clearlydefined
 maven/mavencentral/io.dropwizard.metrics/metrics-healthchecks/4.2.19, Apache-2.0, approved, clearlydefined
@@ -250,7 +250,7 @@ maven/mavencentral/org.springframework.cloud/spring-cloud-kubernetes-commons/3.3
 maven/mavencentral/org.springframework.cloud/spring-cloud-kubernetes-discovery/3.3.0, Apache-2.0, approved, #22211
 maven/mavencentral/org.springframework.cloud/spring-cloud-starter-circuitbreaker-reactor-resilience4j/3.3.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.springframework.cloud/spring-cloud-starter-gateway/4.3.2, Apache-2.0, approved, #23395
-maven/mavencentral/org.springframework.cloud/spring-cloud-starter/4.3.0, Apache-2.0, approved, clearlydefined
+maven/mavencentral/org.springframework.cloud/spring-cloud-starter/4.3.0, Apache-2.0, approved, #25562
 maven/mavencentral/org.springframework.data/spring-data-commons/3.5.6, Apache-2.0, approved, #21920
 maven/mavencentral/org.springframework.data/spring-data-jpa/3.5.6, Apache-2.0, approved, #21922
 maven/mavencentral/org.springframework.data/spring-data-keyvalue/3.5.6, Apache-2.0 AND BSD-3-Clause AND Apache-2.0, approved, #22206
@@ -275,7 +275,7 @@ maven/mavencentral/org.springframework/spring-webmvc/6.2.14, Apache-2.0, approve
 maven/mavencentral/org.testcontainers/database-commons/1.21.3, Apache-2.0, approved, #20875
 maven/mavencentral/org.testcontainers/jdbc/1.21.3, Apache-2.0, approved, #20877
 maven/mavencentral/org.testcontainers/junit-jupiter/1.21.3, MIT, approved, clearlydefined
-maven/mavencentral/org.testcontainers/mongodb/1.21.3, MIT, approved, clearlydefined
+maven/mavencentral/org.testcontainers/mongodb/1.21.3, MIT, approved, #25572
 maven/mavencentral/org.testcontainers/postgresql/1.21.3, MIT, approved, #20876
 maven/mavencentral/org.testcontainers/testcontainers/1.21.3, MIT, approved, #20874
 maven/mavencentral/org.wiremock/wiremock-jetty12/3.13.1, Apache-2.0, approved, #21027

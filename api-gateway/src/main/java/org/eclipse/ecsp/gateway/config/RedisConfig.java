@@ -18,12 +18,17 @@
 
 package org.eclipse.ecsp.gateway.config;
 
+import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import java.time.Duration;
 
 /**
  * Configuration class for Redis caching.
@@ -35,5 +40,26 @@ import org.springframework.context.annotation.Import;
 @NoArgsConstructor
 @Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
-    // configuration class for redis
+
+    /**
+     * Customizes the Lettuce client configuration for Redis cluster.
+     *
+     * @return a LettuceClientConfigurationBuilderCustomizer that configures cluster topology refresh options
+     */
+    @Bean
+    public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
+        return clientConfigurationBuilder -> {
+            ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
+                    .enablePeriodicRefresh(Duration.ofMinutes(1))
+                    .enableAllAdaptiveRefreshTriggers()
+                    .build();
+
+            ClusterClientOptions clientOptions = ClusterClientOptions.builder()
+                    .topologyRefreshOptions(topologyRefreshOptions)
+                    .validateClusterNodeMembership(false)
+                    .build();
+
+            clientConfigurationBuilder.clientOptions(clientOptions);
+        };
+    }
 }

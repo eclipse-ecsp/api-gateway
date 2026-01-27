@@ -18,9 +18,12 @@
 
 package org.eclipse.ecsp.registry.config;
 
+import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +33,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import java.time.Duration;
 
 /**
  * Redis configuration for event publishing in API Registry.
@@ -59,5 +63,27 @@ public class RedisEventConfig {
         template.afterPropertiesSet();
         LOGGER.info("RedisTemplate configured for event publishing");
         return template;
+    }
+
+    /**
+     * Customizes the Lettuce client configuration for Redis cluster.
+     *
+     * @return a LettuceClientConfigurationBuilderCustomizer that configures cluster topology refresh options
+     */
+    @Bean
+    public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
+        return clientConfigurationBuilder -> {
+            ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
+                    .enablePeriodicRefresh(Duration.ofMinutes(1))
+                    .enableAllAdaptiveRefreshTriggers()
+                    .build();
+
+            ClusterClientOptions clientOptions = ClusterClientOptions.builder()
+                    .topologyRefreshOptions(topologyRefreshOptions)
+                    .validateClusterNodeMembership(false)
+                    .build();
+
+            clientConfigurationBuilder.clientOptions(clientOptions);
+        };
     }
 }

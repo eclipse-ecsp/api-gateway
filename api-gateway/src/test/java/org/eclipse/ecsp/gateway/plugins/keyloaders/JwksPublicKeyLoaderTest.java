@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -285,7 +286,8 @@ class JwksPublicKeyLoaderTest {
 
     @BeforeEach
     void setUp() {
-        jwksPublicKeyLoader = new JwksPublicKeyLoader(WebClient.builder());
+        RetryTemplate retryTemplate = new RetryTemplate();
+        jwksPublicKeyLoader = new JwksPublicKeyLoader(WebClient.builder(), retryTemplate);
         wireMockServer = new WireMockServer(0);
         wireMockServer.start();
         baseUrl = "http://localhost:" + wireMockServer.port();

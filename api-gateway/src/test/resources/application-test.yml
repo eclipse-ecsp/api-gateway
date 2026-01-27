@@ -3,6 +3,11 @@ server:
   http2:
     enabled: true
   max-http-request-header-size: 40KB
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
 
 spring:
   application:
@@ -11,11 +16,6 @@ spring:
     redis:
       cluster:
         nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
-  http:
-    encoding:
-      enabled: true
-      force: true
-      charset: UTF-8
   cloud:
     discovery:
       client:

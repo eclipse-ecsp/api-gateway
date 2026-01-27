@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.gateway.cache;
 
-import com.google.common.base.Strings;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -57,7 +56,7 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
      */
     @Override
     public void put(String key, PublicKeyInfo value) {
-        if (Strings.isNullOrEmpty(key) || value == null) {
+        if (key == null || key.isEmpty() || value == null) {
             LOGGER.warn("Cannot put null or empty key/value into cache. Key: {}, Value: {}", key, value);
             return;
         }
@@ -82,7 +81,7 @@ public class InMemoryPublicKeyCache implements PublicKeyCache {
      */
     @Override
     public void remove(String key) {
-        if (Strings.isNullOrEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             LOGGER.warn("Cannot remove null or empty key from cache. Key: {}", key);
             return;
         }

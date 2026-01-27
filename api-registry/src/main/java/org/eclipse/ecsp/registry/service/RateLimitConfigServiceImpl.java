@@ -23,13 +23,16 @@ import org.apache.commons.lang3.Strings;
 import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
+import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -49,15 +52,19 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
     
     private final RateLimitProperties rateLimitProperties;
 
+    private final RouteEventPublisher eventPublisher;
+
     /**
      * Constructor to initialize RateLimitConfigServiceImpl.
      *
      * @param rateLimitConfigRepository the RateLimitConfigRepository
      */
     public RateLimitConfigServiceImpl(RateLimitConfigRepository rateLimitConfigRepository,
-            RateLimitProperties rateLimitProperties) {
+            RateLimitProperties rateLimitProperties,
+            Optional<RouteEventPublisher> eventPublisher) {
         this.rateLimitConfigRepository = rateLimitConfigRepository;
         this.rateLimitProperties = rateLimitProperties;
+        this.eventPublisher = eventPublisher.orElse(null);
     }
 
     @Override
@@ -108,7 +115,26 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             .map(this::convertToDto)
             .toList();
         LOGGER.info("Added or updated {} rate limit configurations.", updatedDtos.size());
+        sendChangeEvent(updatedDtos);
         return updatedDtos;
+    }
+
+    private void sendChangeEvent(List<RateLimitConfigDto> updatedDtos) {
+        if (eventPublisher != null && !updatedDtos.isEmpty()) {
+            LOGGER.info("Publishing route update event after rate limit configurations change.");
+            List<String> servicesList = new ArrayList<>();
+            List<String> routesList = new ArrayList<>();
+            
+            updatedDtos.stream().forEach(dto -> {
+                if (StringUtils.isNotBlank(dto.getService())) {
+                    servicesList.add(dto.getService());
+                }
+                if (StringUtils.isNotBlank(dto.getRouteId())) {
+                    routesList.add(dto.getRouteId());
+                }
+            });
+            eventPublisher.publishRateLimitConfigChangeEvent(servicesList, routesList);
+        }
     }
 
 
@@ -161,7 +187,9 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         RateLimitConfigEntity updatedEntity = rateLimitConfigRepository.save(entityToUpdate);
 
         LOGGER.info("Rate limit configuration updated for id: {}", id);
-        return convertToDto(updatedEntity);
+        RateLimitConfigDto updatedDto = convertToDto(updatedEntity);
+        sendChangeEvent(List.of(updatedDto));
+        return updatedDto;
     }
 
     @Override
@@ -187,6 +215,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
         }
 
         rateLimitConfigRepository.delete(entity.get());
+        sendChangeEvent(List.of(convertToDto(entity.get())));
         LOGGER.info("Rate limit configuration deleted for id: {}", id);
     }
 
@@ -315,7 +344,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
      */
     private void validateEmptyKeyStatus(RateLimitConfigDto config, String identifier) {
         // validate empty response code is matching with http status codes
-        if (config.getDenyEmptyKey()) {
+        if (Boolean.TRUE.equals(config.getDenyEmptyKey())) {
             try {
                 HttpStatus.resolve(Integer.valueOf(config.getEmptyKeyStatus()));
             } catch (IllegalArgumentException e) {
@@ -442,7 +471,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             .entrySet()
             .stream()
             .filter(e -> e.getValue() > 1)
-            .map(e -> e.getKey())
+            .map(Entry::getKey)
             .toList();
 
         if (!routeIds.isEmpty()) {
@@ -467,7 +496,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             .entrySet()
             .stream()
             .filter(e -> e.getValue() > 1)
-            .map(e -> e.getKey())
+            .map(Entry::getKey)
             .toList();
         
         if (!services.isEmpty()) {

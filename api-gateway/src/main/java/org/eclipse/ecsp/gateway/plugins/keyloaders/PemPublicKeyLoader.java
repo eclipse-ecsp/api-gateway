@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.plugins.keyloaders;
 
 import com.nimbusds.jose.util.X509CertUtils;
+import lombok.NoArgsConstructor;
 import org.apache.commons.codec.binary.Base64;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.model.PublicKeyType;
@@ -43,6 +44,7 @@ import java.util.Map;
  * @author Abhishek Kumar
  */
 @Component
+@NoArgsConstructor
 public class PemPublicKeyLoader implements PublicKeyLoader {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(PemPublicKeyLoader.class);
     private static final String[] SUPPORTED_ALGORITHMS = {"RSA", "EC", "EdDSA", "Ed25519"};

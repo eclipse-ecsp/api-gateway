@@ -321,5 +321,30 @@ public class GatewayConstants {
      */
     public static final String CLIENT_IP_KEY_RESOLVER = "clientIpKeyResolver";
 
-    
+    /**
+     * Prefix for route refresh event properties.
+     */
+    public static final String ROUTE_REFRESH_EVENT_PREFIX = "api.gateway.routes.refresh";
+
+    /**
+     * Property to specify the route refresh strategy.
+     */
+    public static final String ROUTE_REFRESH_EVENT_STRATEGY =
+            ROUTE_REFRESH_EVENT_PREFIX + ".strategy";
+
+    /**
+     * Property for configuring the cron expression for polling-based route refresh.
+     */
+    public static final String ROUTE_REFRESH_POLLING_CRON_EXPR =
+            ROUTE_REFRESH_EVENT_PREFIX + ".polling.cron-expression";
+
+    /**
+     * Value for event-driven route refresh strategy.
+     */
+    public static final String EVENT_DRIVEN = "EVENT_DRIVEN";
+
+    /**
+     * Value for polling route refresh strategy.
+     */
+    public static final String POLLING = "POLLING";
 }

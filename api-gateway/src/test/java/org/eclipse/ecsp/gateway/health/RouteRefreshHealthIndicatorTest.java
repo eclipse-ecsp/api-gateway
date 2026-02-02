@@ -10,8 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
@@ -24,13 +22,7 @@ class RouteRefreshHealthIndicatorTest {
     private RouteRefreshFallbackScheduler fallbackScheduler;
 
     @Mock
-    private RedisConnectionFactory redisConnectionFactory;
-
-    @Mock
     private RouteRefreshProperties properties;
-
-    @Mock
-    private RedisConnection redisConnection;
 
     @Mock
     private RouteRefreshProperties.RedisConfig redisConfig;
@@ -48,8 +40,7 @@ class RouteRefreshHealthIndicatorTest {
     @Test
     void testHealth_Up_RedisConnectedAndFallbackInactive() {
         // Arrange
-        when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
-        when(redisConnection.ping()).thenReturn("PONG");
+        when(fallbackScheduler.checkRedisConnection()).thenReturn(true);
         when(fallbackScheduler.isFallbackActive()).thenReturn(false);
 
         // Act
@@ -66,8 +57,7 @@ class RouteRefreshHealthIndicatorTest {
     @Test
     void testHealth_Degraded_FallbackActive() {
         // Arrange
-        when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
-        when(redisConnection.ping()).thenReturn("PONG");
+        when(fallbackScheduler.checkRedisConnection()).thenReturn(true);
         when(fallbackScheduler.isFallbackActive()).thenReturn(true);
 
         // Act
@@ -81,7 +71,7 @@ class RouteRefreshHealthIndicatorTest {
     @Test
     void testHealth_Degraded_RedisConnectionFailed() {
         // Arrange
-        when(redisConnectionFactory.getConnection()).thenThrow(new RuntimeException("Connection failed"));
+        when(fallbackScheduler.checkRedisConnection()).thenReturn(false);
         when(fallbackScheduler.isFallbackActive()).thenReturn(true);
 
         // Act
@@ -95,8 +85,7 @@ class RouteRefreshHealthIndicatorTest {
     @Test
     void testHealth_Down_UnexpectedException() {
         // Arrange
-        when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
-        when(fallbackScheduler.isFallbackActive()).thenThrow(new RuntimeException("Unexpected error"));
+        when(fallbackScheduler.checkRedisConnection()).thenThrow(new RuntimeException("Unexpected error"));
 
         // Act
         Health health = healthIndicator.health();

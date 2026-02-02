@@ -21,6 +21,8 @@ package org.eclipse.ecsp.registry.events;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import java.util.Collections;
@@ -92,5 +94,17 @@ public class RouteEventPublisher {
 
         LOGGER.debug("Publishing service health change event for services: {}", serviceNames);
         throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE, serviceNames, Collections.emptyList());
+    }
+
+    /**
+     * Handle application ready event to perform any initialization if needed.
+     *
+     * @param event the application ready event
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady(ApplicationReadyEvent event) {
+        LOGGER.info("Application is ready. RouteEventPublisher is operational. started at {}", event.getTimestamp());
+        throttler.sendEvent(RouteEventType.ROUTE_CHANGE, List.of("all"), Collections.emptyList());
+        LOGGER.info("Initial route change event published for all services");
     }
 }

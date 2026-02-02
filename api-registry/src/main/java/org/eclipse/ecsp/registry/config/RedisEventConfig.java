@@ -22,6 +22,7 @@ import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
@@ -44,6 +45,9 @@ import java.time.Duration;
 public class RedisEventConfig {
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RedisEventConfig.class);
+
+    @Value("${redis.cluster.topology-refresh.duration.ms:30000}")
+    private String redisTopologyRefreshDurationMs;
 
     /**
      * Configure RedisTemplate for event publishing.
@@ -74,7 +78,7 @@ public class RedisEventConfig {
     public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
         return clientConfigurationBuilder -> {
             ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
-                    .enablePeriodicRefresh(Duration.ofMinutes(1))
+                    .enablePeriodicRefresh(Duration.ofMillis(Long.parseLong(redisTopologyRefreshDurationMs)))
                     .enableAllAdaptiveRefreshTriggers()
                     .build();
 

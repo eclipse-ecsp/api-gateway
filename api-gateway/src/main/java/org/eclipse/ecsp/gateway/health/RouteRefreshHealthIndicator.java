@@ -25,7 +25,6 @@ import org.eclipse.ecsp.gateway.events.RouteRefreshFallbackScheduler;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.context.annotation.Conditional;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,13 +37,12 @@ import org.springframework.stereotype.Component;
 public class RouteRefreshHealthIndicator implements HealthIndicator {
 
     private final RouteRefreshFallbackScheduler fallbackScheduler;
-    private final RedisConnectionFactory redisConnectionFactory;
     private final RouteRefreshProperties properties;
 
     @Override
     public Health health() {
         try {
-            boolean redisConnected = checkRedisConnection();
+            boolean redisConnected = fallbackScheduler.checkRedisConnection();
             boolean fallbackActive = fallbackScheduler.isFallbackActive();
             
             Health.Builder builder = redisConnected && !fallbackActive 
@@ -63,15 +61,6 @@ public class RouteRefreshHealthIndicator implements HealthIndicator {
                 .withDetail("strategy", properties.getStrategy())
                 .withDetail("error", e.getMessage())
                 .build();
-        }
-    }
-
-    private boolean checkRedisConnection() {
-        try {
-            redisConnectionFactory.getConnection().ping();
-            return true;
-        } catch (Exception e) {
-            return false;
         }
     }
 }

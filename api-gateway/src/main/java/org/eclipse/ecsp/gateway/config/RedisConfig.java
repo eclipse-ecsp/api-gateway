@@ -22,6 +22,7 @@ import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
@@ -41,6 +42,9 @@ import java.time.Duration;
 @Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
+    @Value("${redis.cluster.topology-refresh.duration.ms:30000}")
+    private String redisTopologyRefreshDurationMs = "30000";
+
     /**
      * Customizes the Lettuce client configuration for Redis cluster.
      *
@@ -50,7 +54,7 @@ public class RedisConfig {
     public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
         return clientConfigurationBuilder -> {
             ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
-                    .enablePeriodicRefresh(Duration.ofMinutes(1))
+                    .enablePeriodicRefresh(Duration.ofMillis(Long.parseLong(redisTopologyRefreshDurationMs)))
                     .enableAllAdaptiveRefreshTriggers()
                     .build();
 

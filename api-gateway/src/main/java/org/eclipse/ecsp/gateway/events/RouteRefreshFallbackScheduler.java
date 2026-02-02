@@ -90,7 +90,7 @@ public class RouteRefreshFallbackScheduler {
      *
      * @return true if Redis is reachable, false otherwise
      */
-    private boolean checkRedisConnection() {
+    public boolean checkRedisConnection() {
         try {
             // Try to get a connection and ping Redis
             redisConnectionFactory.getConnection().ping();

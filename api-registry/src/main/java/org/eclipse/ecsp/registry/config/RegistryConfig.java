@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.config;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import org.eclipse.ecsp.nosqldao.spring.config.IgniteDAOMongoConfigWithProps;
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
@@ -33,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
 import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 
 /**
@@ -49,7 +51,8 @@ public class RegistryConfig {
      */
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer objectMapperBuilderCustomizer() {
-        return builder -> builder.featuresToEnable(INCLUDE_SOURCE_IN_LOCATION);
+        return builder -> builder.featuresToEnable(INCLUDE_SOURCE_IN_LOCATION, 
+            MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES);
     }
 
     /**

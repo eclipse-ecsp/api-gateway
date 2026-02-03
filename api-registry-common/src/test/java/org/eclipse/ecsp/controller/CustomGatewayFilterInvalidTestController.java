@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * CustomGatewayFilterInvalidTestController provides test endpoints with various filter annotations
+ * CustomGatewayFilterInvalidTestController provides test endpoints with various filter annotations.
  * for demonstration and testing purposes.
  *
  * <p>Each method demonstrates different usages of {@link CustomGatewayFilter}

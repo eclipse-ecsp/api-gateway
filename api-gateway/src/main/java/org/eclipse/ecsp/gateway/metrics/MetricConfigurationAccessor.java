@@ -39,12 +39,21 @@ public class MetricConfigurationAccessor {
 
     private final GatewayMetricsProperties gatewayMetricsProperties;
 
+    /**
+     * Constructor for MetricConfigurationAccessor.
+     *
+     * @param gatewayMetricsProperties the gateway metrics properties
+     */
     public MetricConfigurationAccessor(GatewayMetricsProperties gatewayMetricsProperties) {
         this.gatewayMetricsProperties = gatewayMetricsProperties;
     }
 
     /**
      * Gets the metric name from configuration or returns the default.
+     *
+     * @param metricType the type of metric
+     * @param defaultName the default metric name
+     * @return the configured metric name or the default if not configured
      */
     public String getMetricName(String metricType, String defaultName) {
         return Optional.ofNullable(gatewayMetricsProperties)
@@ -58,6 +67,10 @@ public class MetricConfigurationAccessor {
 
     /**
      * Gets the configured metric name for the specified type.
+     *
+     * @param config the public key cache metrics configuration
+     * @param metricType the type of metric
+     * @return the configured metric name, or null if not found
      */
     private String getConfiguredMetricName(
             GatewayMetricsProperties.PublicKeyCacheMetrics config, String metricType) {
@@ -79,6 +92,9 @@ public class MetricConfigurationAccessor {
 
     /**
      * Get the appropriate name extractor function for the metric type.
+     *
+     * @param metricType the type of metric
+     * @return the name extractor function, or null if unknown type
      */
     private Function<GatewayMetricsProperties.PublicKeyCacheMetrics, String> getNameExtractor(
             String metricType) {

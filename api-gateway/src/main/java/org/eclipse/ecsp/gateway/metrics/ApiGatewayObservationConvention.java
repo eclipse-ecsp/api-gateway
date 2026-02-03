@@ -32,7 +32,7 @@ import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.util.CollectionUtils;
 
 /**
- * ApiGatewayObservationConvention overrides DefaultGatewayObservationConvention
+ * ApiGatewayObservationConvention overrides DefaultGatewayObservationConvention.
  * to includes service name and requestUrl to metrics.
  *
  * @author Abhishek Kumar

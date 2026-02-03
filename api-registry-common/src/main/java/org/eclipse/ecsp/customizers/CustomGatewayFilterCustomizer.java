@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * CustomGatewayFilterCustomizer is a Spring component that customizes OpenAPI operations
+ * CustomGatewayFilterCustomizer is a Spring component that customizes OpenAPI operations.
  * by adding request filters defined in the @CustomGatewayFilter and @CustomGatewayFilters annotations.
  */
 @Component

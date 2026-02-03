@@ -1,0 +1,238 @@
+server:
+  port: 7000
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
+  type: servlet
+
+springdoc:
+  version: '@springdoc.version@'
+  api-docs:
+    resolve-schema-properties: true
+
+openapi:
+  path:
+    include: "**"
+    exclude: ""
+
+spring:
+  application:
+    name: ${spring_application_name:api-registry}
+    servicename: ${spring_application_servicename:api-registry-int-svc}
+    version: ${spring_application_version:1.0}
+  jpa:
+    show-sql: ${spring_jpa_hibernate_show_sql:false}
+    hibernate:
+      ddl-auto: ${spring_jpa_hibernate_ddl_auto:update}
+    properties:
+      hibernate:
+        format_sql: ${spring_jpa_hibernate_show_sql:false}
+  main:
+    allow-bean-definition-overriding: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+api:
+  security:
+    enabled: ${api_security_enabled:false}
+  health:
+    monitor: ${api_health_monitor:0 */1 * ? * *}
+
+api-registry:
+  database:
+    type: ${api_registry_database_type:nosql}
+    provider: ${api_registry_database_provider:mongoDB}
+  events: ## Event publishing settings
+    enabled: ${API_REGISTRY_EVENTS_ENABLED:true}
+    redis:
+      channel: ${API_REGISTRY_REDIS_CHANNEL:route-updates}
+      debounce-delay-ms: ${API_REGISTRY_DEBOUNCE_DELAY:2000}
+  metrics:
+    enabled: true
+    base-path: /registry
+    port: 9100
+    prometheus:
+      enabled: true
+      path: /metrics
+    health:
+      enabled: true
+      path: /health
+    datadog:
+      enabled: false
+      uri: https://api.datadoghq.com
+      api-key: CHANGE_ME
+      application-key: ""
+      descriptions: true
+      read-timeout: 5s
+      connect-timeout: 5s
+      batch-size: 1000
+      step: 1m
+      host-tag: "api-registry"
+    http-server-requests:
+      prefix: "http.server.requests"
+    http-client-requests:
+      prefix: "http.client.requests"
+    service-health:
+      prefix: "service.health.status"
+    service-routes:
+      prefix: "service.route.count"
+    ## Rate Limit validation settings
+  rate-limit:
+    maxReplenishRate: 10000
+    maxBurstCapacity: 10000
+    maxRequestedTokens: 100
+    keyResolvers: 
+    - CLIENT_IP
+    - client-ip
+    - clientIpKeyResolver
+    - HEADER
+    - header
+    - headerKeyResolver
+    - ROUTE_PATH
+    - route-path
+    - routePathKeyResolver
+    - ROUTE_NAME
+    - route-name
+    - routeNameKeyResolver
+
+service:
+  name: ${service_name:api-registry}
+
+postgres:
+  jdbc.url: ${postgres_jdbc_url:jdbc:postgresql://localhost:5432/ecsp}
+  username: ${postgres_username:ChangeMe}
+  password: ${postgres_password:ChangeMe}
+  driver.class.name: ${postgres_driver_class_name:org.postgresql.Driver}
+  pool.name: ${postgres_pool_name:postgresPool}
+  max.idle.time: ${postgres_max_idle_time:60000}
+  min.pool.size: ${postgres_min_pool_size:1}
+  max.pool.size: ${postgres_max_pool_size:10}
+  expected99thPercentileMs: ${postgres_expected_99th_percentile_ms:60000}
+  datasource:
+    create.retry.count: ${postgres_datasource_create_retry_count:3}
+    retry.delay.ms: ${postgres_datasource_retry_delay_ms:10}
+  connection:
+    create.retry.count: ${postgres_connection_create_retry_count:3}
+    retry.delay.ms: ${postgres_connection_retry_delay_ms:10}
+  credential.provider.bean.name: ${credential_provider_bean_name:defaultPostgresDbCredentialsProvider}
+  data-source-properties:
+    cachePrepStmts: ${postgres_cache_prep_stmts:true}
+    prepStmtCacheSize: ${postgres_prep_stmt_cache_size:250}
+    prepStmtCacheSqlLimit: ${postgres_prep_stmt_cache_sql_limit:2048}
+  metrics:
+    enabled: ${postgres_metrics_enabled:false}
+    thread:
+      initial.delay.ms: ${postgres_thread_initial_delay_ms:2000}
+      freq.ms: ${postgres_thread_freq_ms:5000}
+    executor.shutdown.buffer.ms: ${postgres_executor_shutdown_buffer_ms:2000}
+mongodb:
+  hosts: ${mongodb_hosts:localhost}
+  port: ${mongodb_port:27017}
+  name: ${mongodb_database:ecsp}
+  username: ${mongodb_username:ChangeMe}
+  password: ${mongodb_password:ChangeMe}
+  auth.db: ${mongodb_auth_db:admin}
+  read.preference: ${mongodb_read_preference:primary}
+  pool.max.size: ${mongodb_pool_max_size:10}
+  server.selection.timeout: ${mongodb_server_selection_timeout_ms:60000}
+  max:
+    wait.time.ms: ${mongodb_max_wait_time_ms:1000}
+    connections.per.host: ${mongodb_connections_per_host:100}
+  connection.timeout.ms: ${mongodb_connection_timeout_ms:60000}
+  socket.timeout.ms: ${mongodb_socket_timeout_ms:60000}
+  client.cleanup.interval.ms: ${mongodb_client_cleanup_interval_ms:10000}
+  client.create.retry.count: ${mongodb_client_create_retry_count:3}
+  client.close.wait.interval.ms: ${mongodb_client_close_wait_interval_ms:60000}
+  taggable.read.preference.enabled: ${mongodb_taggable_read_preference_enabled:false}
+  read.preference.tag: ${mongodb_read_preference_tag:primary_region}
+
+health:
+  mongo:
+    monitor.enabled: ${mongodb_health_monitor_enabled:false}
+    needs.restart.on.failure: ${mongodb_health_restart_on_failure:false}
+  postgresdb:
+    monitor:
+      enabled: ${postgres_health_monitor_enabled:false}
+      needs.restart.on.failure: ${postgres_health_monitor_restart_on_failure:false}
+
+sp.restart.on.failure: ${sp_restart_on_failure:false}
+
+morphia:
+  map.packages: ${mongodb_packages:org.eclipse.ecsp}
+  converters.fqn: ${mongodb_converters:org.bson.codecs.JsonObjectCodec}
+
+# mongoDB, cosmosDB
+no.sql.database.type: ${api_registry_database_provider:mongoDB}
+cosmos.db.connection.string: ${cosmos_db_connection_string:}
+cosmosdb.name: ${cosmos_db_name:ignite}
+
+metrics:
+  prometheus:
+    enabled: false ## keep is false as it will create another http server
+  dao:
+    enabled: ${mongodb_metrics_enabled:false}
+postgresdb:
+  metrics:
+    enabled: false
+---
+management:
+  server:
+    port: ${api-registry.metrics.port:9100}
+  endpoints:
+    web:
+      base-path: ${api-registry.metrics.base-path:/registry}
+      path-mapping:
+        prometheus: ${api-registry.metrics.prometheus.path:/metrics}
+        health: ${api-registry.metrics.health.path:/health}
+      exposure:
+        include: health,prometheus
+    access:
+      default: none
+  endpoint:
+    prometheus:
+      access: read-only
+    health:
+      probes:
+        enabled: ${api-registry.metrics.health.enabled:true}
+      access: read-only
+  prometheus:
+    metrics:
+      export:
+        enabled: ${api-registry.metrics.prometheus.enabled:true}
+  datadog:
+    metrics:
+      export:
+        enabled: ${api-registry.metrics.datadog.enabled:false}
+        uri: ${api-registry.metrics.datadog.uri:https://api.datadoghq.com}
+        api-key: ${api-registry.metrics.datadog.api-key:}
+        application-key: ${api-registry.metrics.datadog.application-key:}
+        read-timeout: ${api-registry.metrics.datadog.read-timeout:5s}
+        connect-timeout: ${api-registry.metrics.datadog.connect-timeout:5s}
+        batch-size: ${api-registry.metrics.datadog.batch-size:1000}
+        step: ${api-registry.metrics.datadog.step:1m}
+        host-tag: ${api-registry.metrics.datadog.host-tag:api-gateway}
+  default:
+    metrics:
+      export:
+        enabled: false
+  metrics:
+    tags:
+      env: ${env:local}
+      host: ${HOSTNAME:localhost}
+      application: ${spring.application.name:api-registry}
+  observations:
+    http:
+      client.requests.name: ${api-registry.metrics.http-client-requests.prefix}
+      server.requests.name: ${api-registry.metrics.http-server-requests.prefix}
+  health:
+    db:
+      enabled: false

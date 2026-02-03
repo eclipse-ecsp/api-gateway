@@ -39,6 +39,12 @@ public class PublicKeyRefreshEventHandler {
     private final PublicKeyRefreshMetricsRecorder metricsRecorder;
     private final PublicKeyCacheMetricsRegistrar cacheMetricsRegistrar;
 
+    /**
+     * Constructor for PublicKeyRefreshEventHandler.
+     *
+     * @param metricsRecorder the metrics recorder
+     * @param cacheMetricsRegistrar the cache metrics registrar
+     */
     public PublicKeyRefreshEventHandler(PublicKeyRefreshMetricsRecorder metricsRecorder,
                                        PublicKeyCacheMetricsRegistrar cacheMetricsRegistrar) {
         this.metricsRecorder = metricsRecorder;
@@ -47,6 +53,8 @@ public class PublicKeyRefreshEventHandler {
 
     /**
      * Handle PublicKeyRefreshEvent to update metrics.
+     *
+     * @param publicKeyRefreshEvent the public key refresh event
      */
     @EventListener(PublicKeyRefreshEvent.class)
     public void handleMetricsEvents(PublicKeyRefreshEvent publicKeyRefreshEvent) {
@@ -66,6 +74,8 @@ public class PublicKeyRefreshEventHandler {
 
     /**
      * Handle refresh event based on its type.
+     *
+     * @param event the public key refresh event
      */
     private void handleRefreshEventByType(PublicKeyRefreshEvent event) {
         RefreshType refreshType = event.getRefreshType();

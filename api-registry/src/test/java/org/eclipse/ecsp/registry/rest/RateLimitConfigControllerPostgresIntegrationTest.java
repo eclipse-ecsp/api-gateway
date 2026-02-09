@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.rest;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -31,6 +32,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimitConfigControllerIntegrationTest {
 
     private static final String POSTGRES_IMAGE = "postgres:16-alpine";
+    private static final String DEFAULT_TENANT_ID = "test-tenant";
 
     @SuppressWarnings("resource")
     @Container
@@ -38,6 +40,19 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
             .withDatabaseName("ecsp")
             .withUsername("postgres")
             .withPassword("postgres");
+
+    @BeforeAll
+    static void setupTenantContext() {
+        // Set up tenant context for multi-tenancy support
+        try {
+            Class<?> tenantContextClass = Class.forName("org.eclipse.ecsp.sql.multitenancy.TenantContext");
+            java.lang.reflect.Method setTenantMethod = tenantContextClass.getMethod("setCurrentTenant", String.class);
+            setTenantMethod.invoke(null, DEFAULT_TENANT_ID);
+        } catch (Exception e) {
+            // If TenantContext class is not available or method fails, it's okay
+            // The property configuration below will handle it
+        }
+    }
 
     @DynamicPropertySource
     static void configurePostgresProperties(DynamicPropertyRegistry registry) {
@@ -48,5 +63,8 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
         registry.add("postgres.password", POSTGRES_CONTAINER::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.jpa.show-sql", () -> "false");
+        // Configure default tenant ID for multi-tenancy
+        registry.add("sql.tenant.default", () -> DEFAULT_TENANT_ID);
+        registry.add("sql.tenant.defaultId", () -> DEFAULT_TENANT_ID);
     }
 }

@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.clients;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.service.RouteUtils;
@@ -34,11 +35,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -70,32 +75,38 @@ class ApiRegistryClientTest {
     private static final long REPLENISH_RATE_15 = 15;
     private static final long REPLENISH_RATE_20 = 20;
     private static final long REPLENISH_RATE_25 = 25;
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final int RETRY_SUCCESS_ATTEMPTS = 2;
 
     private WireMockServer wireMockServer;
     private ApiRegistryClient apiRegistryClient;
     private IgniteRouteDefinition dummyRoute;
+    private RetryTemplate retryTemplate;
 
     @Mock
     private RouteUtils routeUtils;
 
     @BeforeEach
     void setUp() throws Exception {
+        retryTemplate = new RetryTemplate();
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions = new HashMap<>();
+        retryableExceptions.put(Exception.class, true);
+        retryTemplate.setRetryPolicy(new SimpleRetryPolicy(MAX_RETRY_ATTEMPTS, retryableExceptions));
+        
+        // Create real WebClient pointing to WireMock server
         // Setup WireMock server
         wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort());
         wireMockServer.start();
         WireMock.configureFor("localhost", wireMockServer.port());
-
         // Setup dummy route - use lenient to avoid UnnecessaryStubbingException in tests where cache is used
         dummyRoute = new IgniteRouteDefinition();
         dummyRoute.setId("dummy-route");
         lenient().when(routeUtils.getDummyRoute()).thenReturn(dummyRoute);
 
-        // Create real WebClient pointing to WireMock server
-        WebClient.Builder webClientBuilder = WebClient.builder();
-        String baseUrl = "http://localhost:" + wireMockServer.port();
-        
         // Create ApiRegistryClient instance with real WebClient
-        apiRegistryClient = new ApiRegistryClient(baseUrl, webClientBuilder, routeUtils);
+        WebClient.Builder webClientBuilder = WebClient.builder();
+        apiRegistryClient = new ApiRegistryClient("http://localhost:" + wireMockServer.port(), webClientBuilder,
+            routeUtils, retryTemplate);
         
         // Use reflection to set the private fields that normally get injected
         setPrivateField(apiRegistryClient, "routesEndpoint", ROUTES_ENDPOINT);
@@ -182,6 +193,40 @@ class ApiRegistryClientTest {
     }
 
     /**
+     * Test retry behavior for route fetching when the first attempt fails.
+     * Verifies that a subsequent successful attempt returns routes.
+     */
+    @Test
+    void getRoutes_whenFirstAttemptFails_thenRetriesAndReturnsRoutes() {
+        // Given
+        String responseBody = createSingleRouteResponse("route-retry", "http://example.com/api/v1/retry", "/api/v1/retry/**");
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+            .inScenario("routes-retry")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(aResponse().withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+            .willSetStateTo("retry-success"));
+
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+            .inScenario("routes-retry")
+            .whenScenarioStateIs("retry-success")
+            .willReturn(aResponse()
+                .withStatus(HttpStatus.OK.value())
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody(responseBody)));
+
+        // When
+        Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then
+        StepVerifier.create(result)
+            .expectNextMatches(route -> "route-retry".equals(route.getId()))
+            .verifyComplete();
+
+        wireMockServer.verify(RETRY_SUCCESS_ATTEMPTS, WireMock.getRequestedFor(urlEqualTo(ROUTES_ENDPOINT)));
+    }
+
+    /**
      * Test error handling when API registry is unavailable.
      * Verifies that dummy route is returned when an error occurs.
      */
@@ -214,6 +259,33 @@ class ApiRegistryClientTest {
         
         // When
         Flux<IgniteRouteDefinition> result = apiRegistryClient.getRoutes();
+
+        // Then
+        StepVerifier.create(result)
+                .expectNext(dummyRoute)
+                .verifyComplete();
+
+        verify(routeUtils).getDummyRoute();
+    }
+
+    /**
+     * Test DNS resolution failure handling.
+     * Verifies that dummy route is returned when the api-registry host cannot be resolved.
+     */
+    @Test
+    void getRoutes_whenDnsNotResolved_thenReturnsDummyRoute() throws Exception {
+        // Given
+        ApiRegistryClient dnsFailureClient = new ApiRegistryClient(
+                "http://nonexistent.invalid",
+                WebClient.builder(),
+                routeUtils,
+                retryTemplate);
+        setPrivateField(dnsFailureClient, "routesEndpoint", ROUTES_ENDPOINT);
+        setPrivateField(dnsFailureClient, "routeScopes", ROUTE_SCOPES);
+        setPrivateField(dnsFailureClient, "routeUserId", ROUTE_USER_ID);
+
+        // When
+        Flux<IgniteRouteDefinition> result = dnsFailureClient.getRoutes();
 
         // Then
         StepVerifier.create(result)
@@ -723,6 +795,51 @@ class ApiRegistryClientTest {
     }
 
     /**
+     * Test retry behavior for rate limits when the first attempt fails.
+     * Verifies that a subsequent successful attempt returns rate limits.
+     */
+    @Test
+    void getRateLimits_whenFirstAttemptFails_thenRetriesAndReturnsRateLimits() {
+        // Given
+        String responseBody = """
+            [
+                {
+                    "routeId": "route-retry",
+                    "service": "service-retry",
+                    "replenishRate": 10,
+                    "burstCapacity": 20,
+                    "keyResolver": "ClientIpKeyResolver"
+                }
+            ]
+            """;
+            
+        wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
+                .inScenario("rate-limits-retry")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+                .willSetStateTo("retry-success"));
+
+        wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
+                .inScenario("rate-limits-retry")
+                .whenScenarioStateIs("retry-success")
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+
+        // When
+        List<RateLimit> result = apiRegistryClient.getRateLimits();
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("route-retry", result.get(0).getRouteId());
+        assertEquals(REPLENISH_RATE_10, result.get(0).getReplenishRate());
+
+        wireMockServer.verify(RETRY_SUCCESS_ATTEMPTS, WireMock.getRequestedFor(urlEqualTo(RATE_LIMITS_ENDPOINT)));
+    }
+
+    /**
      * Test error handling when API registry is unavailable for rate limits.
      * Verifies that empty list is returned when an error occurs and no cache exists.
      */
@@ -740,6 +857,27 @@ class ApiRegistryClientTest {
         // Then
         assertNotNull(result);
         assertTrue(result.isEmpty());
+    }
+
+    /**
+     * Test retry exhaustion for rate limits.
+     * Verifies that empty list is returned after all retries fail.
+     */
+    @Test
+    void getRateLimits_whenRetriesExhausted_thenReturnsEmptyList() {
+        // Given
+        wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .withBody("Internal Server Error")));
+
+        // When
+        List<RateLimit> result = apiRegistryClient.getRateLimits();
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        wireMockServer.verify(MAX_RETRY_ATTEMPTS, WireMock.getRequestedFor(urlEqualTo(RATE_LIMITS_ENDPOINT)));
     }
 
     /**

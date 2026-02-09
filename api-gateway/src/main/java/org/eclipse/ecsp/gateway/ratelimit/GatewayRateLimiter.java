@@ -101,7 +101,7 @@ public class GatewayRateLimiter extends RedisRateLimiter {
         }
 
         int replenishRate = routeConfig.getReplenishRate();
-        int burstCapacity = routeConfig.getBurstCapacity();
+        long burstCapacity = routeConfig.getBurstCapacity();
         int requestedTokens = routeConfig.getRequestedTokens();
 
         LOGGER.debug("Rate limit for route {}: replenishRate={}, burstCapacity={}, requestedTokens={}, namespace={}",

@@ -4,7 +4,7 @@
 
     <groupId>org.eclipse.ecsp</groupId>
     <artifactId>api-gateway-parent</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>1.4.0.SPRING-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -57,17 +57,17 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <!--  ignite-properties -->
-        <ecsp.utils.version>1.1.1</ecsp.utils.version>
+        <ecsp.utils.version>1.2.SPRING-SNAPSHOT</ecsp.utils.version>
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
-        <jackson-bom.version>2.19.2</jackson-bom.version>
+        <jackson-bom.version>2.21.0</jackson-bom.version>
         <jjwt.version>0.12.7</jjwt.version>
-        <lombok.version>1.18.40</lombok.version>
-        <spring-boot.version>3.5.8</spring-boot.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <lombok.version>1.18.42</lombok.version>
+        <spring-boot.version>4.0.2</spring-boot.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
         <spring-cloud-resilience4j.version>3.3.0</spring-cloud-resilience4j.version>
-        <spring-cloud-starter-gateway.version>4.3.2</spring-cloud-starter-gateway.version>
-        <springdoc.version>2.8.13</springdoc.version>
+        <spring-cloud-starter-gateway.version>5.0.1</spring-cloud-starter-gateway.version>
+        <springdoc.version>3.0.1</springdoc.version>
         <!-- maven-plugin dependant versions ordered by artifactId -->
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
@@ -129,7 +129,7 @@
         </sonar.exclusions>
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec
         </jacoco.ut.execution.data.file>
-        <spring-security.version>6.5.5</spring-security.version>
+        <spring-security.version>7.0.2</spring-security.version>
         <bouncycastle.version>1.82</bouncycastle.version>
         <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
@@ -149,10 +149,23 @@
         <skipGpgSign>true</skipGpgSign>
         <skipMavenPublishing>true</skipMavenPublishing>
         <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-        <netty.version>4.1.128.Final</netty.version>
+        <netty.version>4.2.9.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
     </properties>
+
+    <repositories>
+        <repository>
+                <id>org.sonatype.central</id>
+                <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                <releases>
+                    <enabled>false</enabled>
+                </releases>
+                <snapshots>
+                    <enabled>true</enabled>
+                </snapshots>
+        </repository>
+    </repositories>
 
     <pluginRepositories>
         <pluginRepository>
@@ -173,6 +186,16 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-mongodb</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-jackson2</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
@@ -181,12 +204,12 @@
             </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-starter-gateway</artifactId>
+                <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
                 <version>${spring-cloud-starter-gateway.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-gateway-server</artifactId>
+                <artifactId>spring-cloud-gateway-server-webflux</artifactId>
                 <version>${spring-cloud-starter-gateway.version}</version>
             </dependency>
             <dependency>
@@ -227,6 +250,18 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring-boot.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-webtestclient</artifactId>
+                <version>${spring-boot.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-webmvc-test</artifactId>
                 <version>${spring-boot.version}</version>
                 <scope>test</scope>
             </dependency>

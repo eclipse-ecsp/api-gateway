@@ -20,25 +20,18 @@ package org.eclipse.ecsp.gateway.config;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.ssl.SslBundles;
 import org.springframework.cloud.circuitbreaker.resilience4j.ReactiveResilience4JCircuitBreakerFactory;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigBuilder;
 import org.springframework.cloud.client.circuitbreaker.Customizer;
-import org.springframework.cloud.gateway.config.HttpClientProperties;
-import org.springframework.cloud.gateway.config.HttpClientSslConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RequestPredicates;
@@ -47,8 +40,6 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
-import javax.net.ssl.SSLException;
 import java.time.Duration;
 
 /**
@@ -86,46 +77,6 @@ public class GatewayConfig {
      * fallback uri "/fallback/**".
      */
     public static final String FALLBACK_URI = "/fallback/**";
-
-    /**
-     * This is a work around override in order to support
-     * HTTP2 Procotol on netty.
-     * Refer - <a href="https://github.com/spring-cloud/spring-cloud-gateway/issues/2580">...</a>
-     * By doing this, we can still use HTTPS on the gateway and HTTP
-     * communication behind the gateway even if HTTP2 is active.
-     *
-     * @param httpClientProperties httpClientProperties
-     * @param serverProperties     serverProperties
-     * @param sslBundles           sslBundles
-     * @return HttpClientSslConfigurer HttpClientSslConfigurer
-     */
-    @Bean
-    @Primary
-    public HttpClientSslConfigurer noopHttpClientSslConfigurer(HttpClientProperties httpClientProperties,
-                                                               final ServerProperties serverProperties,
-                                                               SslBundles sslBundles) {
-        return new HttpClientSslConfigurer(httpClientProperties.getSsl(),
-                serverProperties, sslBundles) {
-            @Override
-            public HttpClient configureSsl(HttpClient client) {
-                if (serverProperties.getHttp2().isEnabled()) {
-                    HttpClientProperties.Ssl ssl = httpClientProperties.getSsl();
-                    return client.secure(sslContextSpec -> {
-                        try {
-                            SslContextBuilder clientSslCtxt = SslContextBuilder.forClient()
-                                    .trustManager(InsecureTrustManagerFactory.INSTANCE);
-                            sslContextSpec.sslContext(clientSslCtxt.build()).handshakeTimeout(ssl.getHandshakeTimeout())
-                                    .closeNotifyFlushTimeout(ssl.getCloseNotifyFlushTimeout())
-                                    .closeNotifyReadTimeout(ssl.getCloseNotifyReadTimeout());
-                        } catch (SSLException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    });
-                }
-                return super.configureSsl(client);
-            }
-        };
-    }
 
 
     /**

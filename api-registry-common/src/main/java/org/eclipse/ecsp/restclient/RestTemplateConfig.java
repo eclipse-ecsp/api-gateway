@@ -20,11 +20,7 @@ package org.eclipse.ecsp.restclient;
 
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -33,36 +29,24 @@ import org.springframework.web.client.RestTemplate;
  * Configuration class for RestTemplate.
  */
 @Configuration
-@ImportAutoConfiguration(RestTemplateAutoConfiguration.class)
 public class RestTemplateConfig {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateConfig.class);
 
 
     /**
-     * Create and returns the object of RestTemplateCustomizer.
-     *
-     * @return RestTemplateCustomizer Object
-     */
-    @Bean
-    public RestTemplateCustomizer restTemplateCustomizer() {
-        return restTemplate -> {
-            restTemplate.setErrorHandler(new RestTemplateErrorHandler());
-            if (LOGGER.isDebugEnabled()) {
-                restTemplate.getInterceptors().add(new RestTemplateLogInterceptor());
-            }
-        };
-    }
-
-    /**
      * Create and returns the object of RestTemplate.
      *
-     * @param builder rest template builder.
      * @return RestTemplate Object
      */
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        return builder.build();
+    public RestTemplate restTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(new RestTemplateErrorHandler());
+        if (LOGGER.isDebugEnabled()) {
+            restTemplate.getInterceptors().add(new RestTemplateLogInterceptor());
+        }
+        return restTemplate;
     }
 
 }

@@ -23,8 +23,8 @@ import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -47,7 +47,7 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 @Conditional(RedisCacheEnabledCondition.class)
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@Import({DataRedisAutoConfiguration.class, DataRedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
     /**

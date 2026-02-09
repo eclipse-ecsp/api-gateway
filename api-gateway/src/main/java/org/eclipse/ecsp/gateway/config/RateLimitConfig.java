@@ -35,8 +35,8 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -60,7 +60,7 @@ import java.util.List;
 @Configuration
 @AutoConfigureAfter(PluginLoader.class)
 @Conditional(RateLimitEnabledCondition.class)
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class })
+@Import({DataRedisAutoConfiguration.class, DataRedisReactiveAutoConfiguration.class })
 public class RateLimitConfig {
 
     /**

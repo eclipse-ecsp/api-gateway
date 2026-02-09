@@ -32,7 +32,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimitConfigControllerIntegrationTest {
 
     private static final String POSTGRES_IMAGE = "postgres:16-alpine";
-    private static final String DEFAULT_TENANT_ID = "test-tenant";
+    private static final String DEFAULT_TENANT_ID = "default";
 
     @SuppressWarnings("resource")
     @Container
@@ -63,8 +63,15 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
         registry.add("postgres.password", POSTGRES_CONTAINER::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.jpa.show-sql", () -> "false");
-        // Configure default tenant ID for multi-tenancy
-        registry.add("sql.tenant.default", () -> DEFAULT_TENANT_ID);
-        registry.add("sql.tenant.defaultId", () -> DEFAULT_TENANT_ID);
+        
+        // Configure multi-tenancy with single default tenant
+        registry.add("sql.tenant.default", () -> "default");
+        registry.add("sql.tenant.list", () -> "default");
+        
+        // Configure datasource for the default tenant
+        registry.add("sql.tenant.default.jdbc.url", POSTGRES_CONTAINER::getJdbcUrl);
+        registry.add("sql.tenant.default.username", POSTGRES_CONTAINER::getUsername);
+        registry.add("sql.tenant.default.password", POSTGRES_CONTAINER::getPassword);
+        registry.add("sql.tenant.default.driver.class.name", () -> "org.postgresql.Driver");
     }
 }

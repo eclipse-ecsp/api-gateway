@@ -48,5 +48,8 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
         registry.add("postgres.password", POSTGRES_CONTAINER::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.jpa.show-sql", () -> "false");
+
+        // Disable multi-tenancy mode for tests
+        registry.add("sql.multitenant.mode", () -> "false");
     }
 }

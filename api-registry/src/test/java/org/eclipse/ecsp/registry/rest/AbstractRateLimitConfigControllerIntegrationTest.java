@@ -27,10 +27,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,8 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * @author Abhishek Kumar
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
 abstract class AbstractRateLimitConfigControllerIntegrationTest {
 
@@ -78,6 +78,8 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     private static final int EXPECTED_SIZE_3 = 3;
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
     private MockMvc mockMvc;
 
     @Autowired
@@ -88,6 +90,8 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Initialize MockMvc
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         // Clean up database before each test
         clearDatabase();
     }

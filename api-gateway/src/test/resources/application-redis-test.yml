@@ -1,0 +1,23 @@
+# Redis Integration Test Configuration
+spring:
+  application:
+    name: api-gateway-redis-test
+  data:
+    redis:
+      # Host and port configured dynamically via @DynamicPropertySource
+      timeout: 2s
+      connect-timeout: 2s
+
+api:
+  gateway:
+    client-access-control:
+      enabled: true
+      polling-interval-ms: 5000
+      redis-channel: client-access-control-events
+      cache-ttl-minutes: 60
+
+# Disable other features for focused testing
+logging:
+  level:
+    org.eclipse.ecsp.gateway: DEBUG
+    org.springframework.data.redis: DEBUG

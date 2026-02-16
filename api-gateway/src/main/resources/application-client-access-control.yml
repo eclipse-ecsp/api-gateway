@@ -1,0 +1,85 @@
+# Client Access Control Feature Configuration
+# 
+# This file documents all configuration properties for the Client Access Control feature.
+# Add these to your application.yml or application.properties.
+
+api:
+  gateway:
+    client-access-control:
+      # Enable/disable the feature globally (default: true)
+      enabled: true
+      
+      # JWT claim names to check for client ID (in priority order)
+      # The filter will check claims in this order and use the first non-empty value
+      claim-names:
+        - clientId      # Custom claim (default)
+        - azp           # Azure AD "authorized party"
+        - client_id     # Auth0/OAuth2 standard
+        - cid           # Okta client ID
+      
+      # Paths to skip validation (health checks, API docs, etc.)
+      # Supports Ant-style patterns with wildcards
+      skip-paths:
+        - /actuator/**
+        - /v3/api-docs/**
+        - /swagger-ui/**
+      
+      # Polling fallback interval in seconds (default: 30)
+      # Used when Redis is unavailable for event-driven refresh
+      polling-interval-seconds: 30
+      
+      # YAML configuration overrides (optional)
+      # YAML takes precedence over database configurations
+      # Use for emergency access changes without database modification
+      overrides:
+        # Example 1: Emergency admin access
+        - client-id: "emergency-admin"
+          tenant: "ops-team"
+          description: "Emergency administrator access"
+          active: true
+          allow:
+            - "*:*"  # Allow all services and routes
+        
+        # Example 2: Read-only client
+        - client-id: "readonly-client"
+          tenant: "analytics-team"
+          active: true
+          allow:
+            - "user-service:get-*"       # Allow all GET operations in user-service
+            - "vehicle-service:get-*"    # Allow all GET operations in vehicle-service
+            - "!user-service:delete-*"   # Explicitly deny all DELETE operations
+        
+        # Example 3: Service-specific access
+        - client-id: "payment-processor"
+          tenant: "finance-team"
+          active: true
+          allow:
+            - "payment-service:*"         # Allow all payment-service routes
+            - "!payment-service:refund"   # But deny refund operation
+
+# Redis configuration (for event-driven cache refresh)
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    # For Redis Cluster:
+    # cluster:
+    #   nodes:
+    #     - redis-node1:6379
+    #     - redis-node2:6379
+    #     - redis-node3:6379
+
+# Api-Registry endpoint configuration
+# Gateway will fetch client configurations from this endpoint
+api-registry:
+  base-url: http://api-registry:8080
+  endpoints:
+    client-access-control: /api/registry/client-access-control
+
+# Logging configuration
+logging:
+  level:
+    org.eclipse.ecsp.gateway.filter.ClientAccessControlGatewayFilterFactory: INFO
+    org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService: DEBUG
+    org.eclipse.ecsp.gateway.service.ClientAccessControlConfigRefreshService: INFO
+    org.eclipse.ecsp.gateway.service.AccessRuleMatcherService: INFO

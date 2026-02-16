@@ -29,6 +29,7 @@ import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -53,10 +54,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        classes = {RequestHeaderFilterTest.RequestHeaderFilterTestConfig.class}
+        classes = {RequestHeaderFilterTest.RequestHeaderFilterTestConfig.class},
+        properties = {
+            "spring.data.redis.cluster.nodes=",
+            "spring.cloud.kubernetes.discovery.enabled=false",
+            "api.registry.enabled=false"
+        }
 )
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
+// Test enabled
 class RequestHeaderFilterTest {
 
     @MockitoBean

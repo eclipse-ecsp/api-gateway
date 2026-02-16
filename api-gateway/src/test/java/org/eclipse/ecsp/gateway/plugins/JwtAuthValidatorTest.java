@@ -478,6 +478,10 @@ class JwtAuthValidatorTest {
 
         private Object scope;
 
+        public void setScope(Object scope) {
+            this.scope = scope;
+        }
+
         @Override
         public String getIssuer() {
             return "test-issuer";

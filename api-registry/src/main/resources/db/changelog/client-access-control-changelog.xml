@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="1-create-gateway-client-access-control-table" author="api-gateway-team">
+        <comment>Create gateway_client_access_control table for client access control configurations</comment>
+        
+        <createTable tableName="gateway_client_access_control">
+            <!-- Primary Key -->
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" primaryKeyName="pk_gateway_client_access_control" nullable="false"/>
+            </column>
+            
+            <!-- Business Fields -->
+            <column name="client_id" type="VARCHAR(128)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_gateway_client_access_control_client_id"/>
+            </column>
+            
+            <column name="description" type="VARCHAR(512)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="tenant" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <!-- Status Flags -->
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            
+            <!-- Allow Rules (JSONB) -->
+            <column name="allow_rules" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            
+            <!-- Audit Timestamps -->
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="deleted_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+        
+        <rollback>
+            <dropTable tableName="gateway_client_access_control"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="2-create-gateway-client-access-control-indexes" author="api-gateway-team">
+        <comment>Create indexes for gateway_client_access_control table</comment>
+        
+        <!-- Index for client_id lookups (covered by unique constraint, but explicit for documentation) -->
+        <createIndex indexName="idx_client_id_unique" tableName="gateway_client_access_control" unique="true">
+            <column name="client_id"/>
+        </createIndex>
+        
+        <!-- Partial index for active clients (most common query pattern) -->
+        <sql>
+            CREATE INDEX idx_active_clients ON gateway_client_access_control (is_active) 
+            WHERE is_active = true AND is_deleted = false;
+        </sql>
+        
+        <!-- Index for tenant-based queries -->
+        <createIndex indexName="idx_tenant" tableName="gateway_client_access_control">
+            <column name="tenant"/>
+        </createIndex>
+        
+        <!-- Index for audit/reporting by creation time -->
+        <createIndex indexName="idx_created_at" tableName="gateway_client_access_control">
+            <column name="created_at" descending="true"/>
+        </createIndex>
+        
+        <!-- Index for audit/reporting by update time -->
+        <createIndex indexName="idx_updated_at" tableName="gateway_client_access_control">
+            <column name="updated_at" descending="true"/>
+        </createIndex>
+        
+        <rollback>
+            <dropIndex indexName="idx_client_id_unique" tableName="gateway_client_access_control"/>
+            <sql>DROP INDEX IF EXISTS idx_active_clients;</sql>
+            <dropIndex indexName="idx_tenant" tableName="gateway_client_access_control"/>
+            <dropIndex indexName="idx_created_at" tableName="gateway_client_access_control"/>
+            <dropIndex indexName="idx_updated_at" tableName="gateway_client_access_control"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="3-add-comments-gateway-client-access-control" author="api-gateway-team">
+        <comment>Add table and column comments for documentation</comment>
+        
+        <sql>
+            COMMENT ON TABLE gateway_client_access_control IS 'Client access control configurations for route-level authorization';
+            COMMENT ON COLUMN gateway_client_access_control.id IS 'Primary key - unique identifier';
+            COMMENT ON COLUMN gateway_client_access_control.client_id IS 'Client identifier extracted from JWT claims (unique)';
+            COMMENT ON COLUMN gateway_client_access_control.description IS 'Human-readable description of the client';
+            COMMENT ON COLUMN gateway_client_access_control.tenant IS 'Tenant/organization of the client';
+            COMMENT ON COLUMN gateway_client_access_control.is_active IS 'Active status flag for client validation';
+            COMMENT ON COLUMN gateway_client_access_control.is_deleted IS 'Soft delete flag for audit compliance';
+            COMMENT ON COLUMN gateway_client_access_control.allow_rules IS 'JSON array of allow/deny rules in service:route format';
+            COMMENT ON COLUMN gateway_client_access_control.created_at IS 'Record creation timestamp';
+            COMMENT ON COLUMN gateway_client_access_control.updated_at IS 'Last update timestamp';
+            COMMENT ON COLUMN gateway_client_access_control.deleted_at IS 'Soft deletion timestamp (NULL if not deleted)';
+        </sql>
+        
+        <rollback>
+            <sql>
+                COMMENT ON TABLE gateway_client_access_control IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.id IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.client_id IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.description IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.tenant IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.is_active IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.is_deleted IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.allow_rules IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.created_at IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.updated_at IS NULL;
+                COMMENT ON COLUMN gateway_client_access_control.deleted_at IS NULL;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

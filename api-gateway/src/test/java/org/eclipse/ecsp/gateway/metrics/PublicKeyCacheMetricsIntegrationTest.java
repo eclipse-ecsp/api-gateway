@@ -31,6 +31,7 @@ import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
 import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +64,7 @@ import static org.mockito.Mockito.when;
     "api.gateway.metrics.enabled=true",
     "api.gateway.metrics.public-key-cache.enabled=true"
 })
+@Disabled("TODO: Integration test requires Redis + full Spring context - move to separate integration test module")
 class PublicKeyCacheMetricsIntegrationTest {
 
     public static final int INT_5 = 5;

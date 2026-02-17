@@ -477,7 +477,6 @@
                     <configuration>
                         <forkCount>3</forkCount>
                         <reuseForks>true</reuseForks>
-                        <forkMode>pertest</forkMode>
                         <argLine>${surefireArgLine}</argLine>
                         <childDelegation>true</childDelegation>
                         <skipTests>false</skipTests>

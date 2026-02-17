@@ -43,9 +43,15 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
     static void configurePostgresProperties(DynamicPropertyRegistry registry) {
         registry.add("api-registry.database.type", () -> "sql");
         registry.add("api-registry.database.provider", () -> "postgres");
+        // Set both top-level and tenant-specific properties for compatibility
         registry.add("postgres.jdbc.url", POSTGRES_CONTAINER::getJdbcUrl);
         registry.add("postgres.username", POSTGRES_CONTAINER::getUsername);
         registry.add("postgres.password", POSTGRES_CONTAINER::getPassword);
+        // Set tenant-specific properties for the "default" tenant used when multitenancy is disabled
+        registry.add("tenants.profile.default.jdbc.url", POSTGRES_CONTAINER::getJdbcUrl);
+        registry.add("tenants.profile.default.username", POSTGRES_CONTAINER::getUsername);
+        registry.add("tenants.profile.default.password", POSTGRES_CONTAINER::getPassword);
+        registry.add("tenants.profile.default.driver.class.name", () -> "org.postgresql.Driver");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.jpa.show-sql", () -> "false");
         // Disable multitenancy for tests

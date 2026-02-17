@@ -4,7 +4,7 @@
 
     <groupId>org.eclipse.ecsp</groupId>
     <artifactId>api-gateway-parent</artifactId>
-    <version>1.5.0-M1.3-SNAPSHOT</version>
+    <version>1.5.0-M1.4-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 

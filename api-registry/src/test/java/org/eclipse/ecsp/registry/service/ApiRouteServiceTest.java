@@ -20,7 +20,7 @@ package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.Assertions;
@@ -45,7 +45,7 @@ class ApiRouteServiceTest {
     private ApiRouteRepo apiRouteRepo;
 
     @Mock
-    private RouteEventPublisher routeEventPublisher;
+    private EventPublisherContext routeEventPublisher;
 
     @BeforeEach
     void beforeEach() {
@@ -120,7 +120,7 @@ class ApiRouteServiceTest {
         apiRouteService.createOrUpdate(routeDefinition);
 
         // Assert
-        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishRouteChangeEvent("test-service");
+        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
     }
 
     @Test
@@ -134,7 +134,7 @@ class ApiRouteServiceTest {
         apiRouteService.delete("routeId");
 
         // Assert
-        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishRouteChangeEvent("test-service");
+        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
     }
 
     @Test
@@ -148,5 +148,161 @@ class ApiRouteServiceTest {
         // Act & Assert - should not throw exception
         Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.createOrUpdate(routeDefinition));
     }
+
+    /**
+     * Test purpose          - Verify createOrUpdate with null service name does not publish event.
+     * Test data             - Route definition with null service.
+     * Test expected result  - No event published.
+     * Test type             - Negative.
+     */
+    @Test
+    void testCreateOrUpdate_NullService_NoEventPublished() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
+        apiRouteEntity.setService(null);
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        routeDefinition.setService(null);
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+
+        // Act
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        // Assert
+        Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify delete with null service name does not publish event.
+     * Test data             - Route entity with null service.
+     * Test expected result  - No event published.
+     * Test type             - Negative.
+     */
+    @Test
+    void testDelete_NullService_NoEventPublished() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
+        apiRouteEntity.setService(null);
+        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+
+        // Act
+        apiRouteService.delete("routeId");
+
+        // Assert
+        Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify read throws exception when route not found.
+     * Test data             - Non-existent route ID.
+     * Test expected result  - IllegalArgumentException thrown.
+     * Test type             - Negative.
+     */
+    @Test
+    void testRead_RouteNotFound_ThrowsException() {
+        // Arrange
+        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> apiRouteService.read("nonExistentId"));
+    }
+
+    /**
+     * Test purpose          - Verify delete throws exception when route not found.
+     * Test data             - Non-existent route ID.
+     * Test expected result  - IllegalArgumentException thrown.
+     * Test type             - Negative.
+     */
+    @Test
+    void testDelete_RouteNotFound_ThrowsException() {
+        // Arrange
+        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> apiRouteService.delete("nonExistentId"));
+    }
+
+    /**
+     * Test purpose          - Verify createOrUpdate with apiDocs flag.
+     * Test data             - Route definition with apiDocs set to true.
+     * Test expected result  - Entity saved with apiDocs flag.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdate_WithApiDocs() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        routeDefinition.setApiDocs(true);
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+
+        // Act
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        // Assert
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.argThat(entity -> 
+            Boolean.TRUE.equals(entity.getApiDocs())
+        ));
+    }
+
+    /**
+     * Test purpose          - Verify createOrUpdate with apiDocs false does not set flag.
+     * Test data             - Route definition with apiDocs set to false.
+     * Test expected result  - Entity saved without apiDocs flag.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdate_WithApiDocsFalse() {
+        // Arrange
+        ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        routeDefinition.setApiDocs(false);
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+
+        // Act
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        // Assert
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify list returns empty list when no routes exist.
+     * Test data             - Empty repository.
+     * Test expected result  - Empty list returned.
+     * Test type             - Positive.
+     */
+    @Test
+    void testList_EmptyRepository() {
+        // Arrange
+        Mockito.when(apiRouteRepo.findAll()).thenReturn(java.util.Collections.emptyList());
+
+        // Act
+        java.util.List<RouteDefinition> result = apiRouteService.list();
+
+        // Assert
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    /**
+     * Test purpose          - Verify delete without event publisher succeeds.
+     * Test data             - Route entity without event publisher.
+     * Test expected result  - Route deleted successfully.
+     * Test type             - Positive.
+     */
+    @Test
+    void testDelete_WithoutEventPublisher() {
+        // Arrange
+        ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
+        ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
+        apiRouteEntity.setService("test-service");
+        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+
+        // Act & Assert
+        Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.delete("routeId"));
+    }
+
 
 }

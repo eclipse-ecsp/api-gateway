@@ -27,9 +27,9 @@ import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
-import org.eclipse.ecsp.gateway.service.ClientIdValidator;
-import org.eclipse.ecsp.gateway.service.JwtClaimExtractor;
-import org.eclipse.ecsp.gateway.service.PathExtractor;
+import org.eclipse.ecsp.gateway.utils.InputValidator;
+import org.eclipse.ecsp.gateway.utils.JwtUtils;
+import org.eclipse.ecsp.gateway.utils.PathExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -88,8 +88,8 @@ class ClientAccessControlEndToEndTest {
     private static final int MAX_SPLIT_PARTS = 2;
 
     private ClientAccessControlGatewayFilterFactory filterFactory;
-    private JwtClaimExtractor jwtClaimExtractor;
-    private ClientIdValidator clientIdValidator;
+    private JwtUtils jwtClaimExtractor;
+    private InputValidator clientIdValidator;
     private AccessRuleMatcherService ruleMatcherService;
     private PathExtractor pathExtractor;
     private ClientAccessControlMetrics metrics;
@@ -104,9 +104,6 @@ class ClientAccessControlEndToEndTest {
         properties.setClaimNames(Arrays.asList("clientId", "azp", "client_id", "cid"));
         properties.setSkipPaths(Arrays.asList("/actuator/**", "/api-docs/**"));
 
-        // Initialize services
-        jwtClaimExtractor = new JwtClaimExtractor();
-        clientIdValidator = new ClientIdValidator();
         ruleMatcherService = new AccessRuleMatcherService();
         pathExtractor = new PathExtractor();
         metrics = mock(ClientAccessControlMetrics.class);
@@ -115,9 +112,6 @@ class ClientAccessControlEndToEndTest {
         // Create filter factory
         filterFactory = new ClientAccessControlGatewayFilterFactory(
                 properties,
-                jwtClaimExtractor,
-                clientIdValidator,
-                pathExtractor,
                 ruleMatcherService,
                 cacheService,
                 metrics

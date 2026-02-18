@@ -50,4 +50,14 @@ public class RegistryConstants {
      * UNKNOWN.
      */
     public static final String UNKNOWN = "UNKNOWN";
+
+    /**
+     * REGISTRY_EVENT_PREFIX.
+     */
+    public static final String REGISTRY_EVENT_PREFIX = "api-registry.events";
+
+    /**
+     * REGISTRY_EVENT_ENABLED.
+     */
+    public static final String REGISTRY_EVENT_ENABLED = REGISTRY_EVENT_PREFIX + ".enabled";
 }

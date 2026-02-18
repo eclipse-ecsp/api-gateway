@@ -60,12 +60,28 @@ public class RouteChangeEvent implements Serializable {
     private final List<String> routes;
 
     /**
+     * List of client IDs affected by the change (for client access control updates).
+     */
+    private final List<String> clientIds;
+
+    /**
+     * Type of operation performed (CREATE, UPDATE, DELETE).
+     */
+    private final String operation;
+
+    /**
      * Constructor for RouteChangeEvent.
      *
      * @param services list of service names that changed
      */
-    public RouteChangeEvent(List<String> services, List<String> routes) {
-        this(UUID.randomUUID().toString(), Instant.now(), RouteEventType.ROUTE_CHANGE, services, routes);
+    public RouteChangeEvent(List<String> services, List<String> routes, List<String> clientIds, String operation) {
+        this(UUID.randomUUID().toString(), 
+            Instant.now(), 
+            RouteEventType.ROUTE_CHANGE, 
+            services, 
+            routes, 
+            clientIds, 
+            operation);
     }
 
     /**
@@ -76,6 +92,8 @@ public class RouteChangeEvent implements Serializable {
      * @param eventType type of route event
      * @param services  list of service names that changed
      * @param routes    list of route IDs that changed
+     * @param clientIds list of client IDs affected by the change
+     * @param operation type of operation performed (CREATE, UPDATE, DELETE)
      */
     @JsonCreator
     public RouteChangeEvent(
@@ -83,11 +101,15 @@ public class RouteChangeEvent implements Serializable {
             @JsonProperty("timestamp") Instant timestamp,
             @JsonProperty("eventType") RouteEventType eventType,
             @JsonProperty("services") List<String> services,
-            @JsonProperty("routes") List<String> routes) {
+            @JsonProperty("routes") List<String> routes,
+            @JsonProperty("clientIds") List<String> clientIds,
+            @JsonProperty("operation") String operation) {
         this.eventId = eventId;
         this.timestamp = timestamp;
         this.eventType = eventType;
         this.services = services;
         this.routes = routes;
+        this.clientIds = clientIds;
+        this.operation = operation;
     }
 }

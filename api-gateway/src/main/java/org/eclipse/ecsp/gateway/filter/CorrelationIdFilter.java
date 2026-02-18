@@ -18,11 +18,11 @@
 
 package org.eclipse.ecsp.gateway.filter;
 
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -36,19 +36,17 @@ import java.util.UUID;
 /**
  * Global filter for correlation ID propagation across requests.
  *
- * <p>
- * Extracts or generates correlation ID from X-Correlation-ID header,
+ * <p>Extracts or generates correlation ID from X-Correlation-ID header,
  * adds it to MDC for structured logging, and propagates downstream.
  *
- * <p>
- * Execution order: HIGHEST_PRECEDENCE to ensure correlation ID is available
+ * <p>Execution order: HIGHEST_PRECEDENCE to ensure correlation ID is available
  * for all subsequent filters and logging.
  */
 @Component
-@Slf4j
 public class CorrelationIdFilter implements WebFilter, Ordered {
 
-    private static final String X_CORRELATION_ID_HEADER = "X-Correlation-ID";
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CorrelationIdFilter.class);
+    private static final String X_CORRELATION_ID_HEADER = "correlationId";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -84,13 +82,13 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
         if (correlationHeaders != null && !correlationHeaders.isEmpty()) {
             String correlationId = correlationHeaders.get(0);
             if (correlationId != null && !correlationId.isBlank()) {
-                log.debug("Using existing correlation ID: {}", correlationId);
+                LOGGER.debug("Using existing correlation ID: {}", correlationId);
                 return correlationId.trim();
             }
         }
 
         String newCorrelationId = UUID.randomUUID().toString();
-        log.debug("Generated new correlation ID: {}", newCorrelationId);
+        LOGGER.debug("Generated new correlation ID: {}", newCorrelationId);
         return newCorrelationId;
     }
 

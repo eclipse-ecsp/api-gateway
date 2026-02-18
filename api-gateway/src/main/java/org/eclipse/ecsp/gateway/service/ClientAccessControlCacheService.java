@@ -1,68 +1,74 @@
 package org.eclipse.ecsp.gateway.service;
 
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.eclipse.ecsp.gateway.model.ClientAccessControlConfigDto;
+import org.eclipse.ecsp.gateway.utils.AccessControlConfigMerger;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
+import org.springframework.context.event.EventListener;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Cache service for client access configurations in the gateway.
  *
- * <p>
- * Uses ConcurrentHashMap for O(1) client config lookup during request validation.
+ * <p>Uses ConcurrentHashMap for O(1) client config lookup during request validation.
  * Loaded from Api-Registry REST endpoint at startup and refreshed via Redis events or polling.
  *
- * <p>
- * Cache key: clientId (String)
+ * <p>Cache key: clientId (String)
  * Cache value: ClientAccessConfig (pre-parsed rules)
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
 public class ClientAccessControlCacheService {
-
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ClientAccessControlCacheService.class);
     private final ConcurrentHashMap<String, ClientAccessConfig> cache = new ConcurrentHashMap<>();
     private final AccessRuleMatcherService ruleMatcherService;
-    private final WebClient.Builder webClientBuilder;
-    private final YamlConfigurationMerger yamlConfigurationMerger;
+    private final ApiRegistryClient apiRegistryClient;
+    private final AccessControlConfigMerger yamlConfigurationMerger;
     private final ClientAccessControlMetrics metrics;
 
     /**
-     * Api-Registry base URL.
-     * Currently hardcoded, should be moved to configuration properties in future release.
+     * Constructor for ClientAccessControlCacheService.
+     *
+     * @param ruleMatcherService the rule matcher service
+     * @param apiRegistryClient the API registry client
+     * @param yamlConfigurationMerger the YAML configuration merger
+     * @param metrics the client access control metrics
      */
-    private static final String API_REGISTRY_BASE_URL = "http://api-registry:8080";
-    private static final String GET_ALL_ENDPOINT = "/api/registry/client-access-control?includeInactive=false";
-
+    public ClientAccessControlCacheService(AccessRuleMatcherService ruleMatcherService, 
+            ApiRegistryClient apiRegistryClient, 
+            AccessControlConfigMerger yamlConfigurationMerger, 
+            ClientAccessControlMetrics metrics) {
+        this.ruleMatcherService = ruleMatcherService;
+        this.apiRegistryClient = apiRegistryClient;
+        this.yamlConfigurationMerger = yamlConfigurationMerger;
+        this.metrics = metrics;
+    }
+    
     /**
      * Initialize cache at startup.
      * Loads all active client configurations from Api-Registry.
      */
     @PostConstruct
     public void init() {
-        log.info("Initializing client access control cache from Api-Registry");
+        LOGGER.info("Initializing client access control cache from Api-Registry");
         
         // Register cache size gauge
         metrics.registerCacheSizeGauge(this::getCacheSize);
         
         try {
-            loadAllConfigurations().subscribe(
-                    count -> log.info("Cache initialized successfully: {} clients loaded", count),
-                    error -> log.error("Cache initialization failed - will retry via fallback polling", error)
-            );
+            Integer count = loadAllConfigurations();
+            LOGGER.info("Cache initialized successfully: {} clients loaded", count);
         } catch (Exception e) {
-            log.error("Cache initialization error", e);
+            LOGGER.error("Cache initialization error", e);
         }
     }
 
@@ -70,60 +76,50 @@ public class ClientAccessControlCacheService {
      * Load all active client configurations from Api-Registry.
      * Applies YAML overrides before caching.
      *
-     * @return Mono emitting count of loaded configurations
+     * @return Count of loaded configurations
      */
-    public Mono<Integer> loadAllConfigurations() {
-        WebClient webClient = webClientBuilder.baseUrl(API_REGISTRY_BASE_URL).build();
+    public Integer loadAllConfigurations() {
         Instant refreshStart = Instant.now();
-
-        return webClient.get()
-                .uri(GET_ALL_ENDPOINT)
-                .retrieve()
-                .bodyToFlux(ClientAccessConfigDto.class)
-                .flatMap(this::parseConfig)
-                .collectList()
-                .map(databaseConfigs -> {
-                    // Apply YAML overrides
-                    List<ClientAccessConfig> mergedConfigs = yamlConfigurationMerger.merge(databaseConfigs);
+        LOGGER.info("Loading client access control configurations from Api-Registry, starting at {}", refreshStart);
+        List<ClientAccessControlConfigDto> clientIds = apiRegistryClient.getClientAccessControlConfigs();
+        LOGGER.debug("Raw Client IDs fetched: {}", clientIds);
+        List<ClientAccessConfig> databaseConfigs  = List.of();
+        if (clientIds == null || clientIds.isEmpty()) {
+            LOGGER.warn("No client access control configurations found in Api-Registry");
+        } else {
+            LOGGER.info("Fetched {} client IDs from Api-Registry", clientIds.size());
+            databaseConfigs = clientIds.stream().map(this::parseConfig).filter(Objects::nonNull).toList();
+        }
+        
+        List<ClientAccessConfig> mergedConfigs = yamlConfigurationMerger.merge(databaseConfigs);
+        
+        // Clear and repopulate cache
+        cache.clear();
+        
+        for (ClientAccessConfig config : mergedConfigs) {
+            cache.put(config.getClientId(), config);
+        }
                     
-                    // Clear and repopulate cache
-                    cache.clear();
-                    for (ClientAccessConfig config : mergedConfigs) {
-                        cache.put(config.getClientId(), config);
-                    }
-                    
-                    // Record refresh duration
-                    Duration refreshDuration = Duration.between(refreshStart, Instant.now());
-                    metrics.recordConfigRefreshDuration(refreshDuration);
-                    
-                    log.debug("Loaded and merged {} client configurations (YAML overrides applied)", 
-                            mergedConfigs.size());
-                    return mergedConfigs.size();
-                })
-                .doOnError(error -> log.error("Failed to load configurations from Api-Registry", error));
+        // Record refresh duration
+        Duration refreshDuration = Duration.between(refreshStart, Instant.now());
+        metrics.recordConfigRefreshDuration(refreshDuration);
+        
+        LOGGER.info("Loaded and merged {} client configurations (YAML overrides applied) in {} ms", 
+                            mergedConfigs.size(), refreshDuration.toMillis());
+        return mergedConfigs.size();
     }
 
     /**
      * Refresh specific client configurations.
      *
-     * @param clientIds List of client IDs to refresh
-     * @return Mono emitting count of refreshed configurations
+     * @return Count of refreshed configurations
      */
-    public Mono<Integer> refresh(List<String> clientIds) {
-        if (clientIds == null || clientIds.isEmpty()) {
-            return Mono.just(0);
-        }
-
-        log.info("Refreshing cache for {} clients", clientIds.size());
-
-        // Fetch each client configuration individually
-        return Flux.fromIterable(clientIds)
-                .flatMap(this::fetchClientConfig)
-                .flatMap(this::parseAndCacheConfig)
-                .count()
-                .map(Long::intValue)
-                .doOnSuccess(count -> log.info("Refreshed {} client configurations", count))
-                .doOnError(error -> log.error("Failed to refresh configurations", error));
+    @EventListener(RefreshRoutesEvent.class)
+    public Integer refresh() {       
+        LOGGER.info("Refreshing client access control cache from Api-Registry");
+        Integer count = loadAllConfigurations();
+        LOGGER.info("Cache refresh completed: {} clients refreshed", count);
+        return count;
     }
 
     /**
@@ -136,12 +132,12 @@ public class ClientAccessControlCacheService {
         ClientAccessConfig config = cache.get(clientId);
         
         if (config == null) {
-            log.debug("Cache miss for clientId: {}", clientId);
+            LOGGER.debug("Cache miss for clientId: {}", clientId);
             metrics.recordCacheMiss(clientId);
             return null;
         }
 
-        log.debug("Cache hit for clientId: {}", clientId);
+        LOGGER.debug("Cache hit for clientId: {}", clientId);
         metrics.recordCacheHit(clientId);
         return config;
     }
@@ -160,82 +156,31 @@ public class ClientAccessControlCacheService {
      */
     public void clearCache() {
         cache.clear();
-        log.info("Cache cleared");
+        LOGGER.info("Cache cleared");
     }
 
     /**
      * Parse DTO to ClientAccessConfig (without caching).
      *
      * @param dto Client access configuration DTO
-     * @return Mono emitting the parsed config
+     * @return Parsed ClientAccessConfig
      */
-    private Mono<ClientAccessConfig> parseConfig(ClientAccessConfigDto dto) {
+    private ClientAccessConfig parseConfig(ClientAccessControlConfigDto dto) {
         try {
             // Parse rules from string array to AccessRule objects
             List<AccessRule> rules = ruleMatcherService.parseRules(dto.getAllow());
 
-            ClientAccessConfig config = ClientAccessConfig.builder()
+            return ClientAccessConfig.builder()
                     .clientId(dto.getClientId())
                     .tenant(dto.getTenant())
                     .active(dto.isActive())
                     .rules(rules)
                     .lastUpdated(Instant.now())
-                    .source("DATABASE")
+                    .source("REGISTRY")
                     .build();
-
-            return Mono.just(config);
         } catch (Exception e) {
-            log.error("Failed to parse configuration for clientId: {}", dto.getClientId(), e);
-            return Mono.empty();
+            LOGGER.error("Failed to parse configuration for clientId: {}", dto.getClientId(), e);
+            return null;
         }
-    }
-
-    /**
-     * Parse DTO and add to cache.
-     *
-     * @param dto Client access configuration DTO
-     * @return Mono emitting the parsed config
-     */
-    private Mono<ClientAccessConfig> parseAndCacheConfig(ClientAccessConfigDto dto) {
-        return parseConfig(dto)
-                .doOnNext(config -> {
-                    cache.put(config.getClientId(), config);
-                    log.debug("Cached configuration for clientId: {}", config.getClientId());
-                });
-    }
-
-    /**
-     * Fetch single client configuration from Api-Registry.
-     *
-     * @param clientId Client identifier
-     * @return Mono emitting the DTO
-     */
-    private Mono<ClientAccessConfigDto> fetchClientConfig(String clientId) {
-        WebClient webClient = webClientBuilder.baseUrl(API_REGISTRY_BASE_URL).build();
-        String endpoint = "/api/registry/client-access-control/client/" + clientId;
-
-        return webClient.get()
-                .uri(endpoint)
-                .retrieve()
-                .bodyToMono(ClientAccessConfigDto.class)
-                .doOnError(error -> log.error("Failed to fetch config for clientId: {}", clientId, error))
-                .onErrorResume(error -> Mono.empty()); // Continue on error
-    }
-
-    /**
-     * DTO for API response from Api-Registry.
-     */
-    @lombok.Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    private static class ClientAccessConfigDto {
-        private Long id;
-        private String clientId;
-        private String tenant;
-        private String description;
-        private boolean active;
-        private boolean deleted;
-        private List<String> allow;
     }
 }

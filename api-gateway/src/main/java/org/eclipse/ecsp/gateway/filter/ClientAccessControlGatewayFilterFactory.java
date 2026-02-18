@@ -1,18 +1,23 @@
 package org.eclipse.ecsp.gateway.filter;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.Getter;
+import lombok.Setter;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
-import org.eclipse.ecsp.gateway.service.ClientIdValidator;
-import org.eclipse.ecsp.gateway.service.JwtClaimExtractor;
-import org.eclipse.ecsp.gateway.service.PathExtractor;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.InputValidator;
+import org.eclipse.ecsp.gateway.utils.JwtUtils;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.support.HasRouteId;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -27,12 +32,10 @@ import java.util.List;
 /**
  * Gateway filter factory for Client Access Control validation.
  *
- * <p>
- * Extracts client ID from JWT claims and validates access rules.
+ * <p>Extracts client ID from JWT claims and validates access rules.
  * Rejects unauthorized requests with 401 Unauthorized.
  *
- * <p>
- * Implementation flow:
+ * <p>Implementation flow:
  * 1. Check if path should skip validation (health, docs, etc.)
  * 2. Extract JWT from Authorization header
  * 3. Extract client ID from JWT using configured claim chain
@@ -40,22 +43,19 @@ import java.util.List;
  * 5. Validate access rules (deferred to Phase 4/US-2)
  * 6. Allow or deny request
  *
- * @see ClientIdValidator
- * @see JwtClaimExtractor
+ * @see InputValidator
+ * @see JwtUtils
  */
-@Component
-@Slf4j
 public class ClientAccessControlGatewayFilterFactory extends
         AbstractGatewayFilterFactory<ClientAccessControlGatewayFilterFactory.Config> {
 
+    private static final IgniteLogger LOGGER = 
+        IgniteLoggerFactory.getLogger(ClientAccessControlGatewayFilterFactory.class);
     private static final String UNKNOWN = "unknown";
     private static final int BEARER_PREFIX_LENGTH = 7;
     private static final int MAX_LOG_VALUE_LENGTH = 100;
 
     private final ClientAccessControlProperties properties;
-    private final JwtClaimExtractor jwtClaimExtractor;
-    private final ClientIdValidator clientIdValidator;
-    private final PathExtractor pathExtractor;
     private final AccessRuleMatcherService accessRuleMatcherService;
     private final ClientAccessControlCacheService cacheService;
     private final ClientAccessControlMetrics metrics;
@@ -65,26 +65,17 @@ public class ClientAccessControlGatewayFilterFactory extends
      * Constructs the filter factory with all required dependencies.
      *
      * @param properties Configuration properties
-     * @param jwtClaimExtractor JWT claim extraction service
-     * @param clientIdValidator Client ID validation service
-     * @param pathExtractor Path extraction service
      * @param accessRuleMatcherService Access rule matching service
      * @param cacheService Configuration cache service
      * @param metrics Metrics recording service
      */
     public ClientAccessControlGatewayFilterFactory(
             ClientAccessControlProperties properties,
-            JwtClaimExtractor jwtClaimExtractor,
-            ClientIdValidator clientIdValidator,
-            PathExtractor pathExtractor,
             AccessRuleMatcherService accessRuleMatcherService,
             ClientAccessControlCacheService cacheService,
             ClientAccessControlMetrics metrics) {
         super(Config.class);
         this.properties = properties;
-        this.jwtClaimExtractor = jwtClaimExtractor;
-        this.clientIdValidator = clientIdValidator;
-        this.pathExtractor = pathExtractor;
         this.accessRuleMatcherService = accessRuleMatcherService;
         this.cacheService = cacheService;
         this.metrics = metrics;
@@ -92,17 +83,17 @@ public class ClientAccessControlGatewayFilterFactory extends
 
     @Override
     public GatewayFilter apply(Config config) {
-        return (exchange, chain) -> {
+        return new OrderedGatewayFilter((exchange, chain) -> {
             // Check if filter is globally enabled
             if (!properties.isEnabled()) {
-                log.debug("Client access control is disabled globally");
+                LOGGER.debug("Client access control is disabled globally");
                 return chain.filter(exchange);
             }
 
             // Check if path should skip validation
             String requestPath = exchange.getRequest().getPath().value();
             if (shouldSkipPath(requestPath)) {
-                log.debug("Skipping validation for path: {}", requestPath);
+                LOGGER.debug("Skipping validation for path: {}", requestPath);
                 return chain.filter(exchange);
             }
 
@@ -110,8 +101,8 @@ public class ClientAccessControlGatewayFilterFactory extends
             Instant validationStart = Instant.now();
 
             // Perform access control validation
-            return performAccessControl(exchange, chain, requestPath, validationStart);
-        };
+            return performAccessControl(exchange, chain, requestPath, validationStart, config);
+        }, GatewayConstants.CLIENT_ACCESS_CTRL_FILTER_ORDER);
     }
 
     /**
@@ -124,7 +115,8 @@ public class ClientAccessControlGatewayFilterFactory extends
      * @return Mono response
      */
     private Mono<Void> performAccessControl(ServerWebExchange exchange, GatewayFilterChain chain,
-                                            String requestPath, Instant validationStart) {
+                                            String requestPath, Instant validationStart,
+                                            Config config) {
         // Extract JWT from Authorization header
         String jwt = extractJwt(exchange);
         if (jwt == null) {
@@ -133,7 +125,7 @@ public class ClientAccessControlGatewayFilterFactory extends
         }
 
         // Extract client ID from JWT claims
-        String clientId = jwtClaimExtractor.extractClientId(jwt, properties.getClaimNames());
+        String clientId = JwtUtils.extractClientId(jwt, properties.getClaimNames());
         if (clientId == null) {
             return handleDeniedRequest(exchange, requestPath, UNKNOWN, validationStart, "missing_client_id",
                     "No client ID found in JWT claims for path: {}", "Client ID not found in JWT claims");
@@ -143,8 +135,8 @@ public class ClientAccessControlGatewayFilterFactory extends
         metrics.recordRequestChecked(clientId);
 
         // Validate client ID for security patterns
-        if (!clientIdValidator.isValid(clientId)) {
-            log.error("[AUDIT] Invalid or malicious client ID detected - clientId: {}, path: {} - Request denied",
+        if (!InputValidator.isValid(clientId)) {
+            LOGGER.error("[AUDIT] Invalid or malicious client ID detected - clientId: {}, path: {} - Request denied",
                     sanitizeLogValue(clientId), requestPath);
             metrics.recordRequestDenied(clientId, UNKNOWN, requestPath, "invalid_client_id");
             metrics.recordValidationDuration(Duration.between(validationStart, Instant.now()), clientId);
@@ -152,11 +144,11 @@ public class ClientAccessControlGatewayFilterFactory extends
         }
 
         // Extract service and route from request path
-        String service = pathExtractor.extractService(requestPath);
-        String route = pathExtractor.extractRoute(requestPath);
+        String service = config.getServiceName() != null ? config.getServiceName() : UNKNOWN;
+        String route = config.getRouteId() != null ? config.getRouteId() : UNKNOWN;
 
         // Validate client configuration and access rules
-        return validateClientAccess(exchange, chain, requestPath, validationStart, clientId, service, route);
+        return validateClientAccess(exchange, chain, validationStart, clientId, service, route);
     }
 
     /**
@@ -172,12 +164,12 @@ public class ClientAccessControlGatewayFilterFactory extends
      * @return Mono response
      */
     private Mono<Void> validateClientAccess(ServerWebExchange exchange, GatewayFilterChain chain,
-                                            String requestPath, Instant validationStart,
+                                            Instant validationStart,
                                             String clientId, String service, String route) {
         // Lookup client configuration from cache
         ClientAccessConfig clientConfig = cacheService.getConfig(clientId);
         if (clientConfig == null) {
-            log.warn("[AUDIT] Unauthorized access attempt - Client not found: "
+            LOGGER.warn("[AUDIT] Unauthorized access attempt - Client not found: "
                     + "clientId={}, service={}, route={} - Request denied",
                     clientId, service, route);
             metrics.recordRequestDenied(clientId, service, route, "client_not_found");
@@ -186,7 +178,7 @@ public class ClientAccessControlGatewayFilterFactory extends
         }
 
         if (!clientConfig.isActive()) {
-            log.warn("[AUDIT] Unauthorized access attempt - Inactive client: "
+            LOGGER.warn("[AUDIT] Unauthorized access attempt - Inactive client: "
                     + "clientId={}, service={}, route={} - Request denied",
                     clientId, service, route);
             metrics.recordRequestDenied(clientId, service, route, "client_inactive");
@@ -197,11 +189,11 @@ public class ClientAccessControlGatewayFilterFactory extends
         // Validate access rules against service:route
         List<AccessRule> rules = clientConfig.getRules();
         if (!accessRuleMatcherService.isAllowed(rules, service, route)) {
-            log.warn("[AUDIT] Access denied by rules - clientId={}, service={}, route={}, "
+            LOGGER.warn("[AUDIT] Access denied by rules - clientId={}, service={}, route={}, "
                     + "ruleCount={} - Request denied",
                     clientId, service, route, rules.size());
-            if (log.isDebugEnabled()) {
-                log.debug("[DEBUG] Rule evaluation trace for clientId={}: rules={}", clientId, rules);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[DEBUG] Rule evaluation trace for clientId={}: rules={}", clientId, rules);
             }
             metrics.recordRequestDenied(clientId, service, route, "rule_denied");
             metrics.recordValidationDuration(Duration.between(validationStart, Instant.now()), clientId);
@@ -234,7 +226,7 @@ public class ClientAccessControlGatewayFilterFactory extends
         Duration validationDuration = Duration.between(validationStart, Instant.now());
         metrics.recordValidationDuration(validationDuration, clientId);
 
-        log.info("[AUDIT] Access allowed - clientId={}, service={}, route={}, "
+        LOGGER.info("[AUDIT] Access allowed - clientId={}, service={}, route={}, "
                 + "validationTime={}ms - Request authorized",
                 clientId, service, route, validationDuration.toMillis());
 
@@ -291,7 +283,7 @@ public class ClientAccessControlGatewayFilterFactory extends
      * @return Completed mono with 401 response
      */
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String reason) {
-        log.warn("Unauthorized access rejected: {}", reason);
+        LOGGER.warn("Unauthorized access rejected: {}", reason);
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
@@ -311,7 +303,7 @@ public class ClientAccessControlGatewayFilterFactory extends
     private Mono<Void> handleDeniedRequest(ServerWebExchange exchange, String requestPath, String clientId,
                                            Instant validationStart, String denialReason, 
                                            String logMessage, String responseMessage) {
-        log.warn("[AUDIT] " + logMessage + " - reason={} - Request denied", requestPath, denialReason);
+        LOGGER.warn("[AUDIT] " + logMessage + " - reason={} - Request denied", requestPath, denialReason);
         metrics.recordRequestDenied(clientId, UNKNOWN, requestPath, denialReason);
         metrics.recordValidationDuration(Duration.between(validationStart, Instant.now()), clientId);
         return unauthorizedResponse(exchange, responseMessage);
@@ -336,7 +328,10 @@ public class ClientAccessControlGatewayFilterFactory extends
     /**
      * Configuration class for filter.
      */
-    public static class Config {
-        // Future configuration options
+    @Getter
+    @Setter
+    public static class Config implements HasRouteId {
+        private String serviceName;
+        private String routeId;
     }
 }

@@ -1,5 +1,6 @@
 package org.eclipse.ecsp.gateway.service;
 
+import org.eclipse.ecsp.gateway.utils.PathExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

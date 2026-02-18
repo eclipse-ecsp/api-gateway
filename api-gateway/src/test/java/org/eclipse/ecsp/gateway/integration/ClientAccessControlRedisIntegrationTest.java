@@ -20,10 +20,7 @@ package org.eclipse.ecsp.gateway.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
-import org.eclipse.ecsp.gateway.model.AccessRule;
-import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlConfigRefreshService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,14 +41,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /**
  * Integration test for Client Access Control refresh using Redis pub/sub with TestContainers.

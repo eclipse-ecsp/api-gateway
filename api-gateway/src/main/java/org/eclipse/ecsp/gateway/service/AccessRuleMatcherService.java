@@ -1,41 +1,35 @@
 package org.eclipse.ecsp.gateway.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.ecsp.gateway.model.AccessRule;
-import org.springframework.stereotype.Service;
-import org.springframework.util.AntPathMatcher;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Service for matching access rules against service and route requests.
  *
- * <p>
- * Rule evaluation logic:
+ * <p>Rule evaluation logic:
  * 1. Check if ANY deny rule matches → DENY
  * 2. Else check if ANY allow rule matches → ALLOW
  * 3. Else → DENY (deny-by-default)
  *
- * <p>
- * Rule format: [!]service:route
+ * <p>Rule format: [!]service:route
  * - ! prefix = deny rule
  * - * wildcard supported for service and/or route
  * - Order-independent (deny always overrides allow)
  *
- * <p>
- * Examples:
+ * <p>Examples:
  * - "user-service:*" → Allow all routes in user-service
  * - "!user-service:ban-user" → Deny specific route
  * - "*:*" → Allow all services and routes
  * - "user-service:get-*" → Allow routes matching pattern
  */
-@Service
-@Slf4j
 public class AccessRuleMatcherService {
 
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(AccessRuleMatcherService.class);
     private static final int RULE_PARTS_COUNT = 2;
-
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     /**
      * Evaluate access rules for a service and route request.
@@ -48,14 +42,14 @@ public class AccessRuleMatcherService {
     public boolean isAllowed(List<AccessRule> rules, String service, String route) {
         // Empty/null rules → deny by default
         if (rules == null || rules.isEmpty()) {
-            log.debug("No rules configured → deny by default");
+            LOGGER.debug("No rules configured → deny by default");
             return false;
         }
 
         // Step 1: Check deny rules first (highest priority)
         for (AccessRule rule : rules) {
             if (rule.isDeny() && matchesRule(rule, service, route)) {
-                log.info("Access DENIED by deny rule: {} for service={}, route={}", 
+                LOGGER.info("Access DENIED by deny rule: {} for service={}, route={}", 
                         rule.getOriginalRule(), service, route);
                 return false;
             }
@@ -64,14 +58,14 @@ public class AccessRuleMatcherService {
         // Step 2: Check allow rules
         for (AccessRule rule : rules) {
             if (!rule.isDeny() && matchesRule(rule, service, route)) {
-                log.info("Access ALLOWED by allow rule: {} for service={}, route={}", 
+                LOGGER.info("Access ALLOWED by allow rule: {} for service={}, route={}", 
                         rule.getOriginalRule(), service, route);
                 return true;
             }
         }
 
         // Step 3: No allow rule matched → deny by default
-        log.info("Access DENIED (no matching allow rule) for service={}, route={}", service, route);
+        LOGGER.info("Access DENIED (no matching allow rule) for service={}, route={}", service, route);
         return false;
     }
 
@@ -108,23 +102,13 @@ public class AccessRuleMatcherService {
         }
 
         // Wildcard match: * matches everything
-        if ("*".equals(pattern)) {
-            return true;
-        }
-
-        // Ant-style pattern match (e.g., "get-*", "*/v1/*")
-        if (pattern.contains("*") || pattern.contains("?")) {
-            return pathMatcher.match(pattern, value);
-        }
-
-        return false;
+        return "*".equals(pattern);
     }
 
     /**
      * Parse a rule string into an AccessRule object.
      *
-     * <p>
-     * Format: [!]service:route
+     * <p>Format: [!]service:route
      *
      * @param ruleString Rule string (e.g., "user-service:*", "!payment-service:refund")
      * @return Parsed AccessRule, or null if invalid format
@@ -143,7 +127,7 @@ public class AccessRuleMatcherService {
         // Split by colon
         String[] parts = ruleWithoutPrefix.split(":", RULE_PARTS_COUNT);
         if (parts.length != RULE_PARTS_COUNT) {
-            log.warn("Invalid rule format (expected 'service:route'): {}", ruleString);
+            LOGGER.warn("Invalid rule format (expected 'service:route'): {}", ruleString);
             return null;
         }
 
@@ -165,10 +149,9 @@ public class AccessRuleMatcherService {
         if (ruleStrings == null) {
             return List.of();
         }
-
         return ruleStrings.stream()
                 .map(this::parseRule)
-                .filter(rule -> rule != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 }

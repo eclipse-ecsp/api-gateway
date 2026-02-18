@@ -148,7 +148,7 @@ class EventDrivenRouteRefreshIntegrationTest {
         latch.await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
 
         // This should not throw an exception
-        eventPublisher.publishRouteChangeEvent(serviceId);
+        eventThrottler.scheduleEvent(serviceId);
 
         // Wait for debouncing delay to complete and event to be received
         // Debounce is 100ms.

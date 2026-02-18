@@ -1,0 +1,61 @@
+package org.eclipse.ecsp.gateway.customizers;
+
+import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
+import org.eclipse.ecsp.gateway.filter.ClientAccessControlGatewayFilterFactory;
+import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.cloud.gateway.filter.FilterDefinition;
+import org.springframework.cloud.gateway.route.RouteDefinition;
+import org.springframework.cloud.gateway.support.NameUtils;
+import org.springframework.util.AntPathMatcher;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * ClientAccessControlCustomizer.
+ */
+public class ClientAccessControlCustomizer implements RouteCustomizer {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ClientAccessControlCustomizer.class);
+    private final ClientAccessControlProperties clientAccessControlProperties;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    public ClientAccessControlCustomizer(ClientAccessControlProperties clientAccessControlProperties) {
+        this.clientAccessControlProperties = clientAccessControlProperties;
+    }
+
+    @Override
+    public RouteDefinition customize(RouteDefinition routeDefinition, IgniteRouteDefinition igniteRouteDefinition) {
+        // match if the route's predicates match any of the skipPaths, if so, skip
+        // adding the filter
+        String routePath = igniteRouteDefinition.getPredicates().stream()
+                .filter(predicate -> "Path".equals(predicate.getName()))
+                .flatMap(predicate -> predicate.getArgs().values().stream())
+                .findFirst()
+                .orElse("");
+
+        // Check if the route path matches any of the skip paths
+        // using matches to support regex patterns in skipPaths
+        boolean shouldSkip = clientAccessControlProperties.getSkipPaths().stream()
+                .anyMatch(skipPath -> pathMatcher.match(skipPath, routePath));
+
+        if (shouldSkip || Boolean.TRUE.equals(igniteRouteDefinition.getApiDocs())) {
+            LOGGER.debug("Skipping ClientAccessControl filter for route {} with path {}",
+                    igniteRouteDefinition.getId(), routePath);
+            return routeDefinition;
+        }
+
+        FilterDefinition filter = new FilterDefinition();
+        filter.setName(NameUtils.normalizeFilterFactoryName(ClientAccessControlGatewayFilterFactory.class));
+        Map<String, String> args = new HashMap<>();
+        args.put("serviceName", igniteRouteDefinition.getService());
+        args.put("routeId", igniteRouteDefinition.getId());
+        filter.setArgs(args);
+        routeDefinition.getFilters().add(filter);
+        LOGGER.debug("Added ClientAccessControl filter for route {} with path {}",
+                igniteRouteDefinition.getId(), routePath);
+        return routeDefinition;
+    }
+
+}

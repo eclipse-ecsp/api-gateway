@@ -21,7 +21,7 @@ package org.eclipse.ecsp.registry.service;
 import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +86,7 @@ class RateLimitConfigServiceImplTest {
     private RateLimitConfigRepository rateLimitConfigRepository;
 
     @Mock
-    private RouteEventPublisher eventPublisher;
+    private EventPublisherContext eventPublisher;
 
     @Captor
     private ArgumentCaptor<RateLimitConfigEntity> entityCaptor;

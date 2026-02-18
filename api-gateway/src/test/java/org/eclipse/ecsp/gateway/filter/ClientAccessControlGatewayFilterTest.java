@@ -6,9 +6,6 @@ import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
-import org.eclipse.ecsp.gateway.service.ClientIdValidator;
-import org.eclipse.ecsp.gateway.service.JwtClaimExtractor;
-import org.eclipse.ecsp.gateway.service.PathExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,25 +33,16 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ClientAccessControlGatewayFilterTest {
 
-    @Mock(lenient = true)
-    private JwtClaimExtractor jwtClaimExtractor;
-
-    @Mock(lenient = true)
-    private ClientIdValidator clientIdValidator;
-
-    @Mock(lenient = true)
-    private PathExtractor pathExtractor;
-
-    @Mock(lenient = true)
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private AccessRuleMatcherService accessRuleMatcherService;
 
-    @Mock(lenient = true)
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private ClientAccessControlCacheService cacheService;
 
-    @Mock(lenient = true)
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private ClientAccessControlMetrics metrics;
 
-    @Mock(lenient = true)
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private GatewayFilterChain filterChain;
 
     private ClientAccessControlProperties properties;
@@ -69,9 +57,6 @@ class ClientAccessControlGatewayFilterTest {
 
         filterFactory = new ClientAccessControlGatewayFilterFactory(
                 properties,
-                jwtClaimExtractor,
-                clientIdValidator,
-                pathExtractor,
                 accessRuleMatcherService,
                 cacheService,
                 metrics
@@ -95,14 +80,6 @@ class ClientAccessControlGatewayFilterTest {
                 .build();
         ServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        // Mock JWT extraction
-        when(jwtClaimExtractor.extractClientId(eq(jwt), anyList())).thenReturn(clientId);
-        when(clientIdValidator.isValid(clientId)).thenReturn(true);
-        
-        // Mock path extraction
-        when(pathExtractor.extractService("/api/service/route")).thenReturn(service);
-        when(pathExtractor.extractRoute("/api/service/route")).thenReturn(route);
-        
         // Mock client config
         ClientAccessConfig clientConfig = ClientAccessConfig.builder()
                 .clientId(clientId)
@@ -184,8 +161,6 @@ class ClientAccessControlGatewayFilterTest {
                 .build();
         ServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        when(jwtClaimExtractor.extractClientId(eq(jwt), anyList())).thenReturn(null);
-
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
@@ -209,9 +184,6 @@ class ClientAccessControlGatewayFilterTest {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                 .build();
         ServerWebExchange exchange = MockServerWebExchange.from(request);
-
-        when(jwtClaimExtractor.extractClientId(eq(jwt), anyList())).thenReturn(maliciousClientId);
-        when(clientIdValidator.isValid(maliciousClientId)).thenReturn(false);
 
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
@@ -243,7 +215,6 @@ class ClientAccessControlGatewayFilterTest {
                 .verifyComplete();
 
         verify(filterChain).filter(exchange);
-        verify(jwtClaimExtractor, never()).extractClientId(any(), any());
     }
 
     @Test
@@ -286,6 +257,5 @@ class ClientAccessControlGatewayFilterTest {
                 .verifyComplete();
 
         verify(filterChain).filter(exchange);
-        verify(jwtClaimExtractor, never()).extractClientId(any(), any());
     }
 }

@@ -24,7 +24,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Transient;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.eclipse.ecsp.domain.Version;
@@ -38,10 +37,16 @@ import org.hibernate.annotations.Type;
 @Setter
 @Getter
 @ToString
-@NoArgsConstructor
 @Entity(name = "api_routes")
 @dev.morphia.annotations.Entity("api_routes")
 public class ApiRouteEntity implements IgniteEntity {
+
+    /**
+     * Default constructor for ApiRouteEntity.
+     */
+    public ApiRouteEntity() {
+        // Default constructor
+    }
 
     /**
      * api active status.

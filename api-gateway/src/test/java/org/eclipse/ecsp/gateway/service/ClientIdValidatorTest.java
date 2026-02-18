@@ -1,6 +1,6 @@
 package org.eclipse.ecsp.gateway.service;
 
-import org.junit.jupiter.api.BeforeEach;
+import org.eclipse.ecsp.gateway.utils.InputValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,186 +11,179 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ClientIdValidatorTest {
 
-    private ClientIdValidator validator;
-
-    @BeforeEach
-    void setUp() {
-        validator = new ClientIdValidator();
-    }
-
     // Valid client ID tests
     @Test
     void testIsValid_StandardClientId() {
-        assertTrue(validator.isValid("test_client_123"));
+        assertTrue(InputValidator.isValid("test_client_123"));
     }
 
     @Test
     void testIsValid_WithDots() {
-        assertTrue(validator.isValid("client.app.service"));
+        assertTrue(InputValidator.isValid("client.app.service"));
     }
 
     @Test
     void testIsValid_WithHyphens() {
-        assertTrue(validator.isValid("mobile-app-client"));
+        assertTrue(InputValidator.isValid("mobile-app-client"));
     }
 
     @Test
     void testIsValid_WithUnderscores() {
-        assertTrue(validator.isValid("automation_qa_client"));
+        assertTrue(InputValidator.isValid("automation_qa_client"));
     }
 
     @Test
     void testIsValid_Alphanumeric() {
-        assertTrue(validator.isValid("Client123ABC"));
+        assertTrue(InputValidator.isValid("Client123ABC"));
     }
 
     // Invalid - Null/Empty tests
     @Test
     void testIsValid_Null() {
-        assertFalse(validator.isValid(null));
+        assertFalse(InputValidator.isValid(null));
     }
 
     @Test
     void testIsValid_Empty() {
-        assertFalse(validator.isValid(""));
+        assertFalse(InputValidator.isValid(""));
     }
 
     @Test
     void testIsValid_Blank() {
-        assertFalse(validator.isValid("   "));
+        assertFalse(InputValidator.isValid("   "));
     }
 
     // Invalid - Length tests
     @Test
     void testIsValid_TooShort() {
-        assertFalse(validator.isValid("ab")); // 2 characters
+        assertFalse(InputValidator.isValid("ab")); // 2 characters
     }
 
     @Test
     void testIsValid_MinimumLength() {
-        assertTrue(validator.isValid("abc")); // 3 characters (minimum)
+        assertTrue(InputValidator.isValid("abc")); // 3 characters (minimum)
     }
 
     @Test
     void testIsValid_MaximumLength() {
         String maxLength = "a".repeat(128);
-        assertTrue(validator.isValid(maxLength));
+        assertTrue(InputValidator.isValid(maxLength));
     }
 
     @Test
     void testIsValid_TooLong() {
         String tooLong = "a".repeat(129);
-        assertFalse(validator.isValid(tooLong));
+        assertFalse(InputValidator.isValid(tooLong));
     }
 
     // SQL Injection detection tests
     @Test
     void testDetectsSqlInjection_SelectStatement() {
-        assertTrue(validator.detectsSqlInjection("client' OR '1'='1'"));
-        assertTrue(validator.detectsSqlInjection("test'; SELECT * FROM users--"));
+        assertTrue(InputValidator.detectsSqlInjection("client' OR '1'='1'"));
+        assertTrue(InputValidator.detectsSqlInjection("test'; SELECT * FROM users--"));
     }
 
     @Test
     void testDetectsSqlInjection_UnionAttack() {
-        assertTrue(validator.detectsSqlInjection("client' UNION SELECT password FROM users--"));
+        assertTrue(InputValidator.detectsSqlInjection("client' UNION SELECT password FROM users--"));
     }
 
     @Test
     void testDetectsSqlInjection_CommentMarkers() {
-        assertTrue(validator.detectsSqlInjection("client'--"));
-        assertTrue(validator.detectsSqlInjection("client'/*"));
+        assertTrue(InputValidator.detectsSqlInjection("client'--"));
+        assertTrue(InputValidator.detectsSqlInjection("client'/*"));
     }
 
     @Test
     void testDetectsSqlInjection_BooleanLogic() {
-        assertTrue(validator.detectsSqlInjection("' OR true--"));
-        assertTrue(validator.detectsSqlInjection("' AND false--"));
+        assertTrue(InputValidator.detectsSqlInjection("' OR true--"));
+        assertTrue(InputValidator.detectsSqlInjection("' AND false--"));
     }
 
     @Test
     void testDetectsSqlInjection_InsertStatement() {
-        assertTrue(validator.detectsSqlInjection("'; INSERT INTO clients VALUES('hacker')--"));
+        assertTrue(InputValidator.detectsSqlInjection("'; INSERT INTO clients VALUES('hacker')--"));
     }
 
     @Test
     void testDetectsSqlInjection_DropStatement() {
-        assertTrue(validator.detectsSqlInjection("'; DROP TABLE clients--"));
+        assertTrue(InputValidator.detectsSqlInjection("'; DROP TABLE clients--"));
     }
 
     @Test
     void testDetectsSqlInjection_NoPattern() {
-        assertFalse(validator.detectsSqlInjection("valid_client_id"));
+        assertFalse(InputValidator.detectsSqlInjection("valid_client_id"));
     }
 
     // XSS detection tests
     @Test
     void testDetectsXss_ScriptTag() {
-        assertTrue(validator.detectsXss("<script>alert('xss')</script>"));
-        assertTrue(validator.detectsXss("client<script>malicious</script>"));
+        assertTrue(InputValidator.detectsXss("<script>alert('xss')</script>"));
+        assertTrue(InputValidator.detectsXss("client<script>malicious</script>"));
     }
 
     @Test
     void testDetectsXss_IframeTag() {
-        assertTrue(validator.detectsXss("<iframe src='evil.com'></iframe>"));
+        assertTrue(InputValidator.detectsXss("<iframe src='evil.com'></iframe>"));
     }
 
     @Test
     void testDetectsXss_EventHandlers() {
-        assertTrue(validator.detectsXss("<img onerror='alert(1)'>"));
-        assertTrue(validator.detectsXss("<div onclick='malicious()'>"));
+        assertTrue(InputValidator.detectsXss("<img onerror='alert(1)'>"));
+        assertTrue(InputValidator.detectsXss("<div onclick='malicious()'>"));
     }
 
     @Test
     void testDetectsXss_JavascriptProtocol() {
-        assertTrue(validator.detectsXss("javascript:alert(1)"));
+        assertTrue(InputValidator.detectsXss("javascript:alert(1)"));
     }
 
     @Test
     void testDetectsXss_NoPattern() {
-        assertFalse(validator.detectsXss("valid_client_id"));
+        assertFalse(InputValidator.detectsXss("valid_client_id"));
     }
 
     // Path traversal detection tests
     @Test
     void testDetectsPathTraversal_DotDotSlash() {
-        assertTrue(validator.detectsPathTraversal("../../../etc/passwd"));
+        assertTrue(InputValidator.detectsPathTraversal("../../../etc/passwd"));
     }
 
     @Test
     void testDetectsPathTraversal_DotDotBackslash() {
-        assertTrue(validator.detectsPathTraversal("..\\..\\windows\\system32"));
+        assertTrue(InputValidator.detectsPathTraversal("..\\..\\windows\\system32"));
     }
 
     @Test
     void testDetectsPathTraversal_UrlEncoded() {
-        assertTrue(validator.detectsPathTraversal("%2e%2e%2f"));
-        assertTrue(validator.detectsPathTraversal("%2e%2e\\"));
+        assertTrue(InputValidator.detectsPathTraversal("%2e%2e%2f"));
+        assertTrue(InputValidator.detectsPathTraversal("%2e%2e\\"));
     }
 
     @Test
     void testDetectsPathTraversal_DoubleSlash() {
-        assertTrue(validator.detectsPathTraversal("..//file"));
+        assertTrue(InputValidator.detectsPathTraversal("..//file"));
     }
 
     @Test
     void testDetectsPathTraversal_NoPattern() {
-        assertFalse(validator.detectsPathTraversal("valid_client_id"));
+        assertFalse(InputValidator.detectsPathTraversal("valid_client_id"));
     }
 
     // Integration tests combining validation checks
     @Test
     void testIsValid_SqlInjectionRejected() {
-        assertFalse(validator.isValid("client' OR '1'='1'"));
+        assertFalse(InputValidator.isValid("client' OR '1'='1'"));
     }
 
     @Test
     void testIsValid_XssRejected() {
-        assertFalse(validator.isValid("<script>alert('xss')</script>"));
+        assertFalse(InputValidator.isValid("<script>alert('xss')</script>"));
     }
 
     @Test
     void testIsValid_PathTraversalRejected() {
-        assertFalse(validator.isValid("../../../etc/passwd"));
+        assertFalse(InputValidator.isValid("../../../etc/passwd"));
     }
 
     @Test
@@ -208,7 +201,7 @@ class ClientIdValidatorTest {
         };
 
         for (String clientId : validClients) {
-            assertTrue(validator.isValid(clientId), "Should be valid: " + clientId);
+            assertTrue(InputValidator.isValid(clientId), "Should be valid: " + clientId);
         }
     }
 }

@@ -28,5 +28,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ErrorResponseDto {
+    
+    public ErrorResponseDto() {
+        // Default constructor
+    }
+    
     private String error;
 }

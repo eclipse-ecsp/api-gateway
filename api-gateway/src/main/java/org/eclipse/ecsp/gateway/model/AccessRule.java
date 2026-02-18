@@ -8,13 +8,11 @@ import lombok.NoArgsConstructor;
 /**
  * Domain model representing a single access rule (allow or deny).
  *
- * <p>
- * Rules follow the format: [!]service:route
+ * <p>Rules follow the format: [!]service:route
  * - ! prefix indicates a deny rule
  * - * wildcard supported for service and/or route
  *
- * <p>
- * Examples:
+ * <p>Examples:
  * - Allow all routes in user-service: service="user-service", route="*", deny=false
  * - Deny specific route: service="user-service", route="ban-user", deny=true
  * - Allow all services and routes: service="*", route="*", deny=false

@@ -36,6 +36,8 @@ import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Redis message listener for route change events.
@@ -53,9 +55,7 @@ public class RouteEventSubscriber implements MessageListener {
     private final RetryTemplate retryTemplate;
     private final ObjectMapper objectMapper;
     private final MeterRegistry meterRegistry;
-    private Counter routeChangeEventReceivedCounter;
-    private Counter rateLimitConfigChangeEventReceivedCounter;
-    private Counter serviceHealthChangeEventReceivedCounter;
+    private Map<RouteEventType, Counter> eventReceivedCounters;
     private Counter refreshSuccessCounter;
     private Counter refreshFailureCounter;
     
@@ -94,21 +94,17 @@ public class RouteEventSubscriber implements MessageListener {
     @PostConstruct
     public void initializeMetrics() {
         // Initialize counters for events received by type
-        this.routeChangeEventReceivedCounter = Counter.builder(totalEventsReceivedMetricName)
-                .tag(EVENT_TYPE, RouteEventType.ROUTE_CHANGE.name())
-                .description("Total number of route change events received")
-                .register(meterRegistry);
-        
-        this.rateLimitConfigChangeEventReceivedCounter = Counter.builder(totalEventsReceivedMetricName)
-                .tag(EVENT_TYPE, RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
-                .description("Total number of rate limit config change events received")
-                .register(meterRegistry);
-        
-        this.serviceHealthChangeEventReceivedCounter = Counter.builder(totalEventsReceivedMetricName)
-                .tag(EVENT_TYPE, RouteEventType.SERVICE_HEALTH_CHANGE.name())
-                .description("Total number of service health change events received")
-                .register(meterRegistry);
-        
+
+        // create individual counters for each event type with appropriate tags
+        eventReceivedCounters = new EnumMap<>(RouteEventType.class);
+        for (RouteEventType eventType : RouteEventType.values()) {
+            Counter counter = Counter.builder(totalEventsReceivedMetricName)
+                    .tag(EVENT_TYPE, eventType.name())
+                    .description("Total number of " + eventType.name() + " events received")
+                    .register(meterRegistry);
+            eventReceivedCounters.put(eventType, counter);
+            
+        }
         // Initialize counters for refresh operations
         this.refreshSuccessCounter = Counter.builder(refreshSuccessMetricName)
                 .description("Total number of successful route refreshes")
@@ -141,19 +137,14 @@ public class RouteEventSubscriber implements MessageListener {
             // Increment counter based on event type
             incrementEventReceivedCounter(event.getEventType());
 
-            LOGGER.info("Processing route change event: eventId={}, eventType={}, services={}, routes={}",
-                    event.getEventId(),
-                    event.getEventType(),
-                    event.getServices(),
-                    event.getRoutes());
+            LOGGER.info("Processing route change event: eventId={}, eventData={}", event.getEventId(), messageBody);
             // Refresh routes with retry
             retryTemplate.execute(context -> {
                 int attemptCount = context.getRetryCount() + 1;
                 try {
                     LOGGER.debug("Route refresh attempt {}", attemptCount);
                     routeRefreshService.refreshRoutes();
-                    LOGGER.info("Successfully refreshed routes for {} services", 
-                            event.getServices() != null ? event.getServices().size() : 0);
+                    LOGGER.info("Successfully refreshed routes");
                     
                     // Increment success counter only on first successful attempt after retries
                     if (context.getRetryCount() == 0 || attemptCount > 1) {
@@ -187,19 +178,11 @@ public class RouteEventSubscriber implements MessageListener {
             return;
         }
         
-        switch (eventType) {
-            case ROUTE_CHANGE:
-                routeChangeEventReceivedCounter.increment();
-                break;
-            case RATE_LIMIT_CONFIG_CHANGE:
-                rateLimitConfigChangeEventReceivedCounter.increment();
-                break;
-            case SERVICE_HEALTH_CHANGE:
-                serviceHealthChangeEventReceivedCounter.increment();
-                break;
-            default:
-                LOGGER.warn("Unknown event type: {}", eventType);
-                break;
+        Counter counter = eventReceivedCounters.get(eventType);
+        if (counter != null) {
+            counter.increment();
+        } else {
+            LOGGER.warn("No counter found for event type: {}", eventType);
         }
     }
 }

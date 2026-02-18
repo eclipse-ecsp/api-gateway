@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.exceptions;
 
+import org.checkerframework.checker.units.qual.s;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.web.WebProperties;

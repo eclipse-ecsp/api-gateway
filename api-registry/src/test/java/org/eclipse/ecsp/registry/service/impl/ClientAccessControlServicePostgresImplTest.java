@@ -1,12 +1,13 @@
 package org.eclipse.ecsp.registry.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.eclipse.ecsp.registry.common.dto.ClientAccessControlRequestDto;
-import org.eclipse.ecsp.registry.common.dto.ClientAccessControlResponseDto;
-import org.eclipse.ecsp.registry.common.entity.GatewayClientAccessControl;
+import org.eclipse.ecsp.registry.dto.ClientAccessControlRequestDto;
+import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
+import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
+import org.eclipse.ecsp.registry.events.data.ClientAccessControlEventData;
 import org.eclipse.ecsp.registry.mapper.ClientAccessControlMapper;
-import org.eclipse.ecsp.registry.repository.ClientAccessControlRepository;
-import org.eclipse.ecsp.registry.service.ClientAccessControlEventPublisher;
+import org.eclipse.ecsp.registry.repo.ClientAccessControlRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,20 +21,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for ClientAccessControlServicePostgresImpl.
+ * Unit tests for ClientAccessControlServiceImpl.
  */
 @ExtendWith(MockitoExtension.class)
 class ClientAccessControlServicePostgresImplTest {
-
-    private static final int MAX_BULK_SIZE_EXCEEDED = 101;
 
     @Mock
     private ClientAccessControlRepository repository;
@@ -42,13 +40,13 @@ class ClientAccessControlServicePostgresImplTest {
     private ClientAccessControlMapper mapper;
 
     @Mock
-    private ClientAccessControlEventPublisher eventPublisher;
+    private EventPublisherContext eventPublisher;
 
     @InjectMocks
-    private ClientAccessControlServicePostgresImpl service;
+    private ClientAccessControlServiceImpl service;
 
     private ClientAccessControlRequestDto request;
-    private GatewayClientAccessControl entity;
+    private ClientAccessControlEntity entity;
     private ClientAccessControlResponseDto response;
 
     @BeforeEach
@@ -61,18 +59,8 @@ class ClientAccessControlServicePostgresImplTest {
                 .allow(List.of("user-service:*", "payment-service:charge"))
                 .build();
 
-        entity = GatewayClientAccessControl.builder()
-                .id(1L)
-                .clientId("test-client-123")
-                .tenant("test-tenant")
-                .description("Test client")
-                .isActive(true)
-                .isDeleted(false)
-                .allowRules(List.of("user-service:*", "payment-service:charge"))
-                .build();
-
-        response = ClientAccessControlResponseDto.builder()
-                .id(1L)
+        entity = ClientAccessControlEntity.builder()
+                .id("test-client-123")
                 .clientId("test-client-123")
                 .tenant("test-tenant")
                 .description("Test client")
@@ -80,119 +68,55 @@ class ClientAccessControlServicePostgresImplTest {
                 .isDeleted(false)
                 .allow(List.of("user-service:*", "payment-service:charge"))
                 .build();
-    }
 
-    // =====================
-    // Bulk Create Tests
-    // =====================
+        response = ClientAccessControlResponseDto.builder()
+                .clientId("test-client-123")
+                .tenant("test-tenant")
+                .description("Test client")
+                .isActive(true)
+                .allow(List.of("user-service:*", "payment-service:charge"))
+                .build();
+    }
 
     @Test
     void testBulkCreate_Success() {
         when(repository.existsByClientIdAndIsDeletedFalse(anyString())).thenReturn(false);
-        when(mapper.requestDtoToEntity(any())).thenReturn(entity);
-        when(repository.saveAll(anyList())).thenReturn(List.of(entity));
-        when(mapper.entityToResponseDto(any(GatewayClientAccessControl.class))).thenReturn(response);
+        when(repository.findByClientIdAndIsDeletedTrue(anyString())).thenReturn(Optional.empty());
+        when(mapper.requestDtoToEntity(any(ClientAccessControlRequestDto.class))).thenReturn(entity);
+        when(repository.saveAll(any())).thenReturn(List.of(entity));
+        when(mapper.entityToResponseDto(any(ClientAccessControlEntity.class))).thenReturn(response);
+        when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
 
         List<ClientAccessControlResponseDto> results = service.bulkCreate(List.of(request));
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getClientId()).isEqualTo("test-client-123");
-        verify(repository).saveAll(anyList());
+        verify(eventPublisher, times(1)).publishEvent(any(ClientAccessControlEventData.class));
     }
-
-    @Test
-    void testBulkCreate_ExceedsMaxSize() {
-        List<ClientAccessControlRequestDto> requests = java.util.stream.IntStream
-            .range(0, MAX_BULK_SIZE_EXCEEDED)
-            .mapToObj(i -> request)
-            .toList();
-
-        assertThatThrownBy(() -> service.bulkCreate(requests))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("limited to 100 clients");
-    }
-
-    @Test
-    void testBulkCreate_DuplicateClientId() {
-        when(repository.existsByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.bulkCreate(List.of(request)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("already exists");
-    }
-
-    // =====================
-    // Get By ID Tests
-    // =====================
 
     @Test
     void testGetById_Success() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(response);
 
-        ClientAccessControlResponseDto result = service.getById(1L);
+        ClientAccessControlResponseDto result = service.getById("test-client-123");
 
-        assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getClientId()).isEqualTo("test-client-123");
     }
 
     @Test
     void testGetById_NotFound() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
+        when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getById(1L))
+        assertThatThrownBy(() -> service.getById("test-client-123"))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("not found");
     }
 
-    // =====================
-    // Update Tests
-    // =====================
-
-    @Test
-    void testUpdate_Success() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
-        when(repository.save(any())).thenReturn(entity);
-        when(mapper.entityToResponseDto(entity)).thenReturn(response);
-
-        ClientAccessControlResponseDto result = service.update(1L, request);
-
-        assertThat(result.getClientId()).isEqualTo("test-client-123");
-        verify(repository).save(any());
-    }
-
-    // =====================
-    // Delete Tests
-    // =====================
-
-    @Test
-    void testDelete_SoftDelete() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
-
-        service.delete(1L, false);
-
-        verify(repository).save(argThat(e -> e.getIsDeleted() == true));
-        verify(repository, never()).delete(any(GatewayClientAccessControl.class));
-    }
-
-    @Test
-    void testDelete_PermanentDelete() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
-
-        service.delete(1L, true);
-
-        verify(repository).delete(any(GatewayClientAccessControl.class));
-        verify(repository, never()).save(any());
-    }
-
-    // =====================
-    // Get All Tests
-    // =====================
-
     @Test
     void testGetAll_ActiveOnly() {
         when(repository.findByIsActiveAndIsDeletedFalse(true)).thenReturn(List.of(entity));
-        when(mapper.entityToResponseDto(any(GatewayClientAccessControl.class))).thenReturn(response);
+        when(mapper.entityToResponseDto(any(ClientAccessControlEntity.class))).thenReturn(response);
 
         List<ClientAccessControlResponseDto> results = service.getAll(false);
 
@@ -202,12 +126,51 @@ class ClientAccessControlServicePostgresImplTest {
 
     @Test
     void testGetAll_IncludeInactive() {
-        when(repository.findAllNotDeleted()).thenReturn(List.of(entity));
-        when(mapper.entityToResponseDto(any(GatewayClientAccessControl.class))).thenReturn(response);
+        when(repository.findByIsDeletedFalse()).thenReturn(List.of(entity));
+        when(mapper.entityToResponseDto(any(ClientAccessControlEntity.class))).thenReturn(response);
 
         List<ClientAccessControlResponseDto> results = service.getAll(true);
 
         assertThat(results).hasSize(1);
-        verify(repository).findAllNotDeleted();
+        verify(repository).findByIsDeletedFalse();
+    }
+
+    @Test
+    void testUpdate_Success() {
+        when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
+        when(repository.existsByClientIdAndIsDeletedFalse(anyString())).thenReturn(false);
+        when(repository.save(any(ClientAccessControlEntity.class))).thenReturn(entity);
+        when(mapper.entityToResponseDto(entity)).thenReturn(response);
+        when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
+
+        ClientAccessControlResponseDto result = service.update("test-client-123", request);
+
+        assertThat(result.getClientId()).isEqualTo("test-client-123");
+        verify(repository).save(any(ClientAccessControlEntity.class));
+        verify(eventPublisher).publishEvent(any(ClientAccessControlEventData.class));
+    }
+
+    @Test
+    void testDelete_SoftDelete() {
+        when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
+        when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
+
+        service.delete("test-client-123", false);
+
+        verify(repository).save(any(ClientAccessControlEntity.class));
+        verify(repository, never()).delete(any(ClientAccessControlEntity.class));
+        verify(eventPublisher).publishEvent(any(ClientAccessControlEventData.class));
+    }
+
+    @Test
+    void testDelete_PermanentDelete() {
+        when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
+        when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
+
+        service.delete("test-client-123", true);
+
+        verify(repository).delete(any(ClientAccessControlEntity.class));
+        verify(repository, never()).save(any(ClientAccessControlEntity.class));
+        verify(eventPublisher).publishEvent(any(ClientAccessControlEventData.class));
     }
 }

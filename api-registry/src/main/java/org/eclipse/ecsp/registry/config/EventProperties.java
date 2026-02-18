@@ -32,8 +32,16 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "api-registry.events")
 public class EventProperties {
 
+    /**
+     * Default constructor.
+     */
+    public EventProperties() {
+        // Default constructor
+    }
+
     private boolean enabled = true;
     private RedisConfig redis = new RedisConfig();
+    private RetryConfig retry = new RetryConfig();
 
     /**
      * Redis-specific configuration.
@@ -43,5 +51,18 @@ public class EventProperties {
     public static class RedisConfig {
         private String channel = "route-updates";
         private long debounceDelayMs = 5000;
+        private int connectionTimeout = 5000;
+        private int readTimeout = 3000;
+    }
+
+    /**
+     * Retry configuration.
+     */
+    @Getter
+    @Setter
+    public static class RetryConfig {
+        private int maxAttempts = 3;
+        private long backoffMs = 1000L;
+        private boolean enabled = true;
     }
 }

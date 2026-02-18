@@ -1,8 +1,9 @@
 package org.eclipse.ecsp.gateway.service;
 
-import org.eclipse.ecsp.gateway.config.ClientAccessControlYamlProperties;
+import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
+import org.eclipse.ecsp.gateway.utils.AccessControlConfigMerger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,10 +61,10 @@ class YamlConfigurationPrecedenceIntegrationTest {
     private static final int SIX_CONFIGS = 6;
 
     @Autowired
-    private ClientAccessControlYamlProperties yamlProperties;
+        private ClientAccessControlProperties yamlProperties;
 
     @Autowired
-    private YamlConfigurationMerger merger;
+    private AccessControlConfigMerger merger;
 
     @Autowired
     private AccessRuleMatcherService ruleMatcherService;
@@ -85,7 +86,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
         assertThat(yamlProperties.getOverrides()).hasSize(EXPECTED_OVERRIDE_COUNT);
 
         // Verify emergency-client
-        ClientAccessControlYamlProperties.YamlOverride emergencyClient = 
+        ClientAccessControlProperties.YamlOverride emergencyClient = 
                 yamlProperties.getOverrides().get(EMERGENCY_CLIENT_INDEX);
         assertThat(emergencyClient.getClientId()).isEqualTo("emergency-client");
         assertThat(emergencyClient.getTenant()).isEqualTo("ops-team");
@@ -93,7 +94,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
         assertThat(emergencyClient.getAllow()).containsExactly("*:*");
 
         // Verify restricted-client
-        ClientAccessControlYamlProperties.YamlOverride restrictedClient = 
+        ClientAccessControlProperties.YamlOverride restrictedClient = 
                 yamlProperties.getOverrides().get(RESTRICTED_CLIENT_INDEX);
         assertThat(restrictedClient.getClientId()).isEqualTo("restricted-client");
         assertThat(restrictedClient.getTenant()).isEqualTo("dev-team");
@@ -103,7 +104,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
                 .containsExactly("user-service:profile", "!payment-service:*");
 
         // Verify audit-client
-        ClientAccessControlYamlProperties.YamlOverride auditClient = 
+        ClientAccessControlProperties.YamlOverride auditClient = 
                 yamlProperties.getOverrides().get(AUDIT_CLIENT_INDEX);
         assertThat(auditClient.getClientId()).isEqualTo("audit-client");
         assertThat(auditClient.getTenant()).isEqualTo("security-team");
@@ -279,7 +280,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
     @DisplayName("AS-5: Deny rules in YAML should be parsed correctly")
     void testYamlDenyRules_ParsedCorrectly() {
         // Arrange - Get restricted-client YAML config
-        ClientAccessControlYamlProperties.YamlOverride restrictedOverride = yamlProperties.getOverrides().stream()
+        ClientAccessControlProperties.YamlOverride restrictedOverride = yamlProperties.getOverrides().stream()
                 .filter(o -> o.getClientId().equals("restricted-client"))
                 .findFirst()
                 .orElseThrow();

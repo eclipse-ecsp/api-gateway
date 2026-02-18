@@ -3,21 +3,19 @@ package org.eclipse.ecsp.registry.mapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.eclipse.ecsp.registry.common.document.GatewayClientAccessControlDocument;
-import org.eclipse.ecsp.registry.common.dto.ClientAccessControlRequestDto;
-import org.eclipse.ecsp.registry.common.dto.ClientAccessControlResponseDto;
-import org.eclipse.ecsp.registry.common.entity.GatewayClientAccessControl;
+import org.eclipse.ecsp.registry.dto.ClientAccessControlRequestDto;
+import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
+import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,13 +23,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit tests for ClientAccessControlMapper.
  *
- * <p>
- * Tests entity/document to DTO conversions and vice versa.
+ * <p>Tests entity/document to DTO conversions and vice versa.
  */
 class ClientAccessControlMapperTest {
 
     private static final int EXPECTED_TWO_ITEMS = 2;
-    private static final long SECONDS_IN_HOUR = 3600L;
+    private static final String TEST_CLIENT_ID = "test_client";
+    private static final String TEST_DESCRIPTION = "Test client";
+    private static final String TEST_TENANT = "Test Tenant";
+    private static final String NEW_CLIENT_ID = "new_client";
+    private static final String NEW_DESCRIPTION = "New client";
+    private static final String NEW_TENANT = "New Tenant";
+    private static final String EXISTING_CLIENT_ID = "existing_client";
+    private static final String OLD_DESCRIPTION = "Old description";
+    private static final String OLD_TENANT = "Old Tenant";
+    private static final String UPDATED_DESCRIPTION = "Updated description";
+    private static final String UPDATED_TENANT = "Updated Tenant";
+    private static final String SERVICE_USER = "user-service:*";
+    private static final String SERVICE_PAYMENT_REFUND = "!payment-service:refund";
+    private static final String SERVICE_VEHICLE = "vehicle-service:*";
+    private static final String SERVICE_OLD = "old-service:*";
+    private static final String SERVICE_NEW = "new-service:*";
+    private static final String SERVICE_ANOTHER = "another-service:route";
 
     private ClientAccessControlMapper mapper;
     private ObjectMapper objectMapper;
@@ -42,276 +55,280 @@ class ClientAccessControlMapperTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
-        mapper = new ClientAccessControlMapper(objectMapper);
+        mapper = new ClientAccessControlMapper();
     }
 
+    /**
+     * Test purpose          - Verify entityToResponseDto with valid entity.
+     * Test data             - Valid ClientAccessControlEntity with all fields populated.
+     * Test expected result  - Successfully converted to ClientAccessControlResponseDto with all fields mapped.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testEntityToResponseDto() {
-        // Arrange
+    void entityToResponseDto_ValidEntity_Success() {
+        // GIVEN:
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        List<String> rules = Arrays.asList("user-service:*", "!payment-service:refund");
+        List<String> rules = Arrays.asList(SERVICE_USER, SERVICE_PAYMENT_REFUND);
         
-        GatewayClientAccessControl entity = GatewayClientAccessControl.builder()
-                .id(1L)
-                .clientId("test_client")
-                .description("Test client")
-                .tenant("Test Tenant")
+        ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .id(TEST_CLIENT_ID)
+                .clientId(TEST_CLIENT_ID)
+                .description(TEST_DESCRIPTION)
+                .tenant(TEST_TENANT)
                 .isActive(true)
                 .isDeleted(false)
-                .allowRules(rules)
+                .allow(rules)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        // Act
+        // WHEN:
         ClientAccessControlResponseDto dto = mapper.entityToResponseDto(entity);
 
-        // Assert
+        // THEN:
         assertNotNull(dto);
-        assertEquals(1L, dto.getId());
-        assertEquals("test_client", dto.getClientId());
-        assertEquals("Test client", dto.getDescription());
-        assertEquals("Test Tenant", dto.getTenant());
+        assertEquals(TEST_CLIENT_ID, dto.getClientId());
+        assertEquals(TEST_DESCRIPTION, dto.getDescription());
+        assertEquals(TEST_TENANT, dto.getTenant());
         assertTrue(dto.getIsActive());
-        assertFalse(dto.getIsDeleted());
         assertEquals(EXPECTED_TWO_ITEMS, dto.getAllow().size());
-        assertEquals("user-service:*", dto.getAllow().get(0));
-        assertNotNull(dto.getCreatedAt());
-        assertNotNull(dto.getUpdatedAt());
+        assertEquals(SERVICE_USER, dto.getAllow().get(0));
     }
 
+    /**
+     * Test purpose          - Verify entityToResponseDto with null entity.
+     * Test data             - Null entity.
+     * Test expected result  - Returns null DTO.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testEntityToResponseDto_NullEntity() {
-        // Act
+    void entityToResponseDto_NullEntity_ReturnsNull() {
+        // GIVEN:
+        // null entity
+
+        // WHEN:
         ClientAccessControlResponseDto dto = mapper.entityToResponseDto(null);
 
-        // Assert
+        // THEN:
         assertNull(dto);
     }
 
+    /**
+     * Test purpose          - Verify requestDtoToEntity with valid request DTO.
+     * Test data             - Valid ClientAccessControlRequestDto with all fields populated.
+     * Test expected result  - Successfully converted to entity with timestamps initialized.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testRequestDtoToEntity() {
-        // Arrange
-        List<String> rules = Arrays.asList("vehicle-service:*");
+    void requestDtoToEntity_ValidDto_Success() {
+        // GIVEN:
+        List<String> rules = Arrays.asList(SERVICE_VEHICLE);
         ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
-                .clientId("new_client")
-                .description("New client")
-                .tenant("New Tenant")
+                .clientId(NEW_CLIENT_ID)
+                .description(NEW_DESCRIPTION)
+                .tenant(NEW_TENANT)
                 .isActive(true)
                 .allow(rules)
                 .build();
 
-        // Act
-        GatewayClientAccessControl entity = mapper.requestDtoToEntity(dto);
+        // WHEN:
+        ClientAccessControlEntity entity = mapper.requestDtoToEntity(dto);
 
-        // Assert
+        // THEN:
         assertNotNull(entity);
-        assertEquals("new_client", entity.getClientId());
-        assertEquals("New client", entity.getDescription());
-        assertEquals("New Tenant", entity.getTenant());
+        assertEquals(NEW_CLIENT_ID, entity.getClientId());
+        assertEquals(NEW_DESCRIPTION, entity.getDescription());
+        assertEquals(NEW_TENANT, entity.getTenant());
         assertTrue(entity.getIsActive());
-        assertEquals(1, entity.getAllowRules().size());
-        assertEquals("vehicle-service:*", entity.getAllowRules().get(0));
+        assertEquals(1, entity.getAllow().size());
+        assertEquals(SERVICE_VEHICLE, entity.getAllow().get(0));
         assertNotNull(entity.getCreatedAt());
         assertNotNull(entity.getUpdatedAt());
     }
 
+    /**
+     * Test purpose          - Verify requestDtoToEntity with null DTO.
+     * Test data             - Null request DTO.
+     * Test expected result  - Returns null entity.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testRequestDtoToEntity_NullDto() {
-        // Act
-        GatewayClientAccessControl entity = mapper.requestDtoToEntity(null);
+    void requestDtoToEntity_NullDto_ReturnsNull() {
+        // GIVEN:
+        // null DTO
 
-        // Assert
+        // WHEN:
+        ClientAccessControlEntity entity = mapper.requestDtoToEntity(null);
+
+        // THEN:
         assertNull(entity);
     }
 
+    /**
+     * Test purpose          - Verify updateEntityFromRequestDto updates mutable fields.
+     * Test data             - Existing entity and valid update DTO.
+     * Test expected result  - Mutable fields updated, immutable fields preserved.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testUpdateEntityFromRequestDto() {
-        // Arrange
+    void updateEntityFromRequestDto_ValidInputs_UpdatesMutableFields() {
+        // GIVEN:
         OffsetDateTime originalCreatedAt = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-        GatewayClientAccessControl entity = GatewayClientAccessControl.builder()
-                .id(1L)
-                .clientId("existing_client")
-                .description("Old description")
-                .tenant("Old Tenant")
+        ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .id(EXISTING_CLIENT_ID)
+                .clientId(EXISTING_CLIENT_ID)
+                .description(OLD_DESCRIPTION)
+                .tenant(OLD_TENANT)
                 .isActive(false)
-                .allowRules(Arrays.asList("old-service:*"))
+                .allow(Arrays.asList(SERVICE_OLD))
                 .createdAt(originalCreatedAt)
                 .updatedAt(originalCreatedAt)
                 .build();
 
         ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
-                .description("Updated description")
-                .tenant("Updated Tenant")
+                .description(UPDATED_DESCRIPTION)
+                .tenant(UPDATED_TENANT)
                 .isActive(true)
-                .allow(Arrays.asList("new-service:*", "another-service:route"))
+                .allow(Arrays.asList(SERVICE_NEW, SERVICE_ANOTHER))
                 .build();
 
-        // Act
+        // WHEN:
         mapper.updateEntityFromRequestDto(entity, dto);
 
-        // Assert
-        assertEquals("existing_client", entity.getClientId()); // Not updated
-        assertEquals("Updated description", entity.getDescription());
-        assertEquals("Updated Tenant", entity.getTenant());
+        // THEN:
+        assertEquals(EXISTING_CLIENT_ID, entity.getClientId()); // Not updated
+        assertEquals(UPDATED_DESCRIPTION, entity.getDescription());
+        assertEquals(UPDATED_TENANT, entity.getTenant());
         assertTrue(entity.getIsActive());
-        assertEquals(EXPECTED_TWO_ITEMS, entity.getAllowRules().size());
-        assertEquals("new-service:*", entity.getAllowRules().get(0));
+        assertEquals(EXPECTED_TWO_ITEMS, entity.getAllow().size());
+        assertEquals(SERVICE_NEW, entity.getAllow().get(0));
         assertEquals(originalCreatedAt, entity.getCreatedAt()); // Not updated
         assertTrue(entity.getUpdatedAt().isAfter(originalCreatedAt)); // Updated
     }
 
+    /**
+     * Test purpose          - Verify updateEntityFromRequestDto handles null inputs gracefully.
+     * Test data             - Various combinations of null entity and DTO.
+     * Test expected result  - No exception thrown.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testUpdateEntityFromRequestDto_NullInputs() {
-        // Arrange
-        GatewayClientAccessControl entity = GatewayClientAccessControl.builder()
-                .clientId("test")
-                .tenant("Test")
+    void updateEntityFromRequestDto_NullInputs_NoException() {
+        // GIVEN:
+        ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .clientId(TEST_CLIENT_ID)
+                .tenant(TEST_TENANT)
                 .build();
 
-        // Act - Should not throw exception
+        // WHEN:
         mapper.updateEntityFromRequestDto(null, null);
         mapper.updateEntityFromRequestDto(entity, null);
         mapper.updateEntityFromRequestDto(null, new ClientAccessControlRequestDto());
 
-        // Assert - No exception
+        // THEN:
+        // No exception thrown, verify entity unchanged when updated with null DTO
+        assertEquals(TEST_CLIENT_ID, entity.getClientId());
+        assertEquals(TEST_TENANT, entity.getTenant());
     }
 
+    /**
+     * Test purpose          - Verify entityToResponseDto handles empty allow list.
+     * Test data             - Entity with empty allow list.
+     * Test expected result  - Successfully converted with empty list in DTO.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testDocumentToResponseDto() {
-        // Arrange
-        Instant now = Instant.now();
-        List<String> rules = Arrays.asList("user-service:*");
-        
-        GatewayClientAccessControlDocument document = GatewayClientAccessControlDocument.builder()
-                .id("60d5ec49f1a2b123456789ab")
-                .clientId("mongo_client")
-                .description("MongoDB client")
-                .tenant("Mongo Tenant")
+    void entityToResponseDto_EmptyAllowList_Success() {
+        // GIVEN:
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .id(TEST_CLIENT_ID)
+                .clientId(TEST_CLIENT_ID)
+                .description(TEST_DESCRIPTION)
+                .tenant(TEST_TENANT)
                 .isActive(true)
-                .isDeleted(false)
-                .allow(rules)
+                .allow(Collections.emptyList())
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        // Act
-        ClientAccessControlResponseDto dto = mapper.documentToResponseDto(document);
+        // WHEN:
+        ClientAccessControlResponseDto dto = mapper.entityToResponseDto(entity);
 
-        // Assert
+        // THEN:
         assertNotNull(dto);
-        assertNull(dto.getId());  // MongoDB ObjectId can't be mapped to Long, remains null
-        assertEquals("mongo_client", dto.getClientId());
-        assertEquals("MongoDB client", dto.getDescription());
-        assertEquals("Mongo Tenant", dto.getTenant());
-        assertTrue(dto.getIsActive());
-        assertFalse(dto.getIsDeleted());
-        assertEquals(1, dto.getAllow().size());
-        assertNotNull(dto.getCreatedAt());
-        assertNotNull(dto.getUpdatedAt());
+        assertNotNull(dto.getAllow());
+        assertTrue(dto.getAllow().isEmpty());
     }
 
+    /**
+     * Test purpose          - Verify requestDtoToEntity sets ID same as clientId.
+     * Test data             - Valid request DTO with clientId.
+     * Test expected result  - Entity ID equals clientId.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testDocumentToResponseDto_NullDocument() {
-        // Act
-        ClientAccessControlResponseDto dto = mapper.documentToResponseDto(null);
-
-        // Assert
-        assertNull(dto);
-    }
-
-    @Test
-    void testRequestDtoToDocument() {
-        // Arrange
-        List<String> rules = Arrays.asList("service:route");
+    void requestDtoToEntity_ValidDto_SetsIdFromClientId() {
+        // GIVEN:
         ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
-                .clientId("mongo_new")
-                .description("New MongoDB client")
-                .tenant("Mongo Tenant")
-                .isActive(false)
-                .allow(rules)
-                .build();
-
-        // Act
-        GatewayClientAccessControlDocument document = mapper.requestDtoToDocument(dto);
-
-        // Assert
-        assertNotNull(document);
-        assertEquals("mongo_new", document.getClientId());
-        assertEquals("New MongoDB client", document.getDescription());
-        assertEquals("Mongo Tenant", document.getTenant());
-        assertFalse(document.getIsActive());
-        assertFalse(document.getIsDeleted());
-        assertEquals(1, document.getAllow().size());
-        assertNotNull(document.getCreatedAt());
-        assertNotNull(document.getUpdatedAt());
-    }
-
-    @Test
-    void testRequestDtoToDocument_DefaultIsActive() {
-        // Arrange
-        ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
-                .clientId("default_active")
-                .tenant("Test")
-                .build();
-
-        // Act
-        GatewayClientAccessControlDocument document = mapper.requestDtoToDocument(dto);
-
-        // Assert
-        assertTrue(document.getIsActive(), "isActive should default to true if null in DTO");
-        assertFalse(document.getIsDeleted());
-    }
-
-    @Test
-    void testUpdateDocumentFromRequestDto() {
-        // Arrange
-        Instant originalCreatedAt = Instant.now().minusSeconds(SECONDS_IN_HOUR);
-        GatewayClientAccessControlDocument document = GatewayClientAccessControlDocument.builder()
-                .id("60d5ec49f1a2b123456789ab")
-                .clientId("existing_mongo")
-                .description("Old description")
-                .tenant("Old Tenant")
-                .isActive(false)
-                .allow(Arrays.asList("old:*"))
-                .createdAt(originalCreatedAt)
-                .updatedAt(originalCreatedAt)
-                .build();
-
-        ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
-                .description("Updated description")
-                .tenant("Updated Tenant")
+                .clientId(TEST_CLIENT_ID)
+                .description(TEST_DESCRIPTION)
+                .tenant(TEST_TENANT)
                 .isActive(true)
-                .allow(Arrays.asList("new:route"))
+                .allow(Arrays.asList(SERVICE_USER))
                 .build();
 
-        // Act
-        mapper.updateDocumentFromRequestDto(document, dto);
+        // WHEN:
+        ClientAccessControlEntity entity = mapper.requestDtoToEntity(dto);
 
-        // Assert
-        assertEquals("existing_mongo", document.getClientId()); // Not updated
-        assertEquals("Updated description", document.getDescription());
-        assertEquals("Updated Tenant", document.getTenant());
-        assertTrue(document.getIsActive());
-        assertEquals(1, document.getAllow().size());
-        assertEquals("new:route", document.getAllow().get(0));
-        assertEquals(originalCreatedAt, document.getCreatedAt()); // Not updated
-        assertTrue(document.getUpdatedAt().isAfter(originalCreatedAt)); // Updated
+        // THEN:
+        assertNotNull(entity);
+        assertEquals(TEST_CLIENT_ID, entity.getId());
+        assertEquals(TEST_CLIENT_ID, entity.getClientId());
     }
 
+    /**
+     * Test purpose          - Verify updateEntityFromRequestDto preserves clientId.
+     * Test data             - Entity with different clientId in DTO.
+     * Test expected result  - ClientId not updated.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails.
+     */
     @Test
-    void testUpdateDocumentFromRequestDto_NullInputs() {
-        // Arrange
-        GatewayClientAccessControlDocument document = GatewayClientAccessControlDocument.builder()
-                .clientId("test")
-                .tenant("Test")
+    void updateEntityFromRequestDto_DifferentClientId_PreservesOriginal() {
+        // GIVEN:
+        ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .id(TEST_CLIENT_ID)
+                .clientId(TEST_CLIENT_ID)
+                .description(OLD_DESCRIPTION)
                 .build();
 
-        // Act - Should not throw exception
-        mapper.updateDocumentFromRequestDto(null, null);
-        mapper.updateDocumentFromRequestDto(document, null);
-        mapper.updateDocumentFromRequestDto(null, new ClientAccessControlRequestDto());
+        ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
+                .clientId(NEW_CLIENT_ID) // Different client ID
+                .description(UPDATED_DESCRIPTION)
+                .build();
 
-        // Assert - No exception
+        // WHEN:
+        mapper.updateEntityFromRequestDto(entity, dto);
+
+        // THEN:
+        assertEquals(TEST_CLIENT_ID, entity.getClientId()); // Original preserved
     }
 }

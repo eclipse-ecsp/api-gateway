@@ -11,8 +11,7 @@ import java.util.List;
 /**
  * Domain model representing client access configuration in the gateway cache.
  *
- * <p>
- * This is a gateway-side representation optimized for fast rule validation.
+ * <p>This is a gateway-side representation optimized for fast rule validation.
  * Cached in ConcurrentHashMap for O(1) lookup by clientId.
  *
  * @see AccessRule
@@ -45,8 +44,7 @@ public class ClientAccessConfig {
      * Parsed access rules for this client.
      * Pre-parsed for performance optimization.
      *
-     * <p>
-     * Empty list means deny-by-default.
+     * <p>Empty list means deny-by-default.
      */
     private List<AccessRule> rules;
 

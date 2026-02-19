@@ -4,7 +4,7 @@
 
     <groupId>org.eclipse.ecsp</groupId>
     <artifactId>api-gateway-parent</artifactId>
-    <version>1.5.0-M1.3-SNAPSHOT</version>
+    <version>1.5.0-M1.4-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -63,7 +63,7 @@
         <jackson-bom.version>2.19.4</jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.42</lombok.version>
-        <spring-boot.version>3.5.9</spring-boot.version>
+        <spring-boot.version>3.5.10</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-resilience4j.version>3.3.1</spring-cloud-resilience4j.version>
         <spring-cloud-starter-gateway.version>4.3.3</spring-cloud-starter-gateway.version>
@@ -149,7 +149,7 @@
         <skipGpgSign>true</skipGpgSign>
         <skipMavenPublishing>true</skipMavenPublishing>
         <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-        <netty.version>4.1.129.Final</netty.version>
+        <netty.version>4.1.131.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <hibernate-core.version>6.6.40.Final</hibernate-core.version>

@@ -40,7 +40,14 @@ import java.util.List;
 public class RateLimitConfigEventData extends AbstractEventData {
     private static final long serialVersionUID = 1L;
     
+    /**
+     * List of service names affected by rate limit changes.
+     */
     private final List<String> services;
+    
+    /**
+     * List of route IDs affected by rate limit changes.
+     */
     private final List<String> routes;
     
     /**
@@ -59,6 +66,8 @@ public class RateLimitConfigEventData extends AbstractEventData {
     /**
      * Full constructor for RateLimitConfigEventData (for deserialization).
      *
+     * @param eventId the event identifier
+     * @param timestamp the event timestamp
      * @param services list of service names affected
      * @param routes list of route IDs affected
      */

@@ -28,6 +28,7 @@ public interface EventPublisher {
     /**
      * Publish an event to the event bus.
      *
+     * @param <T> type of event data that extends AbstractEventData
      * @param eventData event data to publish
      * @return true if published successfully, false otherwise
      */

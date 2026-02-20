@@ -19,11 +19,15 @@
 package org.eclipse.ecsp.registry.config;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.eclipse.ecsp.registry.dto.ConflictResponseDto;
 import org.eclipse.ecsp.registry.dto.ErrorResponseDto;
 import org.eclipse.ecsp.registry.dto.GenericResponseDto;
 import org.eclipse.ecsp.registry.dto.ValidationErrorResponseDto;
 import org.eclipse.ecsp.registry.exception.DuplicateClientException;
+import org.eclipse.ecsp.utils.logger.IgniteLogger;
+import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +47,15 @@ import java.util.List;
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(GlobalExceptionHandler.class);
+    
+    /**
+     * Default constructor.
+     */
+    public GlobalExceptionHandler() {
+        // Default constructor
+    }
 
     /**
      * Handles ResponseStatusException and returns a structured error response.
@@ -88,7 +101,7 @@ public class GlobalExceptionHandler {
         if (ex.getMessage() != null && ex.getMessage().contains("client_id")) {
             message = "Client ID already exists in the database.";
         }
-        
+        LOGGER.error("Data integrity violation: ", ex);
         ConflictResponseDto errorResponse = new ConflictResponseDto(
                 message,
                 Collections.emptyList() // Cannot determine specific duplicates from DB exception
@@ -105,6 +118,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponseDto> handleValidationException(MethodArgumentNotValidException ex) {
+        LOGGER.error("Validation error: ", ex);
         List<ValidationErrorResponseDto.FieldError> errors = new ArrayList<>();
         
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
@@ -132,6 +146,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<GenericResponseDto> handleIllegalArgumentException(IllegalArgumentException ex) {
+        LOGGER.error("Illegal argument: ", ex);
         GenericResponseDto errorResponse = new GenericResponseDto();
         errorResponse.setMessage(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
@@ -146,6 +161,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<GenericResponseDto> handleEntityNotFoundException(EntityNotFoundException ex) {
+        LOGGER.error("Entity not found: ", ex);
         GenericResponseDto errorResponse = new GenericResponseDto();
         errorResponse.setMessage(ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
@@ -160,8 +176,37 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponseDto> handleGenericException(Exception ex) {
+        LOGGER.error("Unexpected error occurred: ", ex);
         GenericResponseDto errorResponse = new GenericResponseDto();
         errorResponse.setMessage("Internal server error occurred while processing the request.");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * Handles ConstraintViolationException (400 Bad Request) for validation errors.
+     * Returns response with message and list of field-level validation errors.
+     *
+     * @param ex the ConstraintViolationException thrown
+     * @return ResponseEntity with 400 Bad Request status
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ValidationErrorResponseDto> handleConstraintViolationException(
+            ConstraintViolationException ex) {
+        LOGGER.error("Constraint violation: ", ex);
+        List<ValidationErrorResponseDto.FieldError> errors = new ArrayList<>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            ValidationErrorResponseDto.FieldError error = ValidationErrorResponseDto.FieldError.builder()
+                    .field(violation.getPropertyPath().toString())
+                    .error(violation.getMessage())
+                    .build();
+            errors.add(error);
+        }
+
+        ValidationErrorResponseDto errorResponse = ValidationErrorResponseDto.builder()
+                .message("Validation failed for one or more clients.")
+                .errors(errors)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }

@@ -1,9 +1,28 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.service;
 
 import org.eclipse.ecsp.gateway.utils.InputValidator;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for ClientIdValidator.
@@ -11,183 +30,185 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ClientIdValidatorTest {
 
+    private static final String VALID_CLIENT_ID = "valid_client_id";
+
     // Valid client ID tests
     @Test
-    void testIsValid_StandardClientId() {
+    void testIsValidStandardClientId() {
         assertTrue(InputValidator.isValid("test_client_123"));
     }
 
     @Test
-    void testIsValid_WithDots() {
+    void testIsValidWithDots() {
         assertTrue(InputValidator.isValid("client.app.service"));
     }
 
     @Test
-    void testIsValid_WithHyphens() {
+    void testIsValidWithHyphens() {
         assertTrue(InputValidator.isValid("mobile-app-client"));
     }
 
     @Test
-    void testIsValid_WithUnderscores() {
+    void testIsValidWithUnderscores() {
         assertTrue(InputValidator.isValid("automation_qa_client"));
     }
 
     @Test
-    void testIsValid_Alphanumeric() {
+    void testIsValidAlphanumeric() {
         assertTrue(InputValidator.isValid("Client123ABC"));
     }
 
     // Invalid - Null/Empty tests
     @Test
-    void testIsValid_Null() {
+    void testIsValidNull() {
         assertFalse(InputValidator.isValid(null));
     }
 
     @Test
-    void testIsValid_Empty() {
+    void testIsValidEmpty() {
         assertFalse(InputValidator.isValid(""));
     }
 
     @Test
-    void testIsValid_Blank() {
+    void testIsValidBlank() {
         assertFalse(InputValidator.isValid("   "));
     }
 
     // Invalid - Length tests
     @Test
-    void testIsValid_TooShort() {
+    void testIsValidTooShort() {
         assertFalse(InputValidator.isValid("ab")); // 2 characters
     }
 
     @Test
-    void testIsValid_MinimumLength() {
+    void testIsValidMinimumLength() {
         assertTrue(InputValidator.isValid("abc")); // 3 characters (minimum)
     }
 
     @Test
-    void testIsValid_MaximumLength() {
+    void testIsValidMaximumLength() {
         String maxLength = "a".repeat(128);
         assertTrue(InputValidator.isValid(maxLength));
     }
 
     @Test
-    void testIsValid_TooLong() {
+    void testIsValidTooLong() {
         String tooLong = "a".repeat(129);
         assertFalse(InputValidator.isValid(tooLong));
     }
 
     // SQL Injection detection tests
     @Test
-    void testDetectsSqlInjection_SelectStatement() {
+    void testDetectsSqlInjectionSelectStatement() {
         assertTrue(InputValidator.detectsSqlInjection("client' OR '1'='1'"));
         assertTrue(InputValidator.detectsSqlInjection("test'; SELECT * FROM users--"));
     }
 
     @Test
-    void testDetectsSqlInjection_UnionAttack() {
+    void testDetectsSqlInjectionUnionAttack() {
         assertTrue(InputValidator.detectsSqlInjection("client' UNION SELECT password FROM users--"));
     }
 
     @Test
-    void testDetectsSqlInjection_CommentMarkers() {
+    void testDetectsSqlInjectionCommentMarkers() {
         assertTrue(InputValidator.detectsSqlInjection("client'--"));
         assertTrue(InputValidator.detectsSqlInjection("client'/*"));
     }
 
     @Test
-    void testDetectsSqlInjection_BooleanLogic() {
+    void testDetectsSqlInjectionBooleanLogic() {
         assertTrue(InputValidator.detectsSqlInjection("' OR true--"));
         assertTrue(InputValidator.detectsSqlInjection("' AND false--"));
     }
 
     @Test
-    void testDetectsSqlInjection_InsertStatement() {
+    void testDetectsSqlInjectionInsertStatement() {
         assertTrue(InputValidator.detectsSqlInjection("'; INSERT INTO clients VALUES('hacker')--"));
     }
 
     @Test
-    void testDetectsSqlInjection_DropStatement() {
+    void testDetectsSqlInjectionDropStatement() {
         assertTrue(InputValidator.detectsSqlInjection("'; DROP TABLE clients--"));
     }
 
     @Test
-    void testDetectsSqlInjection_NoPattern() {
-        assertFalse(InputValidator.detectsSqlInjection("valid_client_id"));
+    void testDetectsSqlInjectionNoPattern() {
+        assertFalse(InputValidator.detectsSqlInjection(VALID_CLIENT_ID));
     }
 
     // XSS detection tests
     @Test
-    void testDetectsXss_ScriptTag() {
+    void testDetectsXssScriptTag() {
         assertTrue(InputValidator.detectsXss("<script>alert('xss')</script>"));
         assertTrue(InputValidator.detectsXss("client<script>malicious</script>"));
     }
 
     @Test
-    void testDetectsXss_IframeTag() {
+    void testDetectsXssIframeTag() {
         assertTrue(InputValidator.detectsXss("<iframe src='evil.com'></iframe>"));
     }
 
     @Test
-    void testDetectsXss_EventHandlers() {
+    void testDetectsXssEventHandlers() {
         assertTrue(InputValidator.detectsXss("<img onerror='alert(1)'>"));
         assertTrue(InputValidator.detectsXss("<div onclick='malicious()'>"));
     }
 
     @Test
-    void testDetectsXss_JavascriptProtocol() {
+    void testDetectsXssJavascriptProtocol() {
         assertTrue(InputValidator.detectsXss("javascript:alert(1)"));
     }
 
     @Test
-    void testDetectsXss_NoPattern() {
-        assertFalse(InputValidator.detectsXss("valid_client_id"));
+    void testDetectsXssNoPattern() {
+        assertFalse(InputValidator.detectsXss(VALID_CLIENT_ID));
     }
 
     // Path traversal detection tests
     @Test
-    void testDetectsPathTraversal_DotDotSlash() {
+    void testDetectsPathTraversalDotDotSlash() {
         assertTrue(InputValidator.detectsPathTraversal("../../../etc/passwd"));
     }
 
     @Test
-    void testDetectsPathTraversal_DotDotBackslash() {
+    void testDetectsPathTraversalDotDotBackslash() {
         assertTrue(InputValidator.detectsPathTraversal("..\\..\\windows\\system32"));
     }
 
     @Test
-    void testDetectsPathTraversal_UrlEncoded() {
+    void testDetectsPathTraversalUrlEncoded() {
         assertTrue(InputValidator.detectsPathTraversal("%2e%2e%2f"));
         assertTrue(InputValidator.detectsPathTraversal("%2e%2e\\"));
     }
 
     @Test
-    void testDetectsPathTraversal_DoubleSlash() {
+    void testDetectsPathTraversalDoubleSlash() {
         assertTrue(InputValidator.detectsPathTraversal("..//file"));
     }
 
     @Test
-    void testDetectsPathTraversal_NoPattern() {
-        assertFalse(InputValidator.detectsPathTraversal("valid_client_id"));
+    void testDetectsPathTraversalNoPattern() {
+        assertFalse(InputValidator.detectsPathTraversal(VALID_CLIENT_ID));
     }
 
     // Integration tests combining validation checks
     @Test
-    void testIsValid_SqlInjectionRejected() {
+    void testIsValidSqlInjectionRejected() {
         assertFalse(InputValidator.isValid("client' OR '1'='1'"));
     }
 
     @Test
-    void testIsValid_XssRejected() {
+    void testIsValidXssRejected() {
         assertFalse(InputValidator.isValid("<script>alert('xss')</script>"));
     }
 
     @Test
-    void testIsValid_PathTraversalRejected() {
+    void testIsValidPathTraversalRejected() {
         assertFalse(InputValidator.isValid("../../../etc/passwd"));
     }
 
     @Test
-    void testIsValid_MultipleLegitimateClients() {
+    void testIsValidMultipleLegitimateClients() {
         String[] validClients = {
             "mobile_app",
             "web-portal",

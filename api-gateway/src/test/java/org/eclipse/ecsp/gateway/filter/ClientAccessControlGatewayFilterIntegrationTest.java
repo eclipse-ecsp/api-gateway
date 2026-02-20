@@ -1,16 +1,45 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.filter;
 
 import io.jsonwebtoken.Jwts;
-import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
+import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 
 import java.util.Date;
-import java.util.List;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration test for ClientAccessControlGatewayFilterFactory.
@@ -29,13 +58,70 @@ import java.util.List;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
+@TestPropertySource(properties = {
+    // Enable features
+    "api.gateway.client-access-control.enabled=true",
+    
+    // Configure static routes for testing
+    "spring.cloud.gateway.routes[0].id=user-service-get-profile",
+    "spring.cloud.gateway.routes[0].uri=http://localhost:9999",
+    "spring.cloud.gateway.routes[0].predicates[0]=Path=/user-service/get-profile",
+    "spring.cloud.gateway.routes[0].metadata.service=user-service",
+    "spring.cloud.gateway.routes[0].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.routes[0].filters[0].args.serviceName=user-service",
+    "spring.cloud.gateway.routes[0].filters[0].args.routeId=user-service-get-profile",
+    
+    "spring.cloud.gateway.routes[1].id=payment-service-charge",
+    "spring.cloud.gateway.routes[1].uri=http://localhost:9999",
+    "spring.cloud.gateway.routes[1].predicates[0]=Path=/payment-service/charge",
+    "spring.cloud.gateway.routes[1].metadata.service=payment-service",
+    "spring.cloud.gateway.routes[1].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.routes[1].filters[0].args.serviceName=payment-service",
+    "spring.cloud.gateway.routes[1].filters[0].args.routeId=payment-service-charge",
+    
+    "spring.cloud.gateway.routes[2].id=vehicle-service-get-vehicle",
+    "spring.cloud.gateway.routes[2].uri=http://localhost:9999",
+    "spring.cloud.gateway.routes[2].predicates[0]=Path=/vehicle-service/get-vehicle",
+    "spring.cloud.gateway.routes[2].metadata.service=vehicle-service",
+    "spring.cloud.gateway.routes[2].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.routes[2].filters[0].args.serviceName=vehicle-service",
+    "spring.cloud.gateway.routes[2].filters[0].args.routeId=vehicle-service-get-vehicle",
+    
+    // Enable dynamic routes but mock the API registry to return empty routes
+    "api.registry.enabled=false",
+    "api.dynamic.routes.enabled=true",
+    
+    // Disable features not relevant for this test
+    "api.gateway.jwt.key-sources=",  // Empty JWT key sources to prevent PublicKeyServiceImpl initialization errors
+    "spring.redis.host=localhost",
+    "spring.redis.port=6379"
+})
 class ClientAccessControlGatewayFilterIntegrationTest {
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        @Primary
+        public ApiRegistryClient apiRegistryClient() {
+            ApiRegistryClient mock = mock(ApiRegistryClient.class);
+            // Stub to return empty flux (no dynamic routes from registry)
+            when(mock.getRoutes()).thenReturn(Flux.empty());
+            return mock;
+        }
+    }
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @Autowired
-    private ClientAccessControlProperties properties;
+    // Mock beans required by Spring context
+    @MockitoBean
+    private ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
+
+    @MockitoBean
+    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
+
+    @MockitoBean
+    private PublicKeyService publicKeyService;
 
     // =========================
     // AS-1: Valid JWT scenarios
@@ -143,8 +229,8 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     @Test
     void testJwtWithoutClaims() {
         String jwt = Jwts.builder()
-                .setSubject("user123")
-                .setIssuedAt(new Date())
+                .subject("user123")
+                .issuedAt(new Date())
                 .compact();
 
         webTestClient
@@ -233,8 +319,8 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     private String createJwt(String clientId, String claimName) {
         return Jwts.builder()
                 .claim(claimName, clientId)
-                .setSubject("test-subject")
-                .setIssuedAt(new Date())
+                .subject("test-subject")
+                .issuedAt(new Date())
                 .compact();
     }
 }

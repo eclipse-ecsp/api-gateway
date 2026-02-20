@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.filter;
 
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -20,7 +38,7 @@ import static org.mockito.Mockito.when;
  */
 class CorrelationIdFilterTest {
 
-    private static final String X_CORRELATION_ID_HEADER = "X-Correlation-ID";
+    private static final String CORRELATION_ID_HEADER = "correlationId";
     private static final String TEST_CORRELATION_ID = "test-correlation-id-123";
 
     private CorrelationIdFilter filter;
@@ -37,7 +55,7 @@ class CorrelationIdFilterTest {
     void testExtractExistingCorrelationId() {
         // Given: Request with existing correlation ID header
         MockServerHttpRequest request = MockServerHttpRequest.get("/test")
-                .header(X_CORRELATION_ID_HEADER, TEST_CORRELATION_ID)
+                .header(CORRELATION_ID_HEADER, TEST_CORRELATION_ID)
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
@@ -50,7 +68,7 @@ class CorrelationIdFilterTest {
 
         assertThat(exchange.getAttributes().get(GatewayConstants.CORRELATION_ID))
                 .isEqualTo(TEST_CORRELATION_ID);
-        assertThat(exchange.getResponse().getHeaders().getFirst(X_CORRELATION_ID_HEADER))
+        assertThat(exchange.getResponse().getHeaders().getFirst(CORRELATION_ID_HEADER))
                 .isEqualTo(TEST_CORRELATION_ID);
     }
 
@@ -72,7 +90,7 @@ class CorrelationIdFilterTest {
         assertThat(correlationId).isNotBlank();
         assertThat(correlationId).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
-        assertThat(exchange.getResponse().getHeaders().getFirst(X_CORRELATION_ID_HEADER))
+        assertThat(exchange.getResponse().getHeaders().getFirst(CORRELATION_ID_HEADER))
                 .isEqualTo(correlationId);
     }
 
@@ -80,7 +98,7 @@ class CorrelationIdFilterTest {
     void testEmptyCorrelationIdHeader() {
         // Given: Request with empty correlation ID header
         MockServerHttpRequest request = MockServerHttpRequest.get("/test")
-                .header(X_CORRELATION_ID_HEADER, "")
+                .header(CORRELATION_ID_HEADER, "")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
@@ -111,7 +129,7 @@ class CorrelationIdFilterTest {
                 .verifyComplete();
 
         HttpHeaders responseHeaders = exchange.getResponse().getHeaders();
-        assertThat(responseHeaders.getFirst(X_CORRELATION_ID_HEADER)).isNotNull();
+        assertThat(responseHeaders.getFirst(CORRELATION_ID_HEADER)).isNotNull();
     }
 
     @Test

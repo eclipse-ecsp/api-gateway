@@ -25,10 +25,12 @@ class CustomGatewayFilterCustomizerTest {
 
         operation = customizer.customize(operation, handlerMethod);
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter1Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-ValidateApiKey");
         Assertions.assertEquals("x-api-key", filter1Args.get("header-name"));
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter2Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-ValidateClientId");
         Assertions.assertEquals("x-client", filter2Args.get("header-name"));
@@ -46,6 +48,7 @@ class CustomGatewayFilterCustomizerTest {
         operation = customizer.customize(operation, handlerMethod);
         Assertions.assertNotNull(operation.getExtensions());
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter1Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-TestFilter1");
         Assertions.assertEquals("value1", filter1Args.get("key1"));
@@ -62,6 +65,7 @@ class CustomGatewayFilterCustomizerTest {
         operation = customizer.customize(operation, handlerMethod);
         Assertions.assertNotNull(operation.getExtensions());
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter1Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-TestFilter2");
         Assertions.assertEquals("value1", filter1Args.get("key1"));
@@ -79,10 +83,12 @@ class CustomGatewayFilterCustomizerTest {
         operation = customizer.customize(operation, handlerMethod);
         Assertions.assertNotNull(operation.getExtensions());
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter1Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-testFilter3");
         Assertions.assertEquals("value1", filter1Args.get("key1"));
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter2Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-testFilter4");
         Assertions.assertEquals("value2", filter2Args.get("key2"));
@@ -111,6 +117,7 @@ class CustomGatewayFilterCustomizerTest {
         operation = customizer.customize(operation, handlerMethod);
         Assertions.assertNotNull(operation.getExtensions());
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> filter2Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-testWithFiltersNoArgs");
         Assertions.assertEquals(0, filter2Args.size(), "Expected no arguments for testWithFiltersNoArgs filter");

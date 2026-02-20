@@ -58,5 +58,8 @@
       "onAutoForward": "ignore"
     }
   },
-  "otherPortsAttributes": {"onAutoForward": "ignore"}
+  "otherPortsAttributes": {"onAutoForward": "ignore"},
+  "mounts": [
+    "source=/data/home/akumar87/codebase/bitbucket/api-gateway-test,target=/workspaces/api-gateway-test,type=bind,consistency=cached"
+  ]
 }

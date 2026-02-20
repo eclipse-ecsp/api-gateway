@@ -28,6 +28,9 @@ import java.util.List;
  */
 @Getter
 public class DuplicateClientException extends RuntimeException {
+    /**
+     * List of duplicate client IDs that caused the exception.
+     */
     private final List<String> duplicateClientIds;
 
     /**

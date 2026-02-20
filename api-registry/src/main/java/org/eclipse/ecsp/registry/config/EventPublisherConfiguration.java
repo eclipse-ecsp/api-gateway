@@ -33,6 +33,12 @@ import java.util.List;
 @Configuration
 @EnableConfigurationProperties(EventProperties.class)
 public class EventPublisherConfiguration {
+    /**
+     * Default constructor.
+     */
+    public EventPublisherConfiguration() {
+        // Default constructor
+    }
     
     /**
      * Create EventPublisherContext bean.

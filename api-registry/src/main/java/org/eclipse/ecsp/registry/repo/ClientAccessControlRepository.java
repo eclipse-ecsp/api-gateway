@@ -92,4 +92,9 @@ public interface ClientAccessControlRepository {
      * @param entity the entity to delete
      */
     void delete(ClientAccessControlEntity entity);
+
+    /**
+     * Delete all client access control entities.
+     */
+    void deleteAll();
 }

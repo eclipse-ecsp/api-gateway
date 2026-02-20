@@ -18,13 +18,16 @@
 
 package org.eclipse.ecsp.registry.utils;
 
-import lombok.NoArgsConstructor;
-
 /**
  * RegistryConstants is a constant class to define constants used in Registry application.
  */
-@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class RegistryConstants {
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private RegistryConstants() {
+        // Utility class
+    }
 
     /**
      * REGISTRY.

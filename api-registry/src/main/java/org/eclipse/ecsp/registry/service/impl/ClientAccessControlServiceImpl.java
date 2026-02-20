@@ -116,6 +116,7 @@ public class ClientAccessControlServiceImpl implements ClientAccessControlServic
             } else {
                 // Create new record
                 entity = mapper.requestDtoToEntity(request);
+                entity.setId(request.getClientId());
                 entity.setIsDeleted(false);
                 entity.setCreatedAt(OffsetDateTime.now());
                 entity.setUpdatedAt(OffsetDateTime.now());
@@ -130,9 +131,7 @@ public class ClientAccessControlServiceImpl implements ClientAccessControlServic
         // Publish event for cache refresh (reuse clientIds from earlier)
         eventPublisher.publishEvent(new ClientAccessControlEventData(clientIds));
 
-        return savedEntities.stream()
-                .map(mapper::entityToResponseDto)
-                .toList();
+        return savedEntities.stream().map(mapper::entityToResponseDto).toList();
     }
 
     @Override

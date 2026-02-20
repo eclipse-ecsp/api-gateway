@@ -53,6 +53,13 @@ import java.util.zip.GZIPInputStream;
  */
 @Component
 public class GlobalFilterUtils {
+    /**
+     * Default constructor.
+     */
+    public GlobalFilterUtils() {
+        // Default constructor
+    }
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(GlobalFilterUtils.class);
     private static final int DEFAULT_BUFFER_SIZE = 1024;
 

@@ -19,6 +19,15 @@
 package org.eclipse.ecsp.registry.config;
 
 import com.fasterxml.jackson.databind.MapperFeature;
+import com.mongodb.MongoClientSettings;
+
+import org.bson.BsonReader;
+import org.bson.BsonWriter;
+import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.EncoderContext;
+import org.bson.codecs.configuration.CodecRegistries;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.eclipse.ecsp.nosqldao.spring.config.IgniteDAOMongoConfigWithProps;
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
@@ -37,11 +46,20 @@ import org.springframework.context.annotation.Import;
 
 import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 
+import java.time.OffsetDateTime;
+
 /**
  * RegistryConfig.
  */
 @AutoConfiguration
 public class RegistryConfig {
+    /**
+     * Default constructor.
+     */
+    public RegistryConfig() {
+        // Default constructor
+    }
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RegistryConfig.class);
 
     /**
@@ -97,6 +115,31 @@ public class RegistryConfig {
         LOGGER.info("Metrics are not enabled, disabling all endpoints.");
         // This filter will disable all endpoints when metrics are not enabled.
         return (endpoint -> false);
+    }
+
+    /**
+     * Codec for OffsetDateTime to handle MongoDB serialization and deserialization.
+     *
+     * @return Codec for OffsetDateTime
+     */
+    @Bean
+    public Codec<OffsetDateTime> offsetDateTimeCodec() {
+        return new Codec<OffsetDateTime>() {
+            @Override
+            public void encode(BsonWriter writer, OffsetDateTime value, EncoderContext encoderContext) {
+                writer.writeString(value.toString());
+            }
+
+            @Override
+            public OffsetDateTime decode(BsonReader reader, DecoderContext decoderContext) {
+                return OffsetDateTime.parse(reader.readString());
+            }
+
+            @Override
+            public Class<OffsetDateTime> getEncoderClass() {
+                return OffsetDateTime.class;
+            }
+        };
     }
 
 }

@@ -16,6 +16,12 @@ import java.time.ZoneOffset;
  */
 @Component
 public class ClientAccessControlMapper {
+    /**
+     * Default constructor.
+     */
+    public ClientAccessControlMapper() {
+        // Default constructor
+    }
 
     /**
      * Map JPA entity to response DTO.

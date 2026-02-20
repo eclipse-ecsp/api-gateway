@@ -38,11 +38,10 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
 
     @Override
     public Optional<ClientAccessControlEntity> findByClientIdAndIsDeletedFalse(String clientId) {
-        IgniteCriteria criteria = new IgniteCriteria();
-        criteria.field(CLIENT_ID).op(Operator.EQ).val(clientId);
-        criteria.field(IS_DELETED).op(Operator.EQ).val(false);
+        IgniteCriteria clientIdCriteria = new IgniteCriteria(CLIENT_ID, Operator.EQ, clientId);
+        IgniteCriteria isDeletedCriteria = new IgniteCriteria(IS_DELETED, Operator.EQ, false);
 
-        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(criteria);
+        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(clientIdCriteria).and(isDeletedCriteria);
 
         IgniteQuery igniteQuery = new IgniteQuery(criteriaGroup);
         igniteQuery.setPageNumber(1);
@@ -55,11 +54,11 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
 
     @Override
     public List<ClientAccessControlEntity> findByIsActiveAndIsDeletedFalse(boolean isActive) {
-        IgniteCriteria criteria = new IgniteCriteria();
-        criteria.field(IS_ACTIVE).op(Operator.EQ).val(isActive);
-        criteria.field(IS_DELETED).op(Operator.EQ).val(false);
+        IgniteCriteria isActiveCriteria = new IgniteCriteria(IS_ACTIVE, Operator.EQ, isActive);
 
-        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(criteria);
+        IgniteCriteria isDeletedCriteria = new IgniteCriteria(IS_DELETED, Operator.EQ, false);
+
+        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(isActiveCriteria).and(isDeletedCriteria);
 
         IgniteQuery igniteQuery = new IgniteQuery(criteriaGroup);
         igniteQuery.setPageNumber(1);
@@ -70,10 +69,9 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
 
     @Override
     public List<ClientAccessControlEntity> findByIsDeletedFalse() {
-        IgniteCriteria criteria = new IgniteCriteria();
-        criteria.field(IS_DELETED).op(Operator.EQ).val(false);
+        IgniteCriteria isDeletedCriteria = new IgniteCriteria(IS_DELETED, Operator.EQ, false);
 
-        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(criteria);
+        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(isDeletedCriteria);
 
         IgniteQuery igniteQuery = new IgniteQuery(criteriaGroup);
         igniteQuery.setPageNumber(1);
@@ -84,11 +82,10 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
 
     @Override
     public boolean existsByClientIdAndIsDeletedFalse(String clientId) {
-        IgniteCriteria criteria = new IgniteCriteria();
-        criteria.field(CLIENT_ID).op(Operator.EQ).val(clientId);
-        criteria.field(IS_DELETED).op(Operator.EQ).val(false);
+        IgniteCriteria clientIdCriteria = new IgniteCriteria(CLIENT_ID, Operator.EQ, clientId);
+        IgniteCriteria isDeletedCriteria = new IgniteCriteria(IS_DELETED, Operator.EQ, false);
 
-        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(criteria);
+        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(clientIdCriteria).and(isDeletedCriteria);
 
         IgniteQuery igniteQuery = new IgniteQuery(criteriaGroup);
         igniteQuery.setPageNumber(1);
@@ -118,11 +115,10 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
 
     @Override
     public Optional<ClientAccessControlEntity> findByClientIdAndIsDeletedTrue(String clientId) {
-        IgniteCriteria criteria = new IgniteCriteria();
-        criteria.field(CLIENT_ID).op(Operator.EQ).val(clientId);
-        criteria.field(IS_DELETED).op(Operator.EQ).val(true);
+        IgniteCriteria clientIdCriteria = new IgniteCriteria(CLIENT_ID, Operator.EQ, clientId);
+        IgniteCriteria isDeletedCriteria = new IgniteCriteria(IS_DELETED, Operator.EQ, true);
 
-        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(criteria);
+        IgniteCriteriaGroup criteriaGroup = new IgniteCriteriaGroup(clientIdCriteria).and(isDeletedCriteria);
 
         IgniteQuery igniteQuery = new IgniteQuery(criteriaGroup);
         igniteQuery.setPageNumber(1);
@@ -132,5 +128,11 @@ public class ClientAccessControlMongoRepository implements ClientAccessControlRe
         
         return Optional.ofNullable(result.isEmpty() ? null : result.get(0));
     }
+
+    @Override
+    public void deleteAll() {
+        clientAccessControlDao.deleteAll();
+    }
+
 }
 

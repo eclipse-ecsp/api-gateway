@@ -36,6 +36,11 @@ public class ClientAccessControlSqlRepository implements ClientAccessControlRepo
 
     private final ClientAccessControlJpaRepository jpaRepository;
 
+    /**
+     * Constructor with JPA repository dependency.
+     *
+     * @param jpaRepository the JPA repository for client access control
+     */
     public ClientAccessControlSqlRepository(ClientAccessControlJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
@@ -81,5 +86,10 @@ public class ClientAccessControlSqlRepository implements ClientAccessControlRepo
     @Override
     public void delete(ClientAccessControlEntity entity) {
         jpaRepository.delete(entity);
+    }
+
+    @Override
+    public void deleteAll() {
+        jpaRepository.deleteAll();
     }
 }

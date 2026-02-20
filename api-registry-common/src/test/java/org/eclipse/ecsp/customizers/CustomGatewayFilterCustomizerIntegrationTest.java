@@ -7,7 +7,6 @@ import org.eclipse.ecsp.register.ApiRoutesLoader;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,12 +15,10 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = RegistryTestConfiguration.class)
 @ActiveProfiles("test")
 @TestPropertySource(properties = {

@@ -31,12 +31,19 @@ import java.util.List;
  * Contains service names and route IDs that were modified.
  */
 @Getter
-@ToString
-@EqualsAndHashCode(callSuper = false)
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class RouteChangeEventData extends AbstractEventData {
     private static final long serialVersionUID = 1L;
     
+    /**
+     * List of service names that changed.
+     */
     private final List<String> services;
+    
+    /**
+     * List of route IDs that changed.
+     */
     private final List<String> routes;
     
     /**
@@ -47,8 +54,12 @@ public class RouteChangeEventData extends AbstractEventData {
      */
     public RouteChangeEventData(List<String> services, List<String> routes) {
         super();
-        this.services = Collections.unmodifiableList(new ArrayList<>(services));
-        this.routes = Collections.unmodifiableList(new ArrayList<>(routes));
+        this.services = services == null 
+                ? Collections.emptyList() 
+                : Collections.unmodifiableList(new ArrayList<>(services));
+        this.routes = routes == null 
+                ? Collections.emptyList() 
+                : Collections.unmodifiableList(new ArrayList<>(routes));
     }
     
     @Override

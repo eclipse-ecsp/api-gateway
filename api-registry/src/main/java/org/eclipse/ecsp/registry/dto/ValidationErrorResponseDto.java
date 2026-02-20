@@ -18,10 +18,8 @@
 
 package org.eclipse.ecsp.registry.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -32,10 +30,26 @@ import java.util.List;
  */
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class ValidationErrorResponseDto {
+    /**
+     * Default constructor.
+     */
+    public ValidationErrorResponseDto() {
+        // Default constructor
+    }
+
+    /**
+     * Constructor with all fields.
+     *
+     * @param message error message
+     * @param errors list of field-level validation errors
+     */
+    public ValidationErrorResponseDto(String message, List<FieldError> errors) {
+        this.message = message;
+        this.errors = errors;
+    }
+
     private String message;
     private List<FieldError> errors;
 
@@ -44,10 +58,28 @@ public class ValidationErrorResponseDto {
      */
     @Getter
     @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
     @Builder
     public static class FieldError {
+        /**
+         * Default constructor.
+         */
+        public FieldError() {
+            // Default constructor
+        }
+
+        /**
+         * Constructor with all fields.
+         *
+         * @param clientId client ID
+         * @param field field name
+         * @param error error message
+         */
+        public FieldError(String clientId, String field, String error) {
+            this.clientId = clientId;
+            this.field = field;
+            this.error = error;
+        }
+
         private String clientId;
         private String field;
         private String error;

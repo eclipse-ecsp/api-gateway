@@ -20,26 +20,30 @@ package org.eclipse.ecsp.gateway.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
+import org.eclipse.ecsp.gateway.exceptions.IgniteGlobalExceptionHandler;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -54,38 +58,32 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - Basic cache operations
  * - Redis container health
  *
- * <p>Validates AS-6, AS-7, EC-7 from architecture specification.
- *
- * @author AI Assistant
+ * @author Abhishek Kumar
  */
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.NONE,
-    properties = {
-        "client-access-control.enabled=true",
-        "api.gateway.client-access-control.enabled=true"
-    }
-)
-@TestPropertySource("classpath:application-test.yml")
+@ActiveProfiles("test")
+@SpringBootTest
+@RunWith(SpringRunner.class)
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Disabled("TestContainers initialization issue in dev container - requires proper "
-        + "TestContainers configuration or CI/CD environment with TestContainers support")
 class ClientAccessControlRedisIntegrationTest {
 
     private static final int REDIS_PORT = 6379;
     private static final String REDIS_CHANNEL = "client-access-updates";
 
+    @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(REDIS_PORT)
-            .withCommand("redis-server", "--appendonly", "yes");
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
+            .withExposedPorts(REDIS_PORT);
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-        registry.add("spring.data.redis.database", () -> "0");
-        registry.add("spring.data.redis.timeout", () -> "2000");
+        registry.add("client.access-control.redis.channel", () -> REDIS_CHANNEL);
+        registry.add("api.gateway.client-access-control.enabled", () -> "true");
+        registry.add("api.gateway.routes.refresh.strategy", () -> "EVENT_DRIVEN");
+        registry.add("api.gateway.routes.refresh.event.channel", () -> REDIS_CHANNEL);
+        registry.add("api.dynamic.routes.enabled", () -> "true");
     }
 
     @AfterAll
@@ -97,7 +95,7 @@ class ClientAccessControlRedisIntegrationTest {
     }
 
     @Autowired
-    private StringRedisTemplate redisTemplate;
+    private ReactiveStringRedisTemplate redisTemplate;
 
     @Autowired
     private ClientAccessControlCacheService cacheService;
@@ -107,6 +105,9 @@ class ClientAccessControlRedisIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private IgniteGlobalExceptionHandler globalExceptionHandler;
 
     @BeforeEach
     void setUp() {
@@ -121,10 +122,10 @@ class ClientAccessControlRedisIntegrationTest {
         assertThat(redis.getFirstMappedPort()).isGreaterThan(0);
         
         // Verify Redis connectivity
-        redisTemplate.opsForValue().set("test-key", "test-value");
-        String value = redisTemplate.opsForValue().get("test-key");
-        assertThat(value).isEqualTo("test-value");
-        redisTemplate.delete("test-key");
+        redisTemplate.opsForValue().set("test-key", "test-value").block();
+        Mono<String> value = redisTemplate.opsForValue().get("test-key");
+        assertThat(value.block()).isEqualTo("test-value");
+        redisTemplate.delete("test-key").block();
     }
 
     @Test
@@ -142,10 +143,10 @@ class ClientAccessControlRedisIntegrationTest {
         // Act - Publish event to Redis channel
         try {
             String eventJson = objectMapper.writeValueAsString(event);
-            Long subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
+            Mono<Long> subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
             
             // Assert
-            assertThat(subscribers).isGreaterThanOrEqualTo(0);
+            assertThat(subscribers.block()).isGreaterThanOrEqualTo(0);
         } catch (Exception e) {
             Assertions.fail("Failed to publish event: " + e.getMessage());
         }
@@ -178,9 +179,9 @@ class ClientAccessControlRedisIntegrationTest {
         // Act & Assert
         try {
             String eventJson = objectMapper.writeValueAsString(event);
-            Long subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
+            Mono<Long> subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
             
-            assertThat(subscribers).isGreaterThanOrEqualTo(0);
+            assertThat(subscribers.block()).isGreaterThanOrEqualTo(0);
         } catch (Exception e) {
             Assertions.fail("Failed to publish event: " + e.getMessage());
         }
@@ -192,8 +193,9 @@ class ClientAccessControlRedisIntegrationTest {
     void testRedisHealthCheck() {
         try {
             String pingResult = redisTemplate.getConnectionFactory()
-                    .getConnection()
-                    .ping();
+                    .getReactiveConnection()
+                    .ping()
+                    .block();
             
             assertThat(pingResult).isEqualTo("PONG");
         } catch (Exception e) {

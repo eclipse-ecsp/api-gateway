@@ -18,12 +18,11 @@
 
 package org.eclipse.ecsp.registry.dto;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.util.List;
+
 
 /**
  * Response DTO for bulk create operations.
@@ -31,9 +30,26 @@ import java.util.List;
  */
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BulkCreateResponseDto {
+    /**
+     * Default constructor.
+     */
+    public BulkCreateResponseDto() {
+        // Default constructor
+    }
+
+    /**
+     * Constructor with all fields.
+     *
+     * @param message the response message
+     * @param created the list of created client IDs
+     */
+    public BulkCreateResponseDto(String message, List<String> created) {
+        this.message = message;
+        this.created = created;
+    }
+
     private String message;
     private List<String> created;
 }

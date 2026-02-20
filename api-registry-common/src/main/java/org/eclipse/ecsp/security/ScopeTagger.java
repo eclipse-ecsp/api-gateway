@@ -41,6 +41,14 @@ import java.util.Map;
 @Getter
 @Setter
 public class ScopeTagger implements OperationCustomizer {
+    /**
+     * Default constructor.
+     */
+    public ScopeTagger() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ScopeTagger.class);
     /**
      * Property holds scopesMap.

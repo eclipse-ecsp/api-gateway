@@ -14,4 +14,10 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnNoSqlDatabase
 @Repository
 public class ClientAccessControlDaoImpl extends IgniteBaseDAOMongoImpl<String, ClientAccessControlEntity> {
+    /**
+     * Default constructor.
+     */
+    public ClientAccessControlDaoImpl() {
+        // Default constructor
+    }
 }

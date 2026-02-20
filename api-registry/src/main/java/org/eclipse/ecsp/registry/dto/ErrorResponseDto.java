@@ -18,20 +18,26 @@
 
 package org.eclipse.ecsp.registry.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
-
 
 /**
  * Error response DTO to send error messages in API responses.
  */
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponseDto {
-    
+    /**
+     * Default constructor.
+     */
     public ErrorResponseDto() {
         // Default constructor
     }
     
+    /**
+     * Error message.
+     */
     private String error;
 }

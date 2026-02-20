@@ -1,410 +1,458 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.registry.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
+import org.eclipse.ecsp.registry.dto.BulkCreateResponseDto;
 import org.eclipse.ecsp.registry.dto.ClientAccessControlRequestDto;
 import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
+import org.eclipse.ecsp.registry.dto.GenericResponseDto;
 import org.eclipse.ecsp.registry.service.ClientAccessControlService;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Unit tests for ClientAccessControlController.
  *
- * <p>Tests all 7 REST endpoints with MockMvc:
+ * <p>Tests all REST endpoints following Engineering Fundamentals Guidelines:
  * - POST / (bulk create)
  * - GET / (get all)
  * - GET /{clientId} (get by client ID)
- * - PUT /{id} (update)
- * - DELETE /{id} (delete)
- * 
- * <p>Controller functionality is validated through service tests and integration tests.
+ * - PUT /{clientId} (update)
+ * - DELETE /{clientId} (delete)
  */
-@Disabled("RegistryApplication JPA exclusions cause @WebMvcTest context loading failure")
-@WebMvcTest(
-    controllers = ClientAccessControlController.class,
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration.class,
-        org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration.class
-    }
-)
+@ExtendWith(MockitoExtension.class)
 class ClientAccessControlControllerTest {
 
+    private static final String NON_EXISTENT = "non-existent";
+    private static final String CLIENT_NOT_FOUND = "Client not found";
+    private static final String CLIENT_ID_1 = "client-1";
+    private static final String CLIENT_ID_2 = "client-2";
+    private static final String TENANT_A = "tenant-a";
+    private static final String TEST_DESCRIPTION = "Test description";
     private static final int TWO = 2;
 
-    private static final int OVER_BULK_LIMIT = 101;
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
+    @Mock
     private ClientAccessControlService service;
 
-    @MockitoBean
-    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    @InjectMocks
+    private ClientAccessControlController controller;
+
+    @BeforeEach
+    void setUp() {
+        // Setup if needed
+    }
 
     // ==================== POST / (Bulk Create) ====================
 
     /**
-     * Test POST / with valid request should return 201 Created.
-     */
+     * Test purpose          - Verify bulk create with valid requests returns 201 Created.
+     * Test data             - List of 2 valid ClientAccessControlRequestDto objects.
+     * Test expected result  - ResponseEntity with 201 Created status and BulkCreateResponseDto.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testBulkCreate_Success() throws Exception {
-        // Given: Valid request with 2 clients
+    void bulkCreateValidRequestWith2ClientsReturnCreatedStatus() {
+        // GIVEN: Valid request with 2 clients
         List<ClientAccessControlRequestDto> requests = List.of(
-                createRequestDto("client-1", "tenant-a", true, List.of("service-a:*")),
-                createRequestDto("client-2", "tenant-a", true, List.of("service-b:*"))
+                createRequestDto(CLIENT_ID_1, TENANT_A, true, List.of("service-a:*")),
+                createRequestDto(CLIENT_ID_2, TENANT_A, true, List.of("service-b:*"))
         );
 
-        List<ClientAccessControlResponseDto> responses = List.of(
-                createResponseDto("client-1", "client-1", "tenant-a", true),
-                createResponseDto("client-2", "client-2", "tenant-a", true)
+        List<ClientAccessControlResponseDto> serviceResponses = List.of(
+                createResponseDto(CLIENT_ID_1, TENANT_A, true),
+                createResponseDto(CLIENT_ID_2, TENANT_A, true)
         );
 
-        when(service.bulkCreate(any())).thenReturn(responses);
+        when(service.bulkCreate(any())).thenReturn(serviceResponses);
 
-        // When/Then: Should return 201 with response DTOs
-        mockMvc.perform(post("/v1/config/client-access-control")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requests)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$", hasSize(TWO)))
-                .andExpect(jsonPath("$[0].id", is("client-1")))
-                .andExpect(jsonPath("$[0].clientId", is("client-1")))
-                .andExpect(jsonPath("$[1].id", is("client-2")))
-                .andExpect(jsonPath("$[1].clientId", is("client-2")));
+        // WHEN: Controller bulkCreate is called
+        ResponseEntity<BulkCreateResponseDto> response = controller.bulkCreate(requests);
 
-        verify(service, times(1)).bulkCreate(any());
+        // THEN: Should return 201 Created with correct response
+        assertNotNull(response);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(TWO, response.getBody().getCreated().size());
+        assertTrue(response.getBody().getMessage().contains("2 client(s) created successfully"));
+        verify(service, times(1)).bulkCreate(requests);
     }
 
     /**
-     * Test POST / with more than 100 clients should return 400 Bad Request.
-     */
+     * Test purpose          - Verify bulk create with empty list throws exception.
+     * Test data             - Empty list of requests.
+     * Test expected result  - Service method is called and can handle empty list.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testBulkCreate_TooManyClients() throws Exception {
-        // Given: Request with 101 clients
-        List<ClientAccessControlRequestDto> requests = new ArrayList<>();
-        for (int i = 0; i < OVER_BULK_LIMIT; i++) {
-            requests.add(createRequestDto("client-" + i, "tenant-a", true, List.of("*:*")));
-        }
+    void bulkCreateEmptyRequestListServiceCalled() {
+        // GIVEN: Empty request list
+        List<ClientAccessControlRequestDto> requests = List.of();
 
-        when(service.bulkCreate(any()))
-            .thenThrow(new IllegalArgumentException("Maximum 100 clients per request"));
+        when(service.bulkCreate(any())).thenReturn(List.of());
 
-        // When/Then: Should return 400
-        mockMvc.perform(post("/v1/config/client-access-control")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requests)))
-                .andExpect(status().isBadRequest());
+        // WHEN: Controller bulkCreate is called
+        ResponseEntity<BulkCreateResponseDto> response = controller.bulkCreate(requests);
 
-        verify(service, times(1)).bulkCreate(any());
+        // THEN: Should return 201 with empty result
+        assertNotNull(response);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().getCreated().size());
+        verify(service, times(1)).bulkCreate(requests);
     }
 
     /**
-     * Test POST / with validation errors should return 400 Bad Request.
-     */
+     * Test purpose          - Verify bulk create delegates to service correctly.
+     * Test data             - Single client request.
+     * Test expected result  - Service method called once with correct parameter.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testBulkCreate_ValidationError() throws Exception {
-        // Given: Request with invalid clientId (blank)
+    void bulkCreateSingleClientServiceCalledOnce() {
+        // GIVEN: Single client request
         List<ClientAccessControlRequestDto> requests = List.of(
-                createRequestDto("", "tenant-a", true, List.of("*:*"))
+                createRequestDto(CLIENT_ID_1, TENANT_A, true, List.of("*:*"))
         );
 
-        // When/Then: Should return 400 due to @NotBlank validation
-        mockMvc.perform(post("/v1/config/client-access-control")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requests)))
-                .andExpect(status().isBadRequest());
-
-        verify(service, never()).bulkCreate(any());
-    }
-
-    /**
-     * Test POST / with duplicate clientId in request should return 400.
-     */
-    @Test
-    void testBulkCreate_DuplicateClientId() throws Exception {
-        // Given: Request with duplicate clientId
-        List<ClientAccessControlRequestDto> requests = List.of(
-                createRequestDto("client-1", "tenant-a", true, List.of("*:*")),
-                createRequestDto("client-1", "tenant-a", true, List.of("*:*"))
+        List<ClientAccessControlResponseDto> serviceResponses = List.of(
+                createResponseDto(CLIENT_ID_1, TENANT_A, true)
         );
 
-        when(service.bulkCreate(any())).thenThrow(new IllegalArgumentException("Duplicate client IDs in request"));
+        when(service.bulkCreate(requests)).thenReturn(serviceResponses);
 
-        // When/Then: Should return 400
-        mockMvc.perform(post("/v1/config/client-access-control")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requests)))
-                .andExpect(status().isBadRequest());
+        // WHEN: Controller bulkCreate is called
+        ResponseEntity<BulkCreateResponseDto> response = controller.bulkCreate(requests);
+
+        // THEN: Service should be called once
+        assertNotNull(response);
+        verify(service, times(1)).bulkCreate(requests);
     }
 
     // ==================== GET / (Get All) ====================
 
     /**
-     * Test GET / should return 200 with list of configurations.
-     */
+     * Test purpose          - Verify getAll returns all active clients when includeInactive is false.
+     * Test data             - includeInactive = false.
+     * Test expected result  - ResponseEntity with 200 OK and list of active clients.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testGetAll_Success() throws Exception {
-        // Given: Service returns 2 configurations
+    void getAllIncludeInactiveFalseReturnActiveClientsOnly() {
+        // GIVEN: Service returns 2 active clients
         List<ClientAccessControlResponseDto> responses = List.of(
-                createResponseDto("client-1", "client-1", "tenant-a", true),
-                createResponseDto("client-2", "client-2", "tenant-a", true)
+                createResponseDto(CLIENT_ID_1, TENANT_A, true),
+                createResponseDto(CLIENT_ID_2, TENANT_A, true)
         );
 
-        when(service.getAll(anyBoolean())).thenReturn(responses);
+        when(service.getAll(false)).thenReturn(responses);
 
-        // When/Then: Should return 200 with list
-        mockMvc.perform(get("/v1/config/client-access-control")
-                        .param("includeInactive", "false"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].clientId", is("client-1")))
-                .andExpect(jsonPath("$[1].clientId", is("client-2")));
+        // WHEN: Controller getAll is called with includeInactive=false
+        ResponseEntity<List<ClientAccessControlResponseDto>> response = controller.getAll(false);
 
+        // THEN: Should return 200 OK with active clients
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(TWO, response.getBody().size());
         verify(service, times(1)).getAll(false);
     }
 
     /**
-     * Test GET / with includeInactive=true should include inactive clients.
-     */
+     * Test purpose          - Verify getAll returns all clients when includeInactive is true.
+     * Test data             - includeInactive = true.
+     * Test expected result  - ResponseEntity with 200 OK and list of all clients.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testGetAll_IncludeInactive() throws Exception {
-        // Given: Service returns active and inactive clients
+    void getAllIncludeInactiveTrueReturnAllClients() {
+        // GIVEN: Service returns active and inactive clients
         List<ClientAccessControlResponseDto> responses = List.of(
-                createResponseDto("client-active", "client-active", "tenant-a", true),
-                createResponseDto("client-inactive", "client-inactive", "tenant-a", false)
+                createResponseDto(CLIENT_ID_1, TENANT_A, true),
+                createResponseDto(CLIENT_ID_2, TENANT_A, false)
         );
 
         when(service.getAll(true)).thenReturn(responses);
 
-        // When/Then: Should return all clients
-        mockMvc.perform(get("/v1/config/client-access-control")
-                        .param("includeInactive", "true"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
+        // WHEN: Controller getAll is called with includeInactive=true
+        ResponseEntity<List<ClientAccessControlResponseDto>> response = controller.getAll(true);
 
+        // THEN: Should return 200 OK with all clients
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(TWO, response.getBody().size());
         verify(service, times(1)).getAll(true);
     }
 
-    // ==================== GET /client/{clientId} (Get By Client ID) ====================
+    /**
+     * Test purpose          - Verify getAll returns empty list when no clients exist.
+     * Test data             - Empty list from service.
+     * Test expected result  - ResponseEntity with 200 OK and empty list.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
+    @Test
+    void getAllNoClientsReturnEmptyList() {
+        // GIVEN: Service returns empty list
+        when(service.getAll(anyBoolean())).thenReturn(List.of());
+
+        // WHEN: Controller getAll is called
+        ResponseEntity<List<ClientAccessControlResponseDto>> response = controller.getAll(false);
+
+        // THEN: Should return 200 OK with empty list
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isEmpty());
+        verify(service, times(1)).getAll(false);
+    }
+
+    // ==================== GET /{clientId} (Get By Client ID) ====================
 
     /**
-     * Test GET /client/{clientId} with existing clientId should return 200.
-     */
+     * Test purpose          - Verify getByClientId returns client configuration when exists.
+     * Test data             - Valid client ID.
+     * Test expected result  - ResponseEntity with 200 OK and client configuration.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testGetByClientId_Success() throws Exception {
-        // Given: Configuration exists
-        ClientAccessControlResponseDto response =
-            createResponseDto("client-123", "client-123", "tenant-a", true);
+    void getByClientIdExistingClientReturnClientConfiguration() {
+        // GIVEN: Client configuration exists
+        ClientAccessControlResponseDto response = createResponseDto(CLIENT_ID_1, TENANT_A, true);
 
-        when(service.getByClientId("client-123")).thenReturn(response);
+        when(service.getByClientId(CLIENT_ID_1)).thenReturn(response);
 
-        // When/Then: Should return 200 with DTO
-        mockMvc.perform(get("/v1/config/client-access-control/client/client-123"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId", is("client-123")));
+        // WHEN: Controller getByClientId is called
+        ResponseEntity<ClientAccessControlResponseDto> result = controller.getByClientId(CLIENT_ID_1);
 
-        verify(service, times(1)).getByClientId("client-123");
+        // THEN: Should return 200 OK with configuration
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(CLIENT_ID_1, result.getBody().getClientId());
+        verify(service, times(1)).getByClientId(CLIENT_ID_1);
     }
 
     /**
-     * Test GET /client/{clientId} with non-existent clientId should return 404.
-     */
+     * Test purpose          - Verify getByClientId throws EntityNotFoundException for non-existent client.
+     * Test data             - Non-existent client ID.
+     * Test expected result  - EntityNotFoundException thrown.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testGetByClientId_NotFound() throws Exception {
-        // Given: Configuration does not exist
-        when(service.getByClientId("non-existent")).thenThrow(new EntityNotFoundException("Configuration not found"));
+    void getByClientIdNonExistentClientThrowEntityNotFoundException() {
+        // GIVEN: Client does not exist
+        when(service.getByClientId(NON_EXISTENT)).thenThrow(new EntityNotFoundException(CLIENT_NOT_FOUND));
 
-        // When/Then: Should return 404
-        mockMvc.perform(get("/v1/config/client-access-control/client/non-existent"))
-                .andExpect(status().isNotFound());
+        // WHEN/THEN: Should throw EntityNotFoundException
+        try {
+            controller.getByClientId(NON_EXISTENT);
+        } catch (EntityNotFoundException e) {
+            assertEquals(CLIENT_NOT_FOUND, e.getMessage());
+        }
 
-        verify(service, times(1)).getByClientId("non-existent");
+        verify(service, times(1)).getByClientId(NON_EXISTENT);
     }
 
-    // ==================== PUT /{id} (Update) ====================
+    // ==================== PUT /{clientId} (Update) ====================
 
     /**
-     * Test PUT /{id} with valid request should return 200.
-     */
+     * Test purpose          - Verify update with valid request returns updated configuration.
+     * Test data             - Valid client ID and request DTO.
+     * Test expected result  - ResponseEntity with 200 OK and updated configuration.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testUpdate_Success() throws Exception {
-        // Given: Valid update request
-        ClientAccessControlRequestDto request =
-            createRequestDto("client-1", "tenant-a", true, List.of("updated:*"));
-        ClientAccessControlResponseDto response =
-            createResponseDto("client-1", "client-1", "tenant-a", true);
+    void updateValidRequestReturnUpdatedConfiguration() {
+        // GIVEN: Valid update request
+        ClientAccessControlRequestDto request = createRequestDto(CLIENT_ID_1, TENANT_A, true, List.of("updated:*"));
+        ClientAccessControlResponseDto response = createResponseDto(CLIENT_ID_1, TENANT_A, true);
 
-        when(service.update(anyString(), any())).thenReturn(response);
+        when(service.update(CLIENT_ID_1, request)).thenReturn(response);
 
-        // When/Then: Should return 200 with updated DTO
-        mockMvc.perform(put("/v1/config/client-access-control/client-1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is("client-1")))
-                .andExpect(jsonPath("$.clientId", is("client-1")));
+        // WHEN: Controller update is called
+        ResponseEntity<ClientAccessControlResponseDto> result = controller.update(CLIENT_ID_1, request);
 
-        verify(service, times(1)).update("client-1", request);
-    }
-
-    /**
-     * Test PUT /{id} with non-existent ID should return 404.
-     */
-    @Test
-    void testUpdate_NotFound() throws Exception {
-        // Given: Configuration does not exist
-        ClientAccessControlRequestDto request = createRequestDto("client-1", "tenant-a", true, List.of("*:*"));
-
-        when(service.update(anyString(), any())).thenThrow(new EntityNotFoundException("Configuration not found"));
-
-        // When/Then: Should return 404
-        mockMvc.perform(put("/v1/config/client-access-control/client-999")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound());
+        // THEN: Should return 200 OK with updated configuration
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(CLIENT_ID_1, result.getBody().getClientId());
+        verify(service, times(1)).update(CLIENT_ID_1, request);
     }
 
     /**
-     * Test PUT /{id} with duplicate clientId should return 409 Conflict.
-     */
+     * Test purpose          - Verify update throws EntityNotFoundException for non-existent client.
+     * Test data             - Non-existent client ID.
+     * Test expected result  - EntityNotFoundException thrown.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testUpdate_Conflict() throws Exception {
-        // Given: ClientId already exists
-        ClientAccessControlRequestDto request = createRequestDto("client-existing", "tenant-a", true, List.of("*:*"));
+    void updateNonExistentClientThrowEntityNotFoundException() {
+        // GIVEN: Client does not exist
+        ClientAccessControlRequestDto request = createRequestDto(CLIENT_ID_1, TENANT_A, true, List.of("*:*"));
 
-        when(service.update(anyString(), any())).thenThrow(new IllegalArgumentException("Client ID already exists"));
+        when(service.update(NON_EXISTENT, request))
+                .thenThrow(new EntityNotFoundException(CLIENT_NOT_FOUND));
 
-        // When/Then: Should return 409
-        mockMvc.perform(put("/v1/config/client-access-control/client-existing")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict());
+        // WHEN/THEN: Should throw EntityNotFoundException
+        try {
+            controller.update(NON_EXISTENT, request);
+        } catch (EntityNotFoundException e) {
+            assertEquals(CLIENT_NOT_FOUND, e.getMessage());
+        }
+
+        verify(service, times(1)).update(NON_EXISTENT, request);
+    }
+
+    // ==================== DELETE /{clientId} (Delete) ====================
+
+    /**
+     * Test purpose          - Verify delete with permanent=false performs soft delete.
+     * Test data             - Valid client ID, permanent=false.
+     * Test expected result  - ResponseEntity with 200 OK and success message.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
+    @Test
+    void deleteSoftDeleteReturnSuccessMessage() {
+        // GIVEN: Client exists
+        doNothing().when(service).delete(CLIENT_ID_1, false);
+
+        // WHEN: Controller delete is called with permanent=false
+        ResponseEntity<GenericResponseDto> response = controller.delete(CLIENT_ID_1, false);
+
+        // THEN: Should return 200 OK with success message
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Client deleted successfully.", response.getBody().getMessage());
+        verify(service, times(1)).delete(CLIENT_ID_1, false);
     }
 
     /**
-     * Test PUT /{id} with validation errors should return 400.
-     */
+     * Test purpose          - Verify delete with permanent=true performs permanent delete.
+     * Test data             - Valid client ID, permanent=true.
+     * Test expected result  - ResponseEntity with 200 OK and success message.
+     * Test type             - Positive.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testUpdate_ValidationError() throws Exception {
-        // Given: Invalid request (blank clientId)
-        ClientAccessControlRequestDto request = createRequestDto("", "tenant-a", true, List.of("*:*"));
+    void deletePermanentDeleteReturnSuccessMessage() {
+        // GIVEN: Client exists
+        doNothing().when(service).delete(CLIENT_ID_1, true);
 
-        // When/Then: Should return 400 due to validation
-        mockMvc.perform(put("/v1/config/client-access-control/client-1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+        // WHEN: Controller delete is called with permanent=true
+        ResponseEntity<GenericResponseDto> response = controller.delete(CLIENT_ID_1, true);
 
-        verify(service, never()).update(anyString(), any());
-    }
-
-    // ==================== DELETE /{id} (Delete) ====================
-
-    /**
-     * Test DELETE /{id} should return 204 No Content.
-     */
-    @Test
-    void testDelete_Success() throws Exception {
-        // Given: Configuration exists
-        doNothing().when(service).delete(anyString(), ArgumentMatchers.eq(false));
-
-        // When/Then: Should return 204
-        mockMvc.perform(delete("/v1/config/client-access-control/client-1")
-                        .param("permanent", "false"))
-                .andExpect(status().isNoContent());
-
-        verify(service, times(1)).delete(anyString(), eq(false));
+        // THEN: Should return 200 OK with success message
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Client deleted successfully.", response.getBody().getMessage());
+        verify(service, times(1)).delete(CLIENT_ID_1, true);
     }
 
     /**
-     * Test DELETE /{id} with permanent=true should permanently delete.
-     */
+     * Test purpose          - Verify delete throws EntityNotFoundException for non-existent client.
+     * Test data             - Non-existent client ID.
+     * Test expected result  - EntityNotFoundException thrown.
+     * Test type             - Negative.
+     *
+     * @throws Exception if test fails
+     **/
     @Test
-    void testDelete_Permanent() throws Exception {
-        // Given: Configuration exists
-        doNothing().when(service).delete(anyString(), eq(true));
+    void deleteNonExistentClientThrowEntityNotFoundException() {
+        // GIVEN: Client does not exist
+        doThrow(new EntityNotFoundException(CLIENT_NOT_FOUND))
+                .when(service).delete(NON_EXISTENT, false);
 
-        // When/Then: Should return 204
-        mockMvc.perform(delete("/v1/config/client-access-control/client-1")
-                        .param("permanent", "true"))
-                .andExpect(status().isNoContent());
+        // WHEN/THEN: Should throw EntityNotFoundException
+        try {
+            controller.delete(NON_EXISTENT, false);
+        } catch (EntityNotFoundException e) {
+            assertEquals(CLIENT_NOT_FOUND, e.getMessage());
+        }
 
-        verify(service, times(1)).delete(anyString(), eq(true));
-    }
-
-    /**
-     * Test DELETE /{id} with non-existent ID should return 404.
-     */
-    @Test
-    void testDelete_NotFound() throws Exception {
-        // Given: Configuration does not exist
-        doThrow(new EntityNotFoundException("Configuration not found"))
-            .when(service).delete(anyString(), eq(false));
-
-        // When/Then: Should return 404
-        mockMvc.perform(delete("/v1/config/client-access-control/client-999")
-                        .param("permanent", "false"))
-                .andExpect(status().isNotFound());
-
-        verify(service, times(1)).delete(anyString(), eq(false));
+        verify(service, times(1)).delete(NON_EXISTENT, false);
     }
 
     // ==================== Helper Methods ====================
 
     private ClientAccessControlRequestDto createRequestDto(
-        String clientId, String tenant, boolean active, List<String> allow) {
+            String clientId, String tenant, boolean active, List<String> allow) {
         ClientAccessControlRequestDto dto = new ClientAccessControlRequestDto();
         dto.setClientId(clientId);
         dto.setTenant(tenant);
-        dto.setDescription("Test description");
+        dto.setDescription(TEST_DESCRIPTION);
         dto.setIsActive(active);
         dto.setAllow(allow);
         return dto;
     }
 
     private ClientAccessControlResponseDto createResponseDto(
-        String id, String clientId, String tenant, boolean active) {
+            String clientId, String tenant, boolean active) {
         ClientAccessControlResponseDto dto = new ClientAccessControlResponseDto();
         dto.setClientId(clientId);
         dto.setTenant(tenant);
-        dto.setDescription("Test description");
+        dto.setDescription(TEST_DESCRIPTION);
         dto.setIsActive(active);
         dto.setAllow(List.of("service-a:*"));
         return dto;

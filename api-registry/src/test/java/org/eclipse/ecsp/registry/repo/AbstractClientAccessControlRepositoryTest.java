@@ -1,13 +1,27 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.registry.repo;
 
 import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,25 +38,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - findByTenantAndIsDeletedFalse
  * - existsByClientIdAndIsDeletedFalse
  *
- * <p>DISABLED: RegistryApplication excludes JPA/DataSource auto-configuration which
- * conflicts with @DataJpaTest.  Repository functionality is tested through service
- * and integration tests.
  */
 
-@Disabled("RegistryApplication JPA exclusions conflict with @DataJpaTest context loading")
-@SpringBootTest
-@Transactional
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class ClientAccessControlRepositoryTest {
+abstract class AbstractClientAccessControlRepositoryTest {
 
     private static final int EXPECTED_TWO_ITEMS = 2;
 
     @Autowired
-    private ClientAccessControlRepository repository;
+    protected ClientAccessControlRepository repository;
 
     @BeforeEach
     void setUp() {
-        // No explicit cleanup API on ClientAccessControlRepository
+        repository.deleteAll();
     }
 
     /**
@@ -262,6 +269,7 @@ class ClientAccessControlRepositoryTest {
      */
     private ClientAccessControlEntity createEntity(String clientId, String tenant, boolean active, boolean deleted) {
         ClientAccessControlEntity entity = new ClientAccessControlEntity();
+        entity.setId(clientId);
         entity.setClientId(clientId);
         entity.setTenant(tenant);
         entity.setDescription("Test description for " + clientId);

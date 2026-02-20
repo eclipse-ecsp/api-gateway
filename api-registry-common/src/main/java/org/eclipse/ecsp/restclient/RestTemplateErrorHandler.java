@@ -35,7 +35,15 @@ import java.nio.charset.Charset;
  * Custom error handler for RestTemplate to handle client and server errors.
  */
 public class RestTemplateErrorHandler implements ResponseErrorHandler {
+    /**
+     * Default constructor.
+     */
+    public RestTemplateErrorHandler() {
+        // Default constructor
+    }
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateErrorHandler.class);
+
     private final ObjectMapper mapper = ObjectMapperUtil.getObjectMapper();
 
     /**
@@ -51,7 +59,8 @@ public class RestTemplateErrorHandler implements ResponseErrorHandler {
     }
 
     /**
-     * Handles the error response by logging the error details and throwing appropriate exceptions.
+     * Handles the error response by logging the error details and throwing
+     * appropriate exceptions.
      *
      * @param url      the request URI
      * @param method   the HTTP method

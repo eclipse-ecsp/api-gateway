@@ -27,9 +27,6 @@ import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
 import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
-import org.eclipse.ecsp.gateway.utils.InputValidator;
-import org.eclipse.ecsp.gateway.utils.JwtUtils;
-import org.eclipse.ecsp.gateway.utils.PathExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,7 +69,7 @@ import static org.mockito.Mockito.when;
  *   <li>AS-4: Deny access when client has deny rule</li>
  * </ul>
  *
- * @author AI Assistant
+ * @author Abhishek Kumar
  */
 @DisplayName("Client Access Control End-to-End Tests")
 class ClientAccessControlEndToEndTest {
@@ -88,16 +85,13 @@ class ClientAccessControlEndToEndTest {
     private static final int MAX_SPLIT_PARTS = 2;
 
     private ClientAccessControlGatewayFilterFactory filterFactory;
-    private JwtUtils jwtClaimExtractor;
-    private InputValidator clientIdValidator;
     private AccessRuleMatcherService ruleMatcherService;
-    private PathExtractor pathExtractor;
     private ClientAccessControlMetrics metrics;
     private ClientAccessControlCacheService cacheService;
     private GatewayFilterChain mockFilterChain;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         // Setup configuration
         ClientAccessControlProperties properties = new ClientAccessControlProperties();
         properties.setEnabled(true);
@@ -105,7 +99,6 @@ class ClientAccessControlEndToEndTest {
         properties.setSkipPaths(Arrays.asList("/actuator/**", "/api-docs/**"));
 
         ruleMatcherService = new AccessRuleMatcherService();
-        pathExtractor = new PathExtractor();
         metrics = mock(ClientAccessControlMetrics.class);
         cacheService = mock(ClientAccessControlCacheService.class);
 
@@ -124,15 +117,16 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-1: Should extract client ID from JWT using configurable claim names")
-    void testJwtClaimExtraction_Success() throws Exception {
+    void testJwtClaimExtraction_Success() {
         // Given: JWT with clientId claim
         String jwt = createJwt(CLIENT_ID, "clientId");
-        ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"), List.of());
+        ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"));
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request with valid JWT
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Request should be allowed
@@ -144,15 +138,16 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-1: Should extract client ID from alternative claim (azp)")
-    void testJwtClaimExtraction_AlternativeClaim() throws Exception {
+    void testJwtClaimExtraction_AlternativeClaim() {
         // Given: JWT with azp claim (no clientId)
         String jwt = createJwt(CLIENT_ID, "azp");
-        ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"), List.of());
+        ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"));
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request with JWT containing azp claim
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Client ID should be extracted from azp
@@ -164,10 +159,11 @@ class ClientAccessControlEndToEndTest {
     @DisplayName("AS-2: Should reject request without JWT token")
     void testMissingJwt_Rejected() {
         // Given: No JWT token
-        ServerWebExchange exchange = createExchange(null, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(null, path);
 
         // When: Request without JWT
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Request should be rejected with 401
@@ -179,19 +175,19 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-3: Should allow access when client has matching allow rule")
-    void testAllowRule_AccessGranted() throws Exception {
+    void testAllowRule_AccessGranted() {
         // Given: Client with specific allow rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
                 CLIENT_ID,
-                List.of(USER_SERVICE + ":" + PROFILE_ROUTE),
-                List.of()
+                List.of(USER_SERVICE + ":" + PROFILE_ROUTE)
         );
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request matches allow rule
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Access should be granted
@@ -203,19 +199,19 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-4: Should deny access when client has deny rule")
-    void testDenyRule_AccessDenied() throws Exception {
+    void testDenyRule_AccessDenied() {
         // Given: Client with deny rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
                 CLIENT_ID,
-                List.of("*:*", "!" + PAYMENT_SERVICE + ":*"),
-                List.of()
+                List.of("*:*", "!" + PAYMENT_SERVICE + ":*")
         );
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request matches deny rule
-        ServerWebExchange exchange = createExchange(jwt, "/" + PAYMENT_SERVICE + "/" + PAYMENT_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + PAYMENT_SERVICE + "/" + PAYMENT_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Access should be denied
@@ -227,19 +223,19 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should allow wildcard service matching")
-    void testWildcardService_Matches() throws Exception {
+    void testWildcardService_Matches() {
         // Given: Client with wildcard service rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
                 CLIENT_ID,
-                List.of("*:" + PROFILE_ROUTE),
-                List.of()
+                List.of("*:" + PROFILE_ROUTE)
         );
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request to any service with profile route
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Access should be granted
@@ -249,19 +245,20 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should allow wildcard route matching")
-    void testWildcardRoute_Matches() throws Exception {
+    void testWildcardRoute_Matches() {
         // Given: Client with wildcard route rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
                 CLIENT_ID,
-                List.of(USER_SERVICE + ":*"),
-                List.of()
+                List.of(USER_SERVICE + ":*")
+
         );
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
         // When: Request to user-service with any route
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Access should be granted
@@ -271,13 +268,12 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should deny by default when no allow rules match")
-    void testDenyByDefault_NoMatchingRules() throws Exception {
+    void testDenyByDefault_NoMatchingRules() {
         // Given: Client with specific allow rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
                 CLIENT_ID,
-                List.of(USER_SERVICE + ":" + PROFILE_ROUTE),
-                List.of()
+                List.of(USER_SERVICE + ":" + PROFILE_ROUTE)
         );
         when(cacheService.getConfig(CLIENT_ID)).thenReturn(config);
 
@@ -295,14 +291,15 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should reject client ID with SQL injection attempt")
-    void testSqlInjection_Rejected() throws Exception {
+    void testSqlInjection_Rejected() {
         // Given: JWT with malicious client ID
         String maliciousClientId = "test' OR '1'='1";
         String jwt = createJwt(maliciousClientId, "clientId");
 
         // When: Request with SQL injection attempt
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Request should be rejected
@@ -314,14 +311,15 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should reject client ID with XSS attempt")
-    void testXssInjection_Rejected() throws Exception {
+    void testXssInjection_Rejected() {
         // Given: JWT with XSS payload
         String maliciousClientId = "<script>alert('xss')</script>";
         String jwt = createJwt(maliciousClientId, "clientId");
 
         // When: Request with XSS attempt
-        ServerWebExchange exchange = createExchange(jwt, "/" + USER_SERVICE + "/" + PROFILE_ROUTE);
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
+        ServerWebExchange exchange = createExchange(jwt, path);
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Request should be rejected
@@ -335,10 +333,11 @@ class ClientAccessControlEndToEndTest {
     @DisplayName("Should skip validation for configured paths")
     void testSkipPaths_Bypassed() {
         // Given: Request to skip path
-        ServerWebExchange exchange = createExchange(null, "/actuator/health");
+        String path = "/actuator/health";
+        ServerWebExchange exchange = createExchange(null, path);
 
         // When: Request to actuator endpoint
-        Mono<Void> result = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config())
+        Mono<Void> result = filterFactory.apply(createFilterConfig(path))
                 .filter(exchange, mockFilterChain);
 
         // Then: Validation should be skipped
@@ -350,7 +349,20 @@ class ClientAccessControlEndToEndTest {
 
     // Helper methods
 
-    private String createJwt(String clientId, String claimName) throws Exception {
+    private ClientAccessControlGatewayFilterFactory.Config createFilterConfig(String path) {
+        // Extract service and route from path (e.g., "/user-service/get-profile")
+        String[] parts = path.substring(1).split("/", MAX_SPLIT_PARTS);
+        ClientAccessControlGatewayFilterFactory.Config config = new ClientAccessControlGatewayFilterFactory.Config();
+        if (parts.length > 0) {
+            config.setServiceName(parts[0]);
+        }
+        if (parts.length > 1) {
+            config.setRouteId(parts[1]);
+        }
+        return config;
+    }
+
+    private String createJwt(String clientId, String claimName) {
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject("user@example.com")
                 .issuer("https://auth.example.com")
@@ -374,8 +386,7 @@ class ClientAccessControlEndToEndTest {
         return MockServerWebExchange.from(requestBuilder);
     }
 
-    private ClientAccessConfig createConfig(String clientId, List<String> allowRules, 
-                                           List<String> services) {
+    private ClientAccessConfig createConfig(String clientId, List<String> allowRules) {
         List<AccessRule> rules = allowRules.stream()
                 .map(rule -> {
                     String cleanRule = rule.startsWith("!") ? rule.substring(1) : rule;

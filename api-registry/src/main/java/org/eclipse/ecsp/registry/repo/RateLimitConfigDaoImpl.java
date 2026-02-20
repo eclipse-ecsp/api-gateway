@@ -30,5 +30,10 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnNoSqlDatabase
 @Repository("rateLimitConfigMongoDaoImpl")
 public class RateLimitConfigDaoImpl extends IgniteBaseDAOMongoImpl<String, RateLimitConfigEntity> {
-
+    /**
+     * Default constructor.
+     */
+    public RateLimitConfigDaoImpl() {
+        // Default constructor
+    }
 }

@@ -1260,6 +1260,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithNullScope = new JwtAuthFilter(configWithNullScope, publicKeyService, jwtProperties);
 
         // Verify that routeScopes is empty when scope is null
+        @SuppressWarnings("unchecked")
         Set<String> routeScopes = (Set<String>) ReflectionTestUtils.getField(filterWithNullScope, "routeScopes");
         Assertions.assertTrue(routeScopes.isEmpty());
     }
@@ -1277,6 +1278,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithEmptyMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
 
         // Verify that default "sub" -> "user-id" mapping is added
+        @SuppressWarnings("unchecked")
         Map<String, String> tokenClaimMapping = (Map<String, String>) ReflectionTestUtils.getField(filterWithEmptyMapping, "tokenClaimToHeaderMapping");
         Assertions.assertTrue(tokenClaimMapping.containsKey("sub"));
         Assertions.assertEquals("user-id", tokenClaimMapping.get("sub"));
@@ -1294,6 +1296,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithNullMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
 
         // Verify that default mapping is created
+        @SuppressWarnings("unchecked")
         Map<String, String> tokenClaimMapping = (Map<String, String>) ReflectionTestUtils.getField(filterWithNullMapping, "tokenClaimToHeaderMapping");
         Assertions.assertNotNull(tokenClaimMapping);
         Assertions.assertTrue(tokenClaimMapping.containsKey("sub"));

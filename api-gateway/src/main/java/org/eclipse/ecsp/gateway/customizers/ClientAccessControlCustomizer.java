@@ -35,10 +35,13 @@ public class ClientAccessControlCustomizer implements RouteCustomizer {
                 .findFirst()
                 .orElse("");
 
-        // Check if the route path matches any of the skip paths
-        // using matches to support regex patterns in skipPaths
-        boolean shouldSkip = clientAccessControlProperties.getSkipPaths().stream()
-                .anyMatch(skipPath -> pathMatcher.match(skipPath, routePath));
+        // Check if the route is api docs
+        // check if the route path matches any of the skip paths defined in properties
+        // also check if the route has no filters defined (probably a public api without any auth)
+        boolean shouldSkip = (igniteRouteDefinition.getApiDocs() != null && igniteRouteDefinition.getApiDocs())
+                || (clientAccessControlProperties.getSkipPaths().stream() 
+                    .anyMatch(skipPath -> pathMatcher.match(skipPath, routePath)))
+                || (igniteRouteDefinition.getFilters().isEmpty()); 
 
         if (shouldSkip || Boolean.TRUE.equals(igniteRouteDefinition.getApiDocs())) {
             LOGGER.debug("Skipping ClientAccessControl filter for route {} with path {}",

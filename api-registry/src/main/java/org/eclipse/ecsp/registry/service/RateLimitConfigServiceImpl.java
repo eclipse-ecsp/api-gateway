@@ -59,6 +59,8 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
      * Constructor to initialize RateLimitConfigServiceImpl.
      *
      * @param rateLimitConfigRepository the RateLimitConfigRepository
+     * @param rateLimitProperties the RateLimitProperties
+     * @param eventPublisher the EventPublisherContext
      */
     public RateLimitConfigServiceImpl(RateLimitConfigRepository rateLimitConfigRepository,
             RateLimitProperties rateLimitProperties,

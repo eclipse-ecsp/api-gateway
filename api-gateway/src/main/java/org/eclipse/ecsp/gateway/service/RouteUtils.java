@@ -38,6 +38,12 @@ import java.util.stream.Collectors;
  */
 @Component
 public class RouteUtils {
+    /**
+     * Default constructor.
+     */
+    public RouteUtils() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteUtils.class);
     @Value("${api-gateway.uri}")

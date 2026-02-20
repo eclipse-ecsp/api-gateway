@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.service;
 
 import org.eclipse.ecsp.gateway.model.AccessRule;
@@ -27,6 +45,12 @@ import java.util.Objects;
  * - "user-service:get-*" → Allow routes matching pattern
  */
 public class AccessRuleMatcherService {
+    /**
+     * Default constructor.
+     */
+    public AccessRuleMatcherService() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(AccessRuleMatcherService.class);
     private static final int RULE_PARTS_COUNT = 2;
@@ -35,8 +59,8 @@ public class AccessRuleMatcherService {
      * Evaluate access rules for a service and route request.
      *
      * @param rules List of access rules
-     * @param service Service name from request path
-     * @param route Route path from request path
+     * @param service Service name from route metadata path or filter argument configuration
+     * @param route RouteId from route metadata or filter argument configuration
      * @return true if access allowed, false if denied
      */
     public boolean isAllowed(List<AccessRule> rules, String service, String route) {
@@ -87,7 +111,11 @@ public class AccessRuleMatcherService {
     /**
      * Match a pattern (with wildcard support) against a value.
      *
-     * @param pattern Pattern (may contain * wildcard or Ant-style patterns)
+     * <p>Supports simple wildcard matching:
+     * - Exact match if pattern equals value
+     * - * matches everything
+     *
+     * @param pattern Pattern (may contain * wildcard)
      * @param value Value to match against
      * @return true if matches
      */
@@ -96,13 +124,8 @@ public class AccessRuleMatcherService {
             return false;
         }
 
-        // Exact match (optimization)
-        if (pattern.equals(value)) {
-            return true;
-        }
-
-        // Wildcard match: * matches everything
-        return "*".equals(pattern);
+        // Exact match
+        return pattern.equals(value) || pattern.equals("*");
     }
 
     /**

@@ -33,8 +33,30 @@ import java.util.List;
 @Getter
 @Setter
 public class RateLimitProperties {
+    /**
+     * Default constructor.
+     */
+    public RateLimitProperties() {
+        // Default constructor
+    }
+
+    /**
+     * Maximum replenish rate for rate limiting.
+     */
     private int maxReplenishRate = 10000;
+    
+    /**
+     * Maximum burst capacity for rate limiting.
+     */
     private int maxBurstCapacity = 10000;
+    
+    /**
+     * Maximum requested tokens for rate limiting.
+     */
     private int maxRequestedTokens = 100;
+    
+    /**
+     * List of key resolvers for rate limiting.
+     */
     private List<String> keyResolvers = new ArrayList<>();
 }

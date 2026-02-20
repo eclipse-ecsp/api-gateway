@@ -66,6 +66,7 @@ class EventDrivenRouteRefreshIntegrationTest {
     private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
 
+    @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT);

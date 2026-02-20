@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.registry.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -21,7 +39,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -178,10 +195,11 @@ class ClientAccessControlServiceImplTest {
         dto1.setClientId("duplicate");
         final ClientAccessControlRequestDto dto2 = new ClientAccessControlRequestDto();
         dto2.setClientId("duplicate");
+        final List<ClientAccessControlRequestDto> requests = Arrays.asList(dto1, dto2);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> service.bulkCreate(Arrays.asList(dto1, dto2))
+                () -> service.bulkCreate(requests)
         );
 
         assertEquals("Duplicate client IDs in request", exception.getMessage());
@@ -196,11 +214,11 @@ class ClientAccessControlServiceImplTest {
     @Test
     void bulkCreate_ExistingActiveClientId_ThrowsDuplicateClientException() {
         when(repository.existsByClientIdAndIsDeletedFalse("client1")).thenReturn(true);
+        final List<ClientAccessControlRequestDto> requests = Arrays.asList(requestDto);
 
         DuplicateClientException exception = assertThrows(
                 DuplicateClientException.class,
-                () -> service.bulkCreate(Arrays.asList(requestDto))
-        );
+                () -> service.bulkCreate(requests));
 
         assertTrue(exception.getMessage().contains("Client ID(s) already exist"));
         verify(repository, never()).saveAll(anyList());
@@ -331,11 +349,12 @@ class ClientAccessControlServiceImplTest {
         requestDto.setClientId("client2");
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(repository.existsByClientIdAndIsDeletedFalse("client2")).thenReturn(true);
+        final String clientId = "client1";
+        final ClientAccessControlRequestDto dto = requestDto;
 
         DuplicateClientException exception = assertThrows(
                 DuplicateClientException.class,
-                () -> service.update("client1", requestDto)
-        );
+                () -> service.update(clientId, dto));
 
         assertTrue(exception.getMessage().contains("Duplicate client IDs detected"));
         verify(repository, never()).save(any());

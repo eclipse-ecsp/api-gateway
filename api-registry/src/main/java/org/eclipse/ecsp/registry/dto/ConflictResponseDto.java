@@ -18,9 +18,7 @@
 
 package org.eclipse.ecsp.registry.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -31,9 +29,25 @@ import java.util.List;
  */
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class ConflictResponseDto {
+    /**
+     * Default constructor.
+     */
+    public ConflictResponseDto() {
+        // Default constructor
+    }
+
+    /**
+     * Constructor with all fields.
+     *
+     * @param message error message
+     * @param duplicates list of duplicate client IDs
+     */
+    public ConflictResponseDto(String message, List<String> duplicates) {
+        this.message = message;
+        this.duplicates = duplicates;
+    }
+
     private String message;
     private List<String> duplicates;
 }

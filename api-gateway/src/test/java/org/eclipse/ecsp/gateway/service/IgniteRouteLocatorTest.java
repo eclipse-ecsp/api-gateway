@@ -86,7 +86,7 @@ class IgniteRouteLocatorTest {
 
     private IgniteRouteLocator igniteRouteLocator;
 
-    private List<GatewayFilterFactory> gatewayFilterFactories;
+    private List<GatewayFilterFactory<?>> gatewayFilterFactories;
 
     @BeforeEach
     void setUp() {
@@ -94,7 +94,7 @@ class IgniteRouteLocatorTest {
 
         // Setup mock filter factories
         gatewayFilterFactories = new ArrayList<>();
-        GatewayFilterFactory mockFactory = mock(GatewayFilterFactory.class);
+        GatewayFilterFactory<?> mockFactory = mock(GatewayFilterFactory.class);
         when(mockFactory.name()).thenReturn("TestFilter");
         gatewayFilterFactories.add(mockFactory);
 
@@ -123,7 +123,7 @@ class IgniteRouteLocatorTest {
 
     @Test
     void constructor_WithPluginsEnabled_LoadsCustomPlugins() {
-        GatewayFilterFactory customPlugin = mock(GatewayFilterFactory.class);
+        GatewayFilterFactory<?> customPlugin = mock(GatewayFilterFactory.class);
         when(customPlugin.name()).thenReturn("CustomPlugin");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customPlugin));
 
@@ -168,7 +168,7 @@ class IgniteRouteLocatorTest {
 
     @Test
     void init_WithValidFilterOverride_ValidatesSuccessfully() {
-        GatewayFilterFactory customPlugin = mock(GatewayFilterFactory.class);
+        GatewayFilterFactory<?> customPlugin = mock(GatewayFilterFactory.class);
         when(customPlugin.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customPlugin));
 
@@ -414,7 +414,7 @@ class IgniteRouteLocatorTest {
 
     @Test
     void init_WithFilterOverrideEnabled_ValidatesSuccessfully() {
-        GatewayFilterFactory customFilter = mock(GatewayFilterFactory.class);
+        GatewayFilterFactory<?> customFilter = mock(GatewayFilterFactory.class);
         when(customFilter.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customFilter));
 
@@ -448,7 +448,7 @@ class IgniteRouteLocatorTest {
 
     @Test
     void init_WithInvalidFilterOverride_ThrowsException() {
-        GatewayFilterFactory customFilter = mock(GatewayFilterFactory.class);
+        GatewayFilterFactory<?> customFilter = mock(GatewayFilterFactory.class);
         when(customFilter.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customFilter));
 

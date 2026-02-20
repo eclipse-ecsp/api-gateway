@@ -36,6 +36,11 @@ public class RateLimitConfigSqlRepository implements RateLimitConfigRepository {
 
     private final RateLimitConfigJpaRepository jpaRepository;
 
+    /**
+     * Constructor with JPA repository dependency.
+     *
+     * @param jpaRepository the JPA repository for rate limit configuration
+     */
     public RateLimitConfigSqlRepository(RateLimitConfigJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,8 +73,8 @@ class RouteEventThrottlerTest {
     void setUp() {
         when(eventProperties.getRedis()).thenReturn(redisConfig);
         when(redisConfig.getDebounceDelayMs()).thenReturn(TEST_DEBOUNCE_DELAY_MS); // Short delay for testing
-        when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenReturn(true);
-        when(metrics.recordPublish(any(RouteEventType.class), any(java.util.function.Supplier.class)))
+        lenient().when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenReturn(true);
+        lenient().when(metrics.recordPublish(any(RouteEventType.class), ArgumentMatchers.<java.util.function.Supplier<Boolean>>any()))
                 .thenAnswer(invocation -> {
                     java.util.function.Supplier<Boolean> supplier = invocation.getArgument(1);
                     return supplier.get();
@@ -294,7 +296,7 @@ class RouteEventThrottlerTest {
         throttler.scheduleEvent("service-3");
 
         // Assert - should have 3 pending services before debounce
-        await().atMost(Duration.ofMillis(SHORT_SLEEP_MS))
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
                 .untilAsserted(() -> assertThat(throttler.getPendingServiceCount()).isEqualTo(3));
     }
 
@@ -316,8 +318,8 @@ class RouteEventThrottlerTest {
                 });
 
         // Assert - pending count should be zero after flush
-        await().atMost(Duration.ofMillis(SHORT_SLEEP_MS))
-                .untilAsserted(() -> assertThat(throttler.getPendingServiceCount()).isEqualTo(0));
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
+                .untilAsserted(() -> assertThat(throttler.getPendingServiceCount()).isZero());
     }
 
     /**

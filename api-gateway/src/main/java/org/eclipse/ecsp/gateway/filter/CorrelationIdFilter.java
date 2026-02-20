@@ -44,9 +44,15 @@ import java.util.UUID;
  */
 @Component
 public class CorrelationIdFilter implements WebFilter, Ordered {
+    /**
+     * Default constructor.
+     */
+    public CorrelationIdFilter() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CorrelationIdFilter.class);
-    private static final String X_CORRELATION_ID_HEADER = "correlationId";
+    private static final String CORRELATION_ID_HEADER = "correlationId";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -57,7 +63,7 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
         exchange.getAttributes().put(GatewayConstants.CORRELATION_ID, correlationId);
 
         // Add correlation ID to response header for client traceability
-        exchange.getResponse().getHeaders().add(X_CORRELATION_ID_HEADER, correlationId);
+        exchange.getResponse().getHeaders().add(CORRELATION_ID_HEADER, correlationId);
 
         // Set MDC for logging in this thread
         MDC.put(GatewayConstants.CORRELATION_ID, correlationId);
@@ -77,7 +83,7 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
     private String extractOrGenerateCorrelationId(ServerWebExchange exchange) {
         List<String> correlationHeaders = exchange.getRequest()
                 .getHeaders()
-                .get(X_CORRELATION_ID_HEADER);
+                .get(CORRELATION_ID_HEADER);
 
         if (correlationHeaders != null && !correlationHeaders.isEmpty()) {
             String correlationId = correlationHeaders.get(0);

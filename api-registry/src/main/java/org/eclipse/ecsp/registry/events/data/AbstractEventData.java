@@ -32,9 +32,20 @@ import java.util.UUID;
 public abstract class AbstractEventData implements EventData {
     private static final long serialVersionUID = 1L;
     
+    /**
+     * Unique identifier for this event.
+     */
     private final String eventId;
+    
+    /**
+     * Timestamp when this event was created.
+     */
     private final Instant timestamp;
 
+    /**
+     * Protected constructor for subclasses.
+     * Initializes eventId with a random UUID and timestamp with current time.
+     */
     protected AbstractEventData() {
         this.eventId = UUID.randomUUID().toString();
         this.timestamp = Instant.now();

@@ -38,6 +38,9 @@ import java.util.Map;
 public class ServiceHealthEventData extends AbstractEventData {
     private static final long serialVersionUID = 1L;
     
+    /**
+     * List of service names with health status changes.
+     */
     private final List<String> services;
     
     /**

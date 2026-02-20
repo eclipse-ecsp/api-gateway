@@ -40,6 +40,14 @@ import java.util.stream.Collectors;
 @Component
 @ConditionalOnProperty(value = "api.security.enabled", havingValue = "true", matchIfMissing = false)
 public class ScopeValidator {
+    /**
+     * Default constructor.
+     */
+    public ScopeValidator() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ScopeValidator.class);
     @Value("${scopes.override.enabled:false}")
     private boolean isOverrideScopeEnabled;

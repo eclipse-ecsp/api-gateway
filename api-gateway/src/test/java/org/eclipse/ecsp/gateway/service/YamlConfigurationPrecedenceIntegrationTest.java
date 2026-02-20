@@ -1,24 +1,60 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.service;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.utils.AccessControlConfigMerger;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for YAML configuration precedence.
@@ -30,7 +66,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @ActiveProfiles("yaml-precedence-test")
+@DirtiesContext
 @TestPropertySource(properties = {
+    //  Enable client access control feature
+    "api.gateway.client-access-control.enabled=true",
+    
     // YAML overrides configuration
     "api.gateway.client-access-control.overrides[0].clientId=emergency-client",
     "api.gateway.client-access-control.overrides[0].tenant=ops-team",
@@ -48,10 +88,30 @@ import static org.assertj.core.api.Assertions.assertThat;
     "api.gateway.client-access-control.overrides[2].tenant=security-team",
     "api.gateway.client-access-control.overrides[2].active=true",
     "api.gateway.client-access-control.overrides[2].allow[0]=audit-service:*",
-    "api.gateway.client-access-control.overrides[2].allow[1]=log-service:*"
+    "api.gateway.client-access-control.overrides[2].allow[1]=log-service:*",
+    
+    // Enable dynamic routes but disable registry integration
+    "api.registry.enabled=false",
+    "api.dynamic.routes.enabled=true",
+    
+    // Disable features not relevant for this test
+    "api.gateway.jwt.key-sources=",  // Empty JWT key sources to prevent PublicKeyServiceImpl initialization errors
+    "spring.redis.host=localhost",  // Required for ReactiveRedisTemplate mock
+    "spring.redis.port=6379"
 })
 @DisplayName("YAML Configuration Precedence Integration Tests")
 class YamlConfigurationPrecedenceIntegrationTest {
+
+    @TestConfiguration
+    static class YamlTestConfig {
+        @Bean
+        public ApiRegistryClient yamlTestApiRegistryClient() {
+            ApiRegistryClient mock = mock(ApiRegistryClient.class);
+            // Stub to return empty flux (no dynamic routes from registry)
+            when(mock.getRoutes()).thenReturn(Flux.empty());
+            return mock;
+        }
+    }
 
     private static final int EXPECTED_OVERRIDE_COUNT = 3;
     private static final int EMERGENCY_CLIENT_INDEX = 0;
@@ -60,8 +120,10 @@ class YamlConfigurationPrecedenceIntegrationTest {
     private static final int FOUR_CONFIGS = 4;
     private static final int SIX_CONFIGS = 6;
 
+    private static WireMockServer wireMockServer;
+
     @Autowired
-        private ClientAccessControlProperties yamlProperties;
+    private ClientAccessControlProperties yamlProperties;
 
     @Autowired
     private AccessControlConfigMerger merger;
@@ -69,19 +131,57 @@ class YamlConfigurationPrecedenceIntegrationTest {
     @Autowired
     private AccessRuleMatcherService ruleMatcherService;
 
-    // Mock beans not needed for YAML precedence tests but required by Spring context
-    @MockBean
-    private WebClient.Builder webClientBuilder;
-
-    @MockBean(name = "routesRefreshRetryTemplate")
+    // Mock beans required by Spring context (not HTTP-related)
+    @MockitoBean(name = "routesRefreshRetryTemplate")
     private RetryTemplate retryTemplate;
 
-    @MockBean
+    @MockitoBean
     private ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
+
+    @MockitoBean
+    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
+
+    // Mock PublicKeyService to avoid JWT key initialization issues
+    @MockitoBean
+    private PublicKeyService publicKeyService;
+
+    /**
+     * Configure dynamic properties to point ApiRegistryClient to WireMock server.
+     */
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("api.registry.base-url", () -> "http://localhost:" + wireMockServer.port());
+    }
+
+    @BeforeAll
+    static void setUpWireMock() {
+        PrometheusRegistry.defaultRegistry.clear();
+        // Initialize and start WireMock server before Spring context
+        wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
+        wireMockServer.start();
+
+        // Configure WireMock client to use the correct port
+        WireMock.configureFor("localhost", wireMockServer.port());
+
+        // Configure WireMock to return empty list for client access control endpoint
+        // This allows YAML overrides to work without HTTP data
+        wireMockServer.stubFor(get(urlEqualTo("/v1/config/client-access-control"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[]")));
+    }
+
+    @AfterAll
+    static void tearDownWireMock() {
+        if (wireMockServer != null && wireMockServer.isRunning()) {
+            wireMockServer.stop();
+        }
+    }
 
     @Test
     @DisplayName("AS-5: YAML properties should be loaded correctly")
-    void testYamlProperties_LoadedCorrectly() {
+    void testYamlPropertiesLoadedCorrectly() {
         // Assert
         assertThat(yamlProperties.getOverrides()).hasSize(EXPECTED_OVERRIDE_COUNT);
 
@@ -113,8 +213,8 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: YAML override should replace database config for same clientId")
-    void testYamlOverride_ReplacesDatabase() {
+    @DisplayName("YAML override should replace database config for same clientId")
+    void testYamlOverrideReplacesDatabase() {
         // Arrange - simulate database config for emergency-client
         ClientAccessConfig dbConfig = ClientAccessConfig.builder()
                 .clientId("emergency-client")
@@ -152,8 +252,8 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: YAML-only clients should be added to merged result")
-    void testYamlOnlyClients_AddedToMerged() {
+    @DisplayName("YAML-only clients should be added to merged result")
+    void testYamlOnlyClientsAddedToMerged() {
         // Arrange - database config without any YAML override matches
         ClientAccessConfig dbConfig = ClientAccessConfig.builder()
                 .clientId("regular-client")
@@ -187,8 +287,8 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: Multiple YAML overrides with complex rules should work")
-    void testMultipleOverrides_ComplexRules() {
+    @DisplayName("Multiple YAML overrides with complex rules should work")
+    void testMultipleOverridesComplexRules() {
         // Arrange - database configs for restricted-client and audit-client
         ClientAccessConfig restrictedDbConfig = ClientAccessConfig.builder()
                 .clientId("restricted-client")
@@ -241,7 +341,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: Database configs without YAML overrides should be preserved")
+    @DisplayName("Database configs without YAML overrides should be preserved")
     void testDatabaseOnly_Preserved() {
         // Arrange - database configs without YAML matches
         List<ClientAccessConfig> databaseConfigs = Arrays.asList(
@@ -267,7 +367,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: getYamlOverrideCount() should return correct count")
+    @DisplayName("getYamlOverrideCount() should return correct count")
     void testGetYamlOverrideCount() {
         // Act
         int count = merger.getYamlOverrideCount();
@@ -277,8 +377,8 @@ class YamlConfigurationPrecedenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("AS-5: Deny rules in YAML should be parsed correctly")
-    void testYamlDenyRules_ParsedCorrectly() {
+    @DisplayName("Deny rules in YAML should be parsed correctly")
+    void testYamlDenyRulesParsedCorrectly() {
         // Arrange - Get restricted-client YAML config
         ClientAccessControlProperties.YamlOverride restrictedOverride = yamlProperties.getOverrides().stream()
                 .filter(o -> o.getClientId().equals("restricted-client"))

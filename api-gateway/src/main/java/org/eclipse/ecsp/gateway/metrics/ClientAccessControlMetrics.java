@@ -31,17 +31,15 @@ import java.util.function.Supplier;
 /**
  * Metrics service for Client Access Control feature.
  *
- * <p>
- * Exposes Prometheus metrics for monitoring and observability:
+ * <p>Exposes Prometheus metrics for monitoring and observability:
  * - Request validation counters (checked, allowed, denied)
  * - Cache performance counters (hit, miss, size)
  * - Performance histograms (validation and refresh duration)
  * - YAML override usage counter
  *
- * <p>
- * Metrics prefix: client_access_control
+ * <p>Metrics prefix: client_access_control
  *
- * @author AI Assistant
+ * @author Abhishek Kumar
  */
 @Component
 @Slf4j

@@ -32,6 +32,13 @@ import org.springframework.cloud.gateway.route.RouteDefinition;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class IgniteRouteDefinition extends RouteDefinition {
+    /**
+     * Default constructor.
+     */
+    public IgniteRouteDefinition() {
+        // Default constructor
+    }
+
     private String service;
     private String contextPath;
     private Boolean apiDocs = false;

@@ -1,7 +1,24 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.customizers;
 
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
-import org.eclipse.ecsp.gateway.filter.ClientAccessControlGatewayFilterFactory;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinition;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +47,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ClientAccessControlCustomizerTest {
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private ClientAccessControlProperties properties;
 
     private ClientAccessControlCustomizer customizer;
@@ -47,6 +63,12 @@ class ClientAccessControlCustomizerTest {
         igniteRouteDefinition.setId("test-route");
         igniteRouteDefinition.setService("test-service");
         igniteRouteDefinition.setApiDocs(false);
+        FilterDefinition filterDefinition = new FilterDefinition();
+        filterDefinition.setName("JwtAuthValidator");
+        Map<String, String> args = new HashMap<>();
+        args.put("scopes", "SelfManage");
+        filterDefinition.setArgs(args);
+        igniteRouteDefinition.getFilters().add(filterDefinition);
         when(properties.getSkipPaths()).thenReturn(List.of());
     }
 
@@ -100,11 +122,19 @@ class ClientAccessControlCustomizerTest {
     @Test
     void customize_ApiDocsRoute_SkipsFilter() {
         // GIVEN: Route marked as API docs
-        setupRouteWithPath("/swagger-ui.html");
-        igniteRouteDefinition.setApiDocs(true);
+        IgniteRouteDefinition apiDocsDefinition = new IgniteRouteDefinition();
+        apiDocsDefinition.setId("api-docs-route");
+        apiDocsDefinition.setService("api-docs-service");
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        Map<String, String> args = new HashMap<>();
+        args.put("arg_0", "/v3/api-docs/**");
+        pathPredicate.setArgs(args);
+        apiDocsDefinition.setPredicates(List.of(pathPredicate));
+        apiDocsDefinition.setApiDocs(true);
 
         // WHEN: Route is customized
-        RouteDefinition result = customizer.customize(routeDefinition, igniteRouteDefinition);
+        RouteDefinition result = customizer.customize(routeDefinition, apiDocsDefinition);
 
         // THEN: Filter should not be added
         assertTrue(result.getFilters().isEmpty());

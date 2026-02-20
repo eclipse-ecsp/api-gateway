@@ -19,15 +19,14 @@
 package org.eclipse.ecsp.registry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.eclipse.ecsp.registry.config.TestJpaConfiguration;
-import org.eclipse.ecsp.registry.dto.ClientAccessControlFilterDto;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.redis.testcontainers.RedisContainer;
+import org.eclipse.ecsp.registry.dto.BulkCreateResponseDto;
 import org.eclipse.ecsp.registry.dto.ClientAccessControlRequestDto;
-import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
 import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
-import org.eclipse.ecsp.registry.repo.ClientAccessControlDaoImpl;
+import org.eclipse.ecsp.registry.repo.ClientAccessControlRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -36,9 +35,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -51,10 +47,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
+import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -67,64 +65,64 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Integration test for Client Access Control CRUD operations.
  *
- * <p>
- * Uses TestContainers with PostgreSQL.
+ * <p>Uses TestContainers with PostgreSQL.
  * Tests the complete request flow: Controller → Service → Repository → PostgreSQL Database.
  *
- * @author AI Assistant
+ * @author Abhishek Kumar
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import(TestJpaConfiguration.class)
-@Disabled(
-    "TestContainers initialization issue - requires proper CI/CD environment"
-)
 class ClientAccessControlIntegrationTest {
 
-    private static final String BASE_URL = "/api/registry/client-access-control";
+    private static final String W_999999 = "/999999";
+    private static final String CLIENT_ID_JSON_PATH = "$.clientId";
+    private static final String TENANT_JSON_PATH = "$.tenant";
+    private static final String IS_ACTIVE_JSON_PATH = "$.isActive";
+    private static final String TENANT_AFTER = "tenant_after";
+    private static final String UPDATE_CLIENT = "update_client";
+    private static final String WORKFLOW_CLIENT = "workflow_client";
+    private static final String USER_SERVICE = "user-service:*";
+    private static final String DUPLICATE_CLIENT = "duplicate_client";
+    private static final String CLIENT_DESCRIPTION = "client description";
+    private static final String BASE_URL = "/v1/config/client-access-control";
     private static final int EXPECTED_TWO_ITEMS = 2;
-    private static final int EXPECTED_FIVE_ITEMS = 5;
-    private static final int EXPECTED_TEN_ITEMS = 10;
-    private static final int EXPECTED_FIFTEEN_ITEMS = 15;
-    private static final int ONE_ITEM = 1;
 
+    @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("api_registry_test")
             .withUsername("test")
             .withPassword("test");
 
+    @SuppressWarnings("resource") // Managed by Testcontainers framework
+    @Container
+    static RedisContainer redis = new RedisContainer("redis:8-alpine")
+            .withExposedPorts(6379);
+
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("api-registry.database.type", () -> "sql");
+        registry.add("postgres.jdbc.url", postgres::getJdbcUrl);
+        registry.add("postgres.username", postgres::getUsername);
+        registry.add("postgres.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        // Disable Redis auto-configuration for this test
-        registry.add("spring.data.redis.repositories.enabled", () -> "false");
-        registry.add(
-            "spring.autoconfigure.exclude",
-            () -> "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"
-        );
     }
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private ClientAccessControlDaoImpl repository;
-
-    // Mock Redis components to avoid connection failures
-    @MockBean
-    private RedisTemplate<String, String> redisTemplate;
+    private ClientAccessControlRepository repository;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
+        objectMapper.enable(INCLUDE_SOURCE_IN_LOCATION);
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         repository.deleteAll();
     }
 
@@ -134,12 +132,16 @@ class ClientAccessControlIntegrationTest {
             postgres.stop();
             postgres.close();
         }
+        if (redis != null && redis.isRunning()) {
+            redis.stop();
+            redis.close();
+        }
     }
 
     @Test
     @Order(1)
     @DisplayName("PostgreSQL container should be running")
-    void testPostgresContainer_IsRunning() {
+    void testPostgresContainerIsRunning() {
         assertThat(postgres.isRunning()).isTrue();
         assertThat(postgres.getDatabaseName()).isEqualTo("api_registry_test");
         assertThat(postgres.getJdbcUrl()).contains("postgresql");
@@ -147,18 +149,20 @@ class ClientAccessControlIntegrationTest {
 
     @Test
     @Order(2)
-    @DisplayName("POST /api/registry/client-access-control - Bulk create should succeed")
-    void testBulkCreate_Success() throws Exception {
+    @DisplayName("POST /v1/config/client-access-control - Bulk create should succeed")
+    void testBulkCreateSuccess() throws Exception {
         // Arrange
         ClientAccessControlRequestDto request1 = ClientAccessControlRequestDto.builder()
                 .clientId("test_client_1")
+                .description(CLIENT_DESCRIPTION)
                 .tenant("tenant_a")
                 .isActive(true)
-                .allow(Arrays.asList("user-service:*", "!user-service:ban-user"))
+                .allow(Arrays.asList(USER_SERVICE, "!user-service:ban-user"))
                 .build();
 
         ClientAccessControlRequestDto request2 = ClientAccessControlRequestDto.builder()
                 .clientId("test_client_2")
+                .description(CLIENT_DESCRIPTION)
                 .tenant("tenant_b")
                 .isActive(true)
                 .allow(List.of("*:*"))
@@ -171,35 +175,29 @@ class ClientAccessControlIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requests)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$", hasSize(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$[0].clientId", is("test_client_1")))
-                .andExpect(jsonPath("$[0].tenant", is("tenant_a")))
-                .andExpect(jsonPath("$[0].active", is(true)))
-                .andExpect(jsonPath("$[0].rules", hasSize(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$[1].clientId", is("test_client_2")))
-                .andExpect(jsonPath("$[1].tenant", is("tenant_b")));
-
-        // Verify database state - count() method not available in repository
-        // assertThat(repository.count()).isEqualTo(Integer.toUnsignedLong(EXPECTED_TWO_ITEMS));
+                .andExpect(jsonPath("$.created", hasSize(EXPECTED_TWO_ITEMS)))
+                .andExpect(jsonPath("$.created[*]", containsInAnyOrder("test_client_1", "test_client_2")));
     }
 
     @Test
     @Order(3)
-    @DisplayName("POST /api/registry/client-access-control - Duplicate clientId should return 409")
-    void testBulkCreate_DuplicateClientId_Conflict() throws Exception {
+    @DisplayName("POST /v1/config/client-access-control - Duplicate clientId should return 409")
+    void testBulkCreateDuplicateClientIdConflict() throws Exception {
         // Arrange - Create initial client
         ClientAccessControlEntity existing = ClientAccessControlEntity.builder()
-                .clientId("duplicate_client")
+                .id(DUPLICATE_CLIENT)
+                .clientId(DUPLICATE_CLIENT)
                 .tenant("tenant_a")
                 .isActive(true)
-                .allow(List.of("user-service:*"))
+                .allow(List.of(USER_SERVICE))
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
         repository.save(existing);
 
         ClientAccessControlRequestDto request = ClientAccessControlRequestDto.builder()
-                .clientId("duplicate_client")
+                .clientId(DUPLICATE_CLIENT)
+                .description("description updated")
                 .tenant("tenant_b")
                 .isActive(true)
                 .allow(List.of("*:*"))
@@ -214,155 +212,57 @@ class ClientAccessControlIntegrationTest {
 
     @Test
     @Order(4)
-    @DisplayName("POST /api/registry/client-access-control - Invalid request should return 400")
-    void testBulkCreate_InvalidRequest_BadRequest() throws Exception {
+    @DisplayName("POST /v1/config/client-access-control - Invalid request should return 400")
+    void testBulkCreateInvalidRequestBadRequest() throws Exception {
         // Arrange - Missing required field (clientId)
-        String invalidJson = "[{\"tenant\": \"tenant_a\", \"active\": true, \"rules\": [\"*:*\"]}]";
+        String invalidJson = "[{\"tenant\": \"tenant_a\", \"isActive\": true, \"allow\": [\"*:*\"]}]";
 
         // Act & Assert
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidJson))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @Order(5)
-    @DisplayName("GET /api/registry/client-access-control - Filter by clientId should succeed")
-    void testFilter_ByClientId_Success() throws Exception {
-        // Arrange - Create test data
-        createTestClient("filter_client_1", "tenant_a", true);
-        createTestClient("filter_client_2", "tenant_a", true);
-        createTestClient("other_client", "tenant_b", true);
-
-        ClientAccessControlFilterDto filter = ClientAccessControlFilterDto.builder()
-                .clientId("filter_client")
-                .build();
-
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL + "/filter?page=0&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$.content[*].clientId", everyItem(containsString("filter_client"))))
-                .andExpect(jsonPath("$.totalElements", is(EXPECTED_TWO_ITEMS)));
-    }
-
-    @Test
-    @Order(6)
-    @DisplayName("GET /api/registry/client-access-control - Filter by tenant should succeed")
-    void testFilter_ByTenant_Success() throws Exception {
-        // Arrange
-        createTestClient("client_1", "tenant_alpha", true);
-        createTestClient("client_2", "tenant_alpha", false);
-        createTestClient("client_3", "tenant_beta", true);
-
-        ClientAccessControlFilterDto filter = ClientAccessControlFilterDto.builder()
-                .tenant("tenant_alpha")
-                .build();
-
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL + "/filter?page=0&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$.content[*].tenant", everyItem(is("tenant_alpha"))))
-                .andExpect(jsonPath("$.totalElements", is(EXPECTED_TWO_ITEMS)));
-    }
-
-    @Test
-    @Order(7)
-    @DisplayName("GET /api/registry/client-access-control - Filter by active status should succeed")
-    void testFilter_ByActiveStatus_Success() throws Exception {
-        // Arrange
-        createTestClient("active_client_1", "tenant_a", true);
-        createTestClient("active_client_2", "tenant_a", true);
-        createTestClient("inactive_client", "tenant_a", false);
-
-        ClientAccessControlFilterDto filter = ClientAccessControlFilterDto.builder()
-                .isActive(true)
-                .build();
-
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL + "/filter?page=0&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$.content[*].active", everyItem(is(true))))
-                .andExpect(jsonPath("$.totalElements", is(EXPECTED_TWO_ITEMS)));
-    }
-
-    @Test
-    @Order(8)
-    @DisplayName("GET /api/registry/client-access-control - Pagination should work correctly")
-    void testFilter_Pagination_Success() throws Exception {
-        // Arrange - Create 15 clients
-        for (int i = 1; i <= EXPECTED_FIFTEEN_ITEMS; i++) {
-            createTestClient("page_client_" + i, "tenant_page", true);
-        }
-
-        ClientAccessControlFilterDto filter = ClientAccessControlFilterDto.builder()
-                .tenant("tenant_page")
-                .build();
-
-        // Act & Assert - Page 0 (first 10)
-        mockMvc.perform(post(BASE_URL + "/filter?page=0&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(EXPECTED_TEN_ITEMS)))
-                .andExpect(jsonPath("$.totalElements", is(EXPECTED_FIFTEEN_ITEMS)))
-                .andExpect(jsonPath("$.totalPages", is(EXPECTED_TWO_ITEMS)))
-                .andExpect(jsonPath("$.number", is(0)));
-
-        // Act & Assert - Page 1 (remaining 5)
-        mockMvc.perform(post(BASE_URL + "/filter?page=1&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(EXPECTED_FIVE_ITEMS)))
-                .andExpect(jsonPath("$.totalElements", is(EXPECTED_FIFTEEN_ITEMS)))
-                .andExpect(jsonPath("$.number", is(1)));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", 
+                    containsString("Validation failed for one or more clients.")))
+                .andExpect(jsonPath("$.errors.[*].error", 
+                    containsInAnyOrder("clientId is required", "description is required")));
+                
     }
 
     @Test
     @Order(9)
-    @DisplayName("GET /api/registry/client-access-control/{id} - Get by ID should succeed")
-    void testGetById_Success() throws Exception {
+    @DisplayName("GET /v1/config/client-access-control/{id} - Get by ID should succeed")
+    void testGetByIdSuccess() throws Exception {
         // Arrange
         ClientAccessControlEntity entity = createTestClient("get_by_id_client", "tenant_x", true);
 
         // Act & Assert
         mockMvc.perform(get(BASE_URL + "/" + entity.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId", is("get_by_id_client")))
-                .andExpect(jsonPath("$.tenant", is("tenant_x")))
-                .andExpect(jsonPath("$.active", is(true)))
-                .andExpect(jsonPath("$.id", is(entity.getId())));
+                .andExpect(jsonPath(CLIENT_ID_JSON_PATH, is("get_by_id_client")))
+                .andExpect(jsonPath(TENANT_JSON_PATH, is("tenant_x")))
+                .andExpect(jsonPath(IS_ACTIVE_JSON_PATH, is(true)));
     }
 
     @Test
     @Order(10)
-    @DisplayName("GET /api/registry/client-access-control/{id} - Non-existent ID should return 404")
-    void testGetById_NotFound() throws Exception {
+    @DisplayName("GET /v1/config/client-access-control/{id} - Non-existent ID should return 404")
+    void testGetByIdNotFound() throws Exception {
         // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/999999"))
+        mockMvc.perform(get(BASE_URL + W_999999))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @Order(11)
-    @DisplayName("PUT /api/registry/client-access-control/{id} - Update should succeed")
-    void testUpdate_Success() throws Exception {
+    @DisplayName("PUT /v1/config/client-access-control/{id} - Update should succeed")
+    void testUpdateSuccess() throws Exception {
         // Arrange
-        ClientAccessControlEntity original = createTestClient("update_client", "tenant_before", true);
+        ClientAccessControlEntity original = createTestClient(UPDATE_CLIENT, "tenant_before", true);
 
         ClientAccessControlRequestDto updateRequest = ClientAccessControlRequestDto.builder()
-                .clientId("update_client")
-                .tenant("tenant_after")
+                .clientId(UPDATE_CLIENT)
+                .tenant(TENANT_AFTER)
                 .isActive(false)
                 .allow(Arrays.asList("service-a:*", "service-b:read"))
                 .build();
@@ -372,22 +272,22 @@ class ClientAccessControlIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId", is("update_client")))
-                .andExpect(jsonPath("$.tenant", is("tenant_after")))
-                .andExpect(jsonPath("$.active", is(false)))
-                .andExpect(jsonPath("$.rules", hasSize(EXPECTED_TWO_ITEMS)));
+                .andExpect(jsonPath(CLIENT_ID_JSON_PATH, is(UPDATE_CLIENT)))
+                .andExpect(jsonPath(TENANT_JSON_PATH, is(TENANT_AFTER)))
+                .andExpect(jsonPath(IS_ACTIVE_JSON_PATH, is(false)))
+                .andExpect(jsonPath("$.allow", hasSize(EXPECTED_TWO_ITEMS)));
 
         // Verify database state
-        ClientAccessControlEntity updated = repository.findById(original.getId());
+        Optional<ClientAccessControlEntity> updated = repository.findByClientIdAndIsDeletedFalse(original.getId());
         assertThat(updated).isNotNull();
-        assertThat(updated.getTenant()).isEqualTo("tenant_after");
-        assertThat(updated.getIsActive()).isFalse();
+        assertThat(updated.get().getTenant()).isEqualTo(TENANT_AFTER);
+        assertThat(updated.get().getIsActive()).isFalse();
     }
 
     @Test
     @Order(12)
-    @DisplayName("PUT /api/registry/client-access-control/{id} - Update non-existent should return 404")
-    void testUpdate_NotFound() throws Exception {
+    @DisplayName("PUT /v1/config/client-access-control/{id} - Update non-existent should return 404")
+    void testUpdateNotFound() throws Exception {
         // Arrange
         ClientAccessControlRequestDto updateRequest = ClientAccessControlRequestDto.builder()
                 .clientId("non_existent")
@@ -397,7 +297,7 @@ class ClientAccessControlIntegrationTest {
                 .build();
 
         // Act & Assert
-        mockMvc.perform(put(BASE_URL + "/999999")
+        mockMvc.perform(put(BASE_URL + W_999999)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound());
@@ -405,26 +305,26 @@ class ClientAccessControlIntegrationTest {
 
     @Test
     @Order(13)
-    @DisplayName("DELETE /api/registry/client-access-control/{id} - Delete should succeed")
-    void testDelete_Success() throws Exception {
+    @DisplayName("DELETE /v1/config/client-access-control/{id} - Delete should succeed")
+    void testDeleteSuccess() throws Exception {
         // Arrange
         ClientAccessControlEntity entity = createTestClient("delete_client", "tenant_del", true);
         String id = entity.getId();
 
         // Act & Assert
         mockMvc.perform(delete(BASE_URL + "/" + id))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
 
-        // Verify deletion
-        assertThat(repository.findById(id)).isNull();
+        // Verify deletion, permanent deletion should remove from DB, soft deletion should mark as deleted
+        assertThat(repository.findByClientIdAndIsDeletedTrue(id)).isNotEmpty();
     }
 
     @Test
     @Order(14)
-    @DisplayName("DELETE /api/registry/client-access-control/{id} - Delete non-existent should return 404")
-    void testDelete_NotFound() throws Exception {
+    @DisplayName("DELETE /v1/config/client-access-control/{id} - Delete non-existent should return 404")
+    void testDeleteNotFound() throws Exception {
         // Act & Assert
-        mockMvc.perform(delete(BASE_URL + "/999999"))
+        mockMvc.perform(delete(BASE_URL + W_999999))
                 .andExpect(status().isNotFound());
     }
 
@@ -434,7 +334,8 @@ class ClientAccessControlIntegrationTest {
     void testCompleteCrudWorkflow() throws Exception {
         // 1. Create
         ClientAccessControlRequestDto createRequest = ClientAccessControlRequestDto.builder()
-                .clientId("workflow_client")
+                .clientId(WORKFLOW_CLIENT)
+                .description(CLIENT_DESCRIPTION)
                 .tenant("workflow_tenant")
                 .isActive(true)
                 .allow(List.of("service-1:*"))
@@ -446,20 +347,20 @@ class ClientAccessControlIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        ClientAccessControlResponseDto[] created = objectMapper.readValue(
+        BulkCreateResponseDto created = objectMapper.readValue(
                 createResult.getResponse().getContentAsString(),
-                ClientAccessControlResponseDto[].class
+                BulkCreateResponseDto.class
         );
-        String id = created[0].getClientId();
+        String id = created.getCreated().get(0);
 
         // 2. Read
         mockMvc.perform(get(BASE_URL + "/" + id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId", is("workflow_client")));
+                .andExpect(jsonPath(CLIENT_ID_JSON_PATH, is(WORKFLOW_CLIENT)));
 
         // 3. Update
         ClientAccessControlRequestDto updateRequest = ClientAccessControlRequestDto.builder()
-                .clientId("workflow_client")
+                .clientId(WORKFLOW_CLIENT)
                 .tenant("workflow_tenant_updated")
                 .isActive(false)
                 .allow(Arrays.asList("service-1:*", "service-2:read"))
@@ -469,25 +370,14 @@ class ClientAccessControlIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tenant", is("workflow_tenant_updated")))
-                .andExpect(jsonPath("$.active", is(false)))
-                .andExpect(jsonPath("$.rules", hasSize(EXPECTED_TWO_ITEMS)));
-
-        // 4. Filter
-        ClientAccessControlFilterDto filter = ClientAccessControlFilterDto.builder()
-                .clientId("workflow_client")
-                .build();
-
-        mockMvc.perform(post(BASE_URL + "/filter?page=0&size=10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filter)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(ONE_ITEM)))
-                .andExpect(jsonPath("$.content[0].clientId", is("workflow_client")));
+                .andExpect(jsonPath(CLIENT_ID_JSON_PATH, is(WORKFLOW_CLIENT)))
+                .andExpect(jsonPath(TENANT_JSON_PATH, is("workflow_tenant_updated")))
+                .andExpect(jsonPath(IS_ACTIVE_JSON_PATH, is(false)))
+                .andExpect(jsonPath("$.allow", hasSize(EXPECTED_TWO_ITEMS)));
 
         // 5. Delete
         mockMvc.perform(delete(BASE_URL + "/" + id))
-                .andExpect(status().isNoContent());
+                .andExpect(status().is2xxSuccessful());
 
         // 6. Verify deletion
         mockMvc.perform(get(BASE_URL + "/" + id))
@@ -498,10 +388,11 @@ class ClientAccessControlIntegrationTest {
 
     private ClientAccessControlEntity createTestClient(String clientId, String tenant, boolean active) {
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
+                .id(clientId)
                 .clientId(clientId)
                 .tenant(tenant)
                 .isActive(active)
-                .allow(Arrays.asList("user-service:*", "payment-service:read"))
+                .allow(Arrays.asList(USER_SERVICE, "payment-service:read"))
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();

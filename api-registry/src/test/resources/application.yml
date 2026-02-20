@@ -33,8 +33,8 @@ spring:
     allow-bean-definition-overriding: false
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
       lettuce:
         pool:
           max-active: 8
@@ -168,7 +168,7 @@ sp.restart.on.failure: ${sp_restart_on_failure:false}
 
 morphia:
   map.packages: ${mongodb_packages:org.eclipse.ecsp}
-  converters.fqn: ${mongodb_converters:org.bson.codecs.JsonObjectCodec}
+  converters.fqn: ${mongodb_converters:org.bson.codecs.JsonObjectCodec,,org.eclipse.ecsp.registry.utils.OffsetDateTimeCodec}
 
 # mongoDB, cosmosDB
 no.sql.database.type: ${api_registry_database_provider:mongoDB}

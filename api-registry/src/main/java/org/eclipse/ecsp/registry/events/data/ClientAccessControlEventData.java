@@ -40,6 +40,9 @@ import java.util.List;
 public class ClientAccessControlEventData extends AbstractEventData {
     private static final long serialVersionUID = 1L;
     
+    /**
+     * List of client IDs whose configurations changed.
+     */
     private final List<String> clientIds;
     
     /**

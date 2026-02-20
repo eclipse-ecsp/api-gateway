@@ -67,7 +67,7 @@ import java.util.Optional;
 class ApiRoutesLoaderTest {
 
     GroupedOpenApi groupedOpenApi = Mockito.mock(GroupedOpenApi.class);
-    ObjectFactory objectFactory = Mockito.mock(ObjectFactory.class);
+    ObjectFactory<?> objectFactory = Mockito.mock(ObjectFactory.class);
     OpenAPIService openApiService = Mockito.mock(OpenAPIService.class);
     AbstractRequestService abstractRequestService = Mockito.mock(AbstractRequestService.class);
     GenericResponseService genericResponseService = Mockito.mock(GenericResponseService.class);
@@ -86,8 +86,8 @@ class ApiRoutesLoaderTest {
      *
      * @return returns Schema
      */
-    private static Schema getSchemaObj() {
-        Schema schema = new Schema();
+    private static Schema<?> getSchemaObj() {
+        Schema<?> schema = new Schema<>();
         schema.set$ref("#/components/schemas/Test");
         return schema;
     }
@@ -183,6 +183,7 @@ class ApiRoutesLoaderTest {
         Paths paths = getPathsObj();
         openApi.setPaths(paths);
         Components components = new Components();
+        @SuppressWarnings("rawtypes")
         Map<String, Schema> schemaMap = new HashMap<>();
         schemaMap.put("Test", getSchemaObj());
         components.setSchemas(schemaMap);
@@ -214,7 +215,7 @@ class ApiRoutesLoaderTest {
         RequestBody requestBody = new RequestBody();
         Content content = new Content();
         MediaType mediaType = new MediaType();
-        Schema schema = getSchemaObj();
+        Schema<?> schema = getSchemaObj();
         mediaType.setSchema(schema);
         content.put("application/json", mediaType);
         requestBody.setContent(content);
@@ -233,6 +234,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-route123", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertFalse(apiRotes.isEmpty());
@@ -247,9 +249,9 @@ class ApiRoutesLoaderTest {
         operation.parameters(
                 List.of(
                         new Parameter().name("dummyHeader").in("header").required(true)
-                                .schema(new Schema().type("string")),
+                                .schema(new Schema<>().type("string")),
                         new Parameter().name("dummyHeader2").in("header").required(null)
-                                .schema(new Schema().type("string"))));
+                                .schema(new Schema<>().type("string"))));
         operation.setExtensions(Map.of("cacheSize", "100", "cacheKey", "key123", "cacheTll", "100"));
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
@@ -257,6 +259,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderMetadata", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);
@@ -276,9 +279,9 @@ class ApiRoutesLoaderTest {
         operation.parameters(
                 List.of(
                         new Parameter().name("dummyHeader").in("header").required(true)
-                                .schema(new Schema().type("string")),
+                                .schema(new Schema<>().type("string")),
                         new Parameter().name("dummyHeader2").in("header").required(null)
-                                .schema(new Schema().type("string"))
+                                .schema(new Schema<>().type("string"))
                 ));
         operation.setExtensions(Map.of("cacheSize", "100", "cacheKey", "key123", "cacheTll", "100"));
         SecurityRequirement securityRequirement = new SecurityRequirement();
@@ -287,6 +290,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderOptionalMetadata", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);
@@ -311,6 +315,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testEmptyHeaders", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);

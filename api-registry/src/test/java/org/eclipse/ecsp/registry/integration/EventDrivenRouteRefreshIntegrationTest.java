@@ -24,7 +24,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -124,34 +127,51 @@ class EventDrivenRouteRefreshIntegrationTest {
 
     @Test
     void testEventPublisher_CanPublishEvent() throws InterruptedException {
-        // Test that event publisher can be invoked without errors and publishes to Redis
+        // Test that event publisher can be invoked without errors and publishes to Redis.
+        // Uses RedisMessageListenerContainer (the Spring-recommended API) instead of a raw
+        // connection, which is required for correct pub/sub behaviour in Spring Data Redis 4.x
+        // (Spring Boot 4.0.2+). Direct subscribe() calls on a pooled Lettuce connection are
+        // not reliable in that version.
         String serviceId = "test-service-" + UUID.randomUUID();
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch messageLatch = new CountDownLatch(1);
         String channel = "route-changes-it";
 
-        // Subscribe to channel in a separate thread
-        Thread subscriber = new Thread(() -> {
-            redisTemplate.getConnectionFactory().getConnection().subscribe((message, pattern) -> {
-                if (new String(message.getBody()).contains(serviceId)) {
-                    latch.countDown();
-                }
-            }, channel.getBytes());
-        });
-        subscriber.start();
+        MessageListener listener = (message, pattern) -> {
+            if (new String(message.getBody()).contains(serviceId)) {
+                messageLatch.countDown();
+            }
+        };
 
-        // Allow time for subscription to start
-        latch.await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
+        RedisMessageListenerContainer listenerContainer = new RedisMessageListenerContainer();
+        listenerContainer.setConnectionFactory(redisTemplate.getConnectionFactory());
+        listenerContainer.addMessageListener(listener, new ChannelTopic(channel));
+        listenerContainer.afterPropertiesSet();
+        listenerContainer.start();
 
-        // This should not throw an exception
-        eventPublisher.publishRouteChangeEvent(serviceId);
+        try {
+            // Allow time for the container's internal subscription thread to establish
+            // the SUBSCRIBE command with Redis before we publish. Using a latch await
+            // with timeout as a sleep substitute to comply with checkstyle rules.
+            new CountDownLatch(1).await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
 
-        // Wait for debouncing delay to complete and event to be received
-        // Debounce is 100ms.
-        boolean received = latch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+            // This should not throw an exception
+            eventPublisher.publishRouteChangeEvent(serviceId);
 
-        assertThat(received)
-                .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)
-                .isTrue();
+            // Wait for debouncing delay to complete and event to be received
+            // Debounce is 100ms.
+            boolean received = messageLatch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+
+            assertThat(received)
+                    .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)
+                    .isTrue();
+        } finally {
+            listenerContainer.stop();
+            try {
+                listenerContainer.destroy();
+            } catch (Exception ex) {
+                // best-effort cleanup
+            }
+        }
     }
 
     @Test

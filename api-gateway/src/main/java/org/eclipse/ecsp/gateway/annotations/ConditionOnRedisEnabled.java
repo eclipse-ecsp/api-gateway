@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
 
 
 /**
- * Conditional annotation that indicates a component should only be registered
+ * Conditional annotation that indicates a component should only be registered.
  * when the 'api.gateway.metrics.public-key.enabled' property is set to 'true'.
  *
  * <p>This annotation is used to conditionally enable components related to public key metrics

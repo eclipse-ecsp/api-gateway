@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.gateway.plugins;
 
 import jakarta.annotation.PreDestroy;
+import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.utils.JarUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -46,12 +47,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Load external jar plugin classes and register to spring context.
  * Implements BeanFactoryPostProcessor to register beans before instantiation.
  */
+@NoArgsConstructor
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class PluginLoader implements ApplicationContextAware, BeanFactoryPostProcessor {
@@ -64,7 +65,6 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
     private volatile boolean initializationAttempted;
     private URLClassLoader pluginClassLoader;
 
-    private boolean pluginEnabled;
     private String pluginJarPath;
     private List<String> pluginJarClasses;
     private List<String> pluginPackages;
@@ -80,7 +80,7 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         // Read configuration properties from environment
         String enabled = applicationContext.getEnvironment().getProperty("plugin.enabled", "false");
-        pluginEnabled = Boolean.parseBoolean(enabled);
+        boolean pluginEnabled = Boolean.parseBoolean(enabled);
         
         if (!pluginEnabled) {
             LOGGER.info("Plugin loading is disabled");
@@ -137,10 +137,10 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
      * @return instance of the pluginClassName
      */
     public Object loadPlugin(String pluginClassName) {
-        ensurePluginInfrastructure();
         if (!StringUtils.hasText(pluginClassName)) {
             throw new IllegalArgumentException("Plugin class name must not be blank");
         }
+        ensurePluginInfrastructure();
         if (pluginClassLoader == null) {
             throw new IllegalStateException("Plugin class loader is not initialized. Check plugin.path configuration.");
         }
@@ -164,19 +164,21 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
             if (initializationAttempted) {
                 return;
             }
-            initializationAttempted = true;
             if (!StringUtils.hasText(pluginJarPath)) {
                 LOGGER.info("No plugin.path configured; skipping external plugin initialization");
+                initializationAttempted = true;
                 return;
             }
             pluginClassLoader = JarUtils.createClassLoader(pluginJarPath, PluginLoader.class.getClassLoader());
             if (pluginClassLoader == null) {
                 LOGGER.warn("Plugin class loader could not be created for path: {}", pluginJarPath);
+                initializationAttempted = true;
                 return;
             }
             applicationContext.setClassLoader(pluginClassLoader);
             applicationContext.getDefaultListableBeanFactory().setBeanClassLoader(pluginClassLoader);
             registerPackages();
+            initializationAttempted = true;
         }
     }
 
@@ -293,11 +295,26 @@ public class PluginLoader implements ApplicationContextAware, BeanFactoryPostPro
                 .filter(value -> value != null && StringUtils.hasText(value.trim()))
                 .map(String::trim)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = (GenericApplicationContext) applicationContext;
+    }
+
+    /**
+     * Clean up resources on shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        if (pluginClassLoader != null) {
+            try {
+                pluginClassLoader.close();
+                LOGGER.info("Plugin class loader closed successfully");
+            } catch (IOException e) {
+                LOGGER.error("Error closing plugin class loader", e);
+            }
+        }
     }
 }

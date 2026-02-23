@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.ratelimit.keyresolvers;
 
+import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.service.RouteUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -33,6 +34,7 @@ import java.util.Map;
  *
  * @author Abhishek Kumar
  */
+@NoArgsConstructor
 public class RequestHeaderKeyResolver implements KeyResolver {
     
     /**

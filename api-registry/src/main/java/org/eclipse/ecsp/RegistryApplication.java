@@ -22,6 +22,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration;
 import org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration;
@@ -40,7 +42,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
             MongoMetricsAutoConfiguration.class,
             DataMongoRepositoriesAutoConfiguration.class,
             HibernateJpaAutoConfiguration.class,
-            DataSourceAutoConfiguration.class
+            DataSourceAutoConfiguration.class,
+            DataRedisAutoConfiguration.class,
+            DataRedisReactiveAutoConfiguration.class
         })
 @ComponentScan(excludeFilters = {
     @ComponentScan.Filter(pattern = "org.eclipse.ecsp.sql.*", type = FilterType.REGEX),

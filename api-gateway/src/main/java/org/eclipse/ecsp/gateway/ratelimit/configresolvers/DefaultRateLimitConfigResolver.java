@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Rate limit resolver that loads configurations from API Registry
+ * Rate limit resolver that loads configurations from API Registry.
  * and supports hierarchical resolution (route → service → default).
  *
  * <p>Rate limits are loaded from the API Registry at startup and can be

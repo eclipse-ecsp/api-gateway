@@ -152,7 +152,7 @@
         <netty.version>4.2.9.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
-        <hibernate-core.version>6.6.40.Final</hibernate-core.version>
+        <hibernate-core.version>7.1.8.Final</hibernate-core.version>
     </properties>
 
     <repositories>

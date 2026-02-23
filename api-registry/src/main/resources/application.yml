@@ -31,15 +31,15 @@ spring:
         format_sql: ${spring_jpa_hibernate_show_sql:false}
   main:
     allow-bean-definition-overriding: false
-  data:
-    redis:
-      cluster:
-        nodes: ${REDIS_CLUSTER_NODES:}
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
+  # data:
+  #   redis:
+  #     cluster:
+  #       nodes: ${REDIS_CLUSTER_NODES:}
+  #     lettuce:
+  #       pool:
+  #         max-active: 8
+  #         max-idle: 8
+  #         min-idle: 0
 
 api:
   security:

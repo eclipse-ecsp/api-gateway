@@ -34,18 +34,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.data.redis.RedisConnectionDetails;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -57,7 +51,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.nullable;
 
 /**
  * Integration test for Client Access Control refresh using Redis pub/sub with TestContainers.
@@ -237,42 +230,5 @@ class ClientAccessControlRedisIntegrationTest {
         private String eventType;
         private String clientId;
         private Long timestamp;
-    }
-
-    /**
-     * Overrides the auto-configured {@link RedisConnectionDetails} to force standalone
-     * (non-cluster) mode so that Testcontainers host/port are used instead of the
-     * cluster nodes defaulted in application.yml.
-     */
-    @TestConfiguration
-    static class StandaloneRedisConnectionConfig {
-
-        @Primary
-        @Bean
-        RedisConnectionDetails standaloneRedisConnectionDetails(
-                @Value("${spring.data.redis.host}") String host,
-                @Value("${spring.data.redis.port}") int port) {
-            return new RedisConnectionDetails() {
-                @Override
-                public Standalone getStandalone() {
-                    return new Standalone() {
-                        @Override
-                        public String getHost() {
-                            return host;
-                        }
-
-                        @Override
-                        public int getPort() {
-                            return port;
-                        }
-
-                        @Override
-                        public int getDatabase() {
-                            return 0;
-                        }
-                    };
-                }
-            };
-        }
     }
 }

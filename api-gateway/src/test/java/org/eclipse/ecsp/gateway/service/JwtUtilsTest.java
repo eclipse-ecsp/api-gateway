@@ -159,6 +159,20 @@ class JwtUtilsTest {
         assertEquals("alternative_client", JwtUtils.extractClientId(altJwt, List.of(CLIENT_ID, "cid")));
     }
 
+    @Test
+    void testExtractClientIdFromArrayClaim() {
+        // Arrange - some IdPs encode client_id as a single-element JSON array: ["test-portal"]
+        String jwt = createUnsignedJwt(claims ->
+            claims.put(CLIENT_ID, List.of("test-portal"))
+        );
+
+        // Act
+        String clientId = JwtUtils.extractClientId(jwt, List.of(CLIENT_ID));
+
+        // Assert - should return "test-portal", not "[test-portal]"
+        assertEquals("test-portal", clientId);
+    }
+
     /**
      * Helper method to create unsigned JWT for testing.
      */

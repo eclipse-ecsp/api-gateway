@@ -83,15 +83,15 @@ public class ClientAccessControlService {
         LOGGER.info("Loading client access control configurations from Api-Registry, starting at {}", refreshStart);
         List<ClientAccessControlConfigDto> clientIds = apiRegistryClient.getClientAccessControlConfigs();
         LOGGER.debug("Raw Client IDs fetched: {}", clientIds);
-        List<ClientAccessConfig> databaseConfigs  = List.of();
+        List<ClientAccessConfig> registryConfigs  = List.of();
         if (clientIds == null || clientIds.isEmpty()) {
             LOGGER.warn("No client access control configurations found in Api-Registry");
         } else {
             LOGGER.info("Fetched {} client IDs from Api-Registry", clientIds.size());
-            databaseConfigs = clientIds.stream().map(this::parseConfig).filter(Objects::nonNull).toList();
+            registryConfigs = clientIds.stream().map(this::parseConfig).filter(Objects::nonNull).toList();
         }
         
-        List<ClientAccessConfig> mergedConfigs = yamlConfigurationMerger.merge(databaseConfigs);
+        List<ClientAccessConfig> mergedConfigs = yamlConfigurationMerger.merge(registryConfigs);
         
         // Clear and repopulate cache
         cache.clear();

@@ -5,7 +5,7 @@ import org.eclipse.ecsp.gateway.customizers.ClientAccessControlCustomizer;
 import org.eclipse.ecsp.gateway.filter.ClientAccessControlGatewayFilterFactory;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.eclipse.ecsp.gateway.utils.AccessControlConfigMerger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ class ClientAccessControlConfigurationTest {
      * Test type             - Positive.
      */
     @Test
-    void clientAccessControlCustomizer_ValidProperties_ReturnsBean() {
+    void clientAccessControlCustomizerValidPropertiesReturnsBean() {
         // GIVEN: Configuration with properties
         // (setup in setUp method)
 
@@ -70,7 +70,7 @@ class ClientAccessControlConfigurationTest {
      * Test type             - Positive.
      */
     @Test
-    void accessControlConfigMerger_ValidDependencies_ReturnsBean() {
+    void accessControlConfigMergerValidDependenciesReturnsBean() {
         // GIVEN: Configuration with mocked dependencies
 
         // WHEN: Bean is created
@@ -89,7 +89,7 @@ class ClientAccessControlConfigurationTest {
      * Test type             - Positive.
      */
     @Test
-    void accessRuleMatcherService_NoDependencies_ReturnsBean() {
+    void accessRuleMatcherServiceNoDependenciesReturnsBean() {
         // GIVEN: Configuration
 
         // WHEN: Bean is created
@@ -107,18 +107,18 @@ class ClientAccessControlConfigurationTest {
      * Test type             - Positive.
      */
     @Test
-    void clientAccessControlCacheService_ValidDependencies_ReturnsBean() {
+    void clientAccessControlCacheServiceValidDependenciesReturnsBean() {
         // GIVEN: Configuration with mocked dependencies
         AccessControlConfigMerger configMerger = new AccessControlConfigMerger(
                 properties, ruleMatcherService, metrics);
 
         // WHEN: Bean is created
-        ClientAccessControlCacheService cacheService = configuration.clientAccessControlCacheService(
+        ClientAccessControlService cacheService = configuration.clientAccessControlCacheService(
                 ruleMatcherService, configMerger, metrics, apiRegistryClient);
 
         // THEN: Bean should be created successfully
         assertNotNull(cacheService);
-        assertInstanceOf(ClientAccessControlCacheService.class, cacheService);
+        assertInstanceOf(ClientAccessControlService.class, cacheService);
     }
 
     /**
@@ -128,11 +128,11 @@ class ClientAccessControlConfigurationTest {
      * Test type             - Positive.
      */
     @Test
-    void clientAccessControlGatewayFilterFactory_ValidDependencies_ReturnsBean() {
+    void clientAccessControlGatewayFilterFactoryValidDependenciesReturnsBean() {
         // GIVEN: Configuration with mocked dependencies
         AccessControlConfigMerger configMerger = new AccessControlConfigMerger(
                 properties, ruleMatcherService, metrics);
-        ClientAccessControlCacheService cacheService = new ClientAccessControlCacheService(
+        ClientAccessControlService cacheService = new ClientAccessControlService(
                 ruleMatcherService, apiRegistryClient, configMerger, metrics);
 
         // WHEN: Bean is created

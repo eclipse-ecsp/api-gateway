@@ -122,8 +122,7 @@ api:
           max-interval-ms: ${RETRY_MAX_INTERVAL:16000}
         polling:
           cron-expression: ${ROUTE_REFRESH_POLLING_CRON:*/30 * * * * *}
-## Rate Limiting Configuration
-    rate-limit:
+    rate-limit: ## Rate Limiting Configuration
       enabled: true 
       max-burst-capacity: 10000
       max-replenish-rate: 10000
@@ -137,8 +136,7 @@ api:
         empty-key-status: 400
         key-resolver: clientIpKeyResolver
         include-headers: true
-## Metrics Configuration
-    metrics:
+    metrics: ## Metrics Configuration
       enabled: true
       port: 9101
       base-path: /gateway
@@ -205,6 +203,15 @@ api:
           buckets: 100ms, 500ms, 1000ms, 3000ms, 5000ms, 8000ms, 10000ms, 15000ms  # slo thresholds in milliseconds
           expiry: 5m
           bufferLength: 10
+    client-access-control: ## Client Access Control Configuration
+      enabled: false
+      claim-names:
+      - client_id
+      - clientId
+      - client-id
+      skip-paths:
+      - /api-docs/**
+      - /v3/api-docs/**
 springdoc:
   version: '@springdoc.version@'
   swagger-ui:

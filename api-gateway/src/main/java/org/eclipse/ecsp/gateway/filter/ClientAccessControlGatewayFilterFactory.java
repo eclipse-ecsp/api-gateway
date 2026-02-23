@@ -25,7 +25,7 @@ import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.InputValidator;
 import org.eclipse.ecsp.gateway.utils.JwtUtils;
@@ -74,7 +74,7 @@ public class ClientAccessControlGatewayFilterFactory extends
 
     private final ClientAccessControlProperties properties;
     private final AccessRuleMatcherService accessRuleMatcherService;
-    private final ClientAccessControlCacheService cacheService;
+    private final ClientAccessControlService cacheService;
     private final ClientAccessControlMetrics metrics;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -89,7 +89,7 @@ public class ClientAccessControlGatewayFilterFactory extends
     public ClientAccessControlGatewayFilterFactory(
             ClientAccessControlProperties properties,
             AccessRuleMatcherService accessRuleMatcherService,
-            ClientAccessControlCacheService cacheService,
+            ClientAccessControlService cacheService,
             ClientAccessControlMetrics metrics) {
         super(Config.class);
         this.properties = properties;

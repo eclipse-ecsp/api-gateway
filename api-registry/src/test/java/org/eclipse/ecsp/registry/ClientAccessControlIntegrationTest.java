@@ -44,7 +44,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -74,6 +74,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@SuppressWarnings("java:S6813")// allow spring Autowire
 class ClientAccessControlIntegrationTest {
 
     private static final String W_999999 = "/999999";
@@ -190,8 +191,8 @@ class ClientAccessControlIntegrationTest {
                 .tenant("tenant_a")
                 .isActive(true)
                 .allow(List.of(USER_SERVICE))
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
         repository.save(existing);
 
@@ -393,8 +394,8 @@ class ClientAccessControlIntegrationTest {
                 .tenant(tenant)
                 .isActive(active)
                 .allow(Arrays.asList(USER_SERVICE, "payment-service:read"))
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
         return repository.save(entity);
     }

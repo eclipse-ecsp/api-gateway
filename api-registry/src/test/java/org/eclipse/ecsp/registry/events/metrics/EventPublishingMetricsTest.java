@@ -65,7 +65,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordSuccess_ClientAccessControlEvent_IncrementSuccessCounter() {
+    void recordSuccessClientAccessControlEventIncrementSuccessCounter() {
         // GIVEN: Event type
         RouteEventType eventType = RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED;
 
@@ -90,7 +90,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordSuccess_CalledMultipleTimes_IncrementCounterCorrectly() {
+    void recordSuccessCalledMultipleTimesIncrementCounterCorrectly() {
         // GIVEN: Event type
         RouteEventType eventType = RouteEventType.RATE_LIMIT_CONFIG_CHANGE;
 
@@ -117,7 +117,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordFailure_RouteChangeEvent_IncrementFailureCounter() {
+    void recordFailureRouteChangeEventIncrementFailureCounter() {
         // GIVEN: Event type
         RouteEventType eventType = RouteEventType.ROUTE_CHANGE;
 
@@ -142,7 +142,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordFailure_CalledMultipleTimes_IncrementCounterCorrectly() {
+    void recordFailureCalledMultipleTimesIncrementCounterCorrectly() {
         // GIVEN: Event type
         RouteEventType eventType = RouteEventType.SERVICE_HEALTH_CHANGE;
 
@@ -168,7 +168,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordPublish_SuccessfulOperation_RecordSuccessAndReturnTrue() {
+    void recordPublishSuccessfulOperationRecordSuccessAndReturnTrue() {
         // GIVEN: Event type and successful operation
         RouteEventType eventType = RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED;
         Supplier<Boolean> operation = () -> true;
@@ -201,7 +201,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordPublish_FailedOperation_RecordFailureAndReturnFalse() {
+    void recordPublishFailedOperationRecordFailureAndReturnFalse() {
         // GIVEN: Event type and failed operation
         RouteEventType eventType = RouteEventType.RATE_LIMIT_CONFIG_CHANGE;
         Supplier<Boolean> operation = () -> false;
@@ -234,7 +234,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordPublish_OperationExecution_ExecuteAndMeasureDuration() {
+    void recordPublishOperationExecutionExecuteAndMeasureDuration() {
         // GIVEN: Event type and operation that sets a flag
         RouteEventType eventType = RouteEventType.ROUTE_CHANGE;
         AtomicBoolean operationExecuted = new AtomicBoolean(false);
@@ -267,7 +267,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordPublish_RunnableSuccessful_RecordSuccess() {
+    void recordPublishRunnableSuccessfulRecordSuccess() {
         // GIVEN: Event type and successful runnable
         RouteEventType eventType = RouteEventType.SERVICE_HEALTH_CHANGE;
         AtomicInteger executionCount = new AtomicInteger(0);
@@ -301,7 +301,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordPublish_RunnableThrowsException_RecordFailureAndPropagateException() {
+    void recordPublishRunnableThrowsExceptionRecordFailureAndPropagateException() {
         // GIVEN: Event type and runnable that throws exception
         RouteEventType eventType = RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED;
         Runnable operation = () -> {
@@ -333,7 +333,7 @@ class EventPublishingMetricsTest {
      * @throws Exception if test fails
      **/
     @Test
-    void recordSuccess_DifferentEventTypes_CreateSeparateMetrics() {
+    void recordSuccessDifferentEventTypesCreateSeparateMetrics() {
         // GIVEN: Two different event types
         RouteEventType eventType1 = RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED;
         RouteEventType eventType2 = RouteEventType.RATE_LIMIT_CONFIG_CHANGE;

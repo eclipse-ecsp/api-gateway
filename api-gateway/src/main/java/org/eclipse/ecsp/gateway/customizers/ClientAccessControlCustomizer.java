@@ -14,13 +14,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ClientAccessControlCustomizer.
+ * ClientAccessControlCustomizer is a RouteCustomizer that adds a ClientAccessControl filter to routes
+ * based on certain conditions. It checks if the route should be skipped based on API docs,
+ * skip paths, or if it has no filters defined. 
+ * If not skipped, it adds the ClientAccessControl filter with the service name and route ID as arguments.
  */
 public class ClientAccessControlCustomizer implements RouteCustomizer {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ClientAccessControlCustomizer.class);
     private final ClientAccessControlProperties clientAccessControlProperties;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
+    /**
+     * Constructor for ClientAccessControlCustomizer.
+     *
+     * @param clientAccessControlProperties properties for client access control configuration
+     */
     public ClientAccessControlCustomizer(ClientAccessControlProperties clientAccessControlProperties) {
         this.clientAccessControlProperties = clientAccessControlProperties;
     }

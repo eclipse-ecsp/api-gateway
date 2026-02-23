@@ -24,7 +24,7 @@ import org.eclipse.ecsp.gateway.customizers.ClientAccessControlCustomizer;
 import org.eclipse.ecsp.gateway.filter.ClientAccessControlGatewayFilterFactory;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.eclipse.ecsp.gateway.utils.AccessControlConfigMerger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -50,16 +50,34 @@ public class ClientAccessControlConfiguration {
 
     private final ClientAccessControlProperties properties;
 
+    /**
+     * Constructor for ClientAccessControlConfiguration.
+     *
+     * @param properties the client access control properties
+     */
     public ClientAccessControlConfiguration(ClientAccessControlProperties properties) {
         this.properties = properties;
     }
 
 
+    /**
+     * Bean for ClientAccessControlCustomizer which adds the client access control filter to routes.
+     *
+     * @return a new instance of ClientAccessControlCustomizer
+     */
     @Bean
     public ClientAccessControlCustomizer clientAccessControlCustomizer() {
         return new ClientAccessControlCustomizer(properties);
     }
 
+    /**
+     * Bean for AccessControlConfigMerger which merges YAML and API registry configurations.
+     *
+     * @param properties the client access control properties
+     * @param ruleMatcherService the service used to match access rules
+     * @param metrics the metrics collector for client access control
+     * @return a new instance of AccessControlConfigMerger
+     */
     @Bean
     public AccessControlConfigMerger accessControlConfigMerger(ClientAccessControlProperties properties, 
             AccessRuleMatcherService ruleMatcherService, 
@@ -67,23 +85,45 @@ public class ClientAccessControlConfiguration {
         return new AccessControlConfigMerger(properties, ruleMatcherService, metrics);
     }
 
+    /**
+     * Bean for AccessRuleMatcherService which matches incoming requests to access control rules.
+     *
+     * @return a new instance of AccessRuleMatcherService
+     */
     @Bean
     public AccessRuleMatcherService accessRuleMatcherService() {
         return new AccessRuleMatcherService();
     }
 
+    /**
+     * Bean for ClientAccessControlService which manages the cache of client access configurations.
+     *
+     * @param ruleMatcherService the service used to match access rules
+     * @param configMerger the service used to merge YAML and API registry configurations
+     * @param metrics the metrics collector for client access control
+     * @param apiRegistryClient the client to fetch configurations from API registry
+     * @return a new instance of ClientAccessControlService
+     */
     @Bean
-    public ClientAccessControlCacheService clientAccessControlCacheService(AccessRuleMatcherService ruleMatcherService,
+    public ClientAccessControlService clientAccessControlCacheService(AccessRuleMatcherService ruleMatcherService,
             AccessControlConfigMerger configMerger, ClientAccessControlMetrics metrics, 
             ApiRegistryClient apiRegistryClient) {
-        return new ClientAccessControlCacheService(ruleMatcherService, apiRegistryClient, 
+        return new ClientAccessControlService(ruleMatcherService, apiRegistryClient, 
             configMerger, metrics);
     }
 
+    /**
+     * Bean for ClientAccessControlGatewayFilterFactory which creates the gateway filter for client access control.
+     *
+     * @param accessRuleMatcherService the service used to match access rules
+     * @param cacheService the service managing the cache of client access configurations
+     * @param metrics the metrics collector for client access control
+     * @return a new instance of ClientAccessControlGatewayFilterFactory
+     */
     @Bean
     public ClientAccessControlGatewayFilterFactory clientAccessControlGatewayFilterFactory(
             AccessRuleMatcherService accessRuleMatcherService,
-            ClientAccessControlCacheService cacheService,
+            ClientAccessControlService cacheService,
             ClientAccessControlMetrics metrics) {
         return new ClientAccessControlGatewayFilterFactory(properties, accessRuleMatcherService, cacheService,
                 metrics);

@@ -21,7 +21,7 @@ package org.eclipse.ecsp.gateway.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
 import org.eclipse.ecsp.gateway.exceptions.IgniteGlobalExceptionHandler;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,7 +98,7 @@ class ClientAccessControlRedisIntegrationTest {
     private ReactiveStringRedisTemplate redisTemplate;
 
     @Autowired
-    private ClientAccessControlCacheService cacheService;
+    private ClientAccessControlService cacheService;
 
     @Autowired
     private ClientAccessControlProperties properties;
@@ -117,7 +117,7 @@ class ClientAccessControlRedisIntegrationTest {
     @Test
     @Order(1)
     @DisplayName("Redis container should be running and accessible")
-    void testRedisContainer_IsRunning() {
+    void testRedisContainerIsRunning() {
         assertThat(redis.isRunning()).isTrue();
         assertThat(redis.getFirstMappedPort()).isGreaterThan(0);
         
@@ -131,7 +131,7 @@ class ClientAccessControlRedisIntegrationTest {
     @Test
     @Order(2)
     @DisplayName("Redis pub/sub should deliver messages to subscribers")
-    void testRedisPubSub_MessageDelivery() {
+    void testRedisPubSubMessageDelivery() {
         // Arrange
         RefreshEvent event = RefreshEvent.builder()
                 .eventId(UUID.randomUUID().toString())
@@ -155,7 +155,7 @@ class ClientAccessControlRedisIntegrationTest {
     @Test
     @Order(3)
     @DisplayName("Cache service should be available and operational")
-    void testCacheService_Available() {
+    void testCacheServiceAvailable() {
         // Arrange & Act
         int initialSize = cacheService.getCacheSize();
         
@@ -167,7 +167,7 @@ class ClientAccessControlRedisIntegrationTest {
     @Test
     @Order(4)
     @DisplayName("Event publishing to Redis should work")
-    void testEventPublishing_Success() {
+    void testEventPublishingSuccess() {
         // Arrange
         RefreshEvent event = RefreshEvent.builder()
                 .eventId(UUID.randomUUID().toString())
@@ -206,7 +206,7 @@ class ClientAccessControlRedisIntegrationTest {
     @Test
     @Order(6)
     @DisplayName("Properties should be loaded correctly")
-    void testProperties_Loaded() {
+    void testPropertiesLoaded() {
         assertThat(properties).isNotNull();
         assertThat(properties.isEnabled()).isTrue();
         assertThat(properties.getClaimNames()).isNotEmpty();

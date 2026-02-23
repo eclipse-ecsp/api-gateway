@@ -101,7 +101,7 @@ class RouteChangeEventTest {
      * Test type             - Positive.
      */
     @Test
-    void testConstructor_WithEmptyLists() {
+    void testConstructorWithEmptyLists() {
         // Arrange & Act
         RouteChangeEventData event = new RouteChangeEventData(Collections.emptyList(), Collections.emptyList());
 
@@ -120,7 +120,7 @@ class RouteChangeEventTest {
      * Test type             - Positive.
      */
     @Test
-    void testConstructor_WithMultipleServicesAndRoutes() {
+    void testConstructorWithMultipleServicesAndRoutes() {
         // Arrange
         List<String> services = List.of("service1", "service2", "service3");
         List<String> routes = List.of("route1", "route2", "route3");
@@ -142,7 +142,7 @@ class RouteChangeEventTest {
      * Test type             - Positive.
      */
     @Test
-    void testConstructor_WithCustomEventType() {
+    void testConstructorWithCustomEventType() {
         // Arrange
         List<String> services = List.of("service1");
         List<String> routes = List.of("route1");
@@ -163,7 +163,7 @@ class RouteChangeEventTest {
      * Test type             - Negative.
      */
     @Test
-    void testEquals_DifferentEvents_NotEqual() {
+    void testEqualsDifferentEventsNotEqual() {
         // Arrange
         List<String> services1 = List.of("s1");
         List<String> routes1 = List.of("r1");    
@@ -207,7 +207,7 @@ class RouteChangeEventTest {
      * Test type             - Positive.
      */
     @Test
-    void testToString_ContainsRelevantInfo() {
+    void testToStringContainsRelevantInfo() {
         // Arrange
         List<String> services = List.of("service1");
         List<String> routes = List.of("route1");
@@ -227,7 +227,7 @@ class RouteChangeEventTest {
      * Test type             - Negative.
      */
     @Test
-    void testConstructor_WithNullLists() {
+    void testConstructorWithNullLists() {
         // Arrange & Act
         RouteChangeEventData event = new RouteChangeEventData(null, null);
 

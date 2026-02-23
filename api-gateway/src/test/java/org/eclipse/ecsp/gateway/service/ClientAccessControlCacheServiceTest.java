@@ -46,11 +46,11 @@ class ClientAccessControlCacheServiceTest {
     @Mock
     private ClientAccessControlMetrics metrics;
 
-    private ClientAccessControlCacheService cacheService;
+    private ClientAccessControlService cacheService;
 
     @BeforeEach
     void setUp() {
-        cacheService = new ClientAccessControlCacheService(
+        cacheService = new ClientAccessControlService(
                 ruleMatcherService,
                 apiRegistryClient,
                 yamlConfigurationMerger,
@@ -63,7 +63,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("loadAllConfigurations() should fetch configs from API and populate cache")
-    void testLoadAllConfigurations_Success() {
+    void testLoadAllConfigurationsSuccess() {
         // Given: Mock API response with 2 clients
         List<ClientAccessControlConfigDto> mockDtos = Arrays.asList(
                 createDto("client-1", "tenant-1", true, List.of("user-service:*")),
@@ -93,7 +93,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("loadAllConfigurations() with YAML overrides should apply precedence")
-    void testLoadAllConfigurations_WithYamlOverrides() {
+    void testLoadAllConfigurationsWithYamlOverrides() {
         // Given: Mock API response
         List<ClientAccessControlConfigDto> mockDtos = Arrays.asList(
                 createDto("client-1", "tenant-1", true, List.of("user-service:*"))
@@ -135,7 +135,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("loadAllConfigurations() should clear existing cache before loading")
-    void testLoadAllConfigurations_ClearsCacheBefore() {
+    void testLoadAllConfigurationsClearsCacheBefore() {
         // Given: Pre-populate cache
         seedCache("old-client", "old-tenant");
         assertThat(cacheService.getCacheSize()).isEqualTo(1);
@@ -161,7 +161,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("refresh() should reload all configurations")
-    void testRefresh_Success() {
+    void testRefreshSuccess() {
         // Given: Pre-populate cache with old data
         seedCache("client-1", "old-tenant");
         
@@ -187,7 +187,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("getConfig() with cache hit should return config")
-    void testGetConfig_CacheHit() {
+    void testGetConfigCacheHit() {
         // Given: Config in cache
         seedCache("test-client", "test-tenant");
 
@@ -202,7 +202,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("getConfig() with cache miss should return null")
-    void testGetConfig_CacheMiss() {
+    void testGetConfigCacheMiss() {
         // When
         ClientAccessConfig result = cacheService.getConfig("nonexistent-client");
 
@@ -212,7 +212,7 @@ class ClientAccessControlCacheServiceTest {
 
     @Test
     @DisplayName("getConfig() should be case-sensitive for clientId")
-    void testGetConfig_CaseSensitive() {
+    void testGetConfigCaseSensitive() {
         // Given
         seedCache("TestClient", "test-tenant");
 

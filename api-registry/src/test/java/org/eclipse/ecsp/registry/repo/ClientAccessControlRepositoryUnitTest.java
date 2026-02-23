@@ -70,7 +70,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns saved entity.
      */
     @Test
-    void save_ValidEntity_DelegatesToJpaAndReturnsSaved() {
+    void saveValidEntityDelegatesToJpaAndReturnsSaved() {
         when(jpaRepository.save(testEntity)).thenReturn(testEntity);
 
         ClientAccessControlEntity result = sqlRepository.save(testEntity);
@@ -85,7 +85,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns saved entities as list.
      */
     @Test
-    void saveAll_ValidEntities_DelegatesToJpaAndReturnsList() {
+    void saveAllValidEntitiesDelegatesToJpaAndReturnsList() {
         final List<ClientAccessControlEntity> entities = Arrays.asList(testEntity);
         when(jpaRepository.saveAll(entities)).thenReturn(entities);
 
@@ -102,7 +102,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns entity.
      */
     @Test
-    void findByClientIdAndIsDeletedFalse_ExistingClient_ReturnsEntity() {
+    void findByClientIdAndIsDeletedFalseExistingClientReturnsEntity() {
         when(jpaRepository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(testEntity));
 
         Optional<ClientAccessControlEntity> result = sqlRepository.findByClientIdAndIsDeletedFalse("client1");
@@ -118,7 +118,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns empty.
      */
     @Test
-    void findByClientIdAndIsDeletedFalse_NonExistingClient_ReturnsEmpty() {
+    void findByClientIdAndIsDeletedFalseNonExistingClientReturnsEmpty() {
         when(jpaRepository.findByClientIdAndIsDeletedFalse("nonexistent")).thenReturn(Optional.empty());
 
         Optional<ClientAccessControlEntity> result = sqlRepository.findByClientIdAndIsDeletedFalse("nonexistent");
@@ -133,7 +133,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns active entities.
      */
     @Test
-    void findByIsActiveAndIsDeletedFalse_ActiveTrue_ReturnsActiveEntities() {
+    void findByIsActiveAndIsDeletedFalseActiveTrueReturnsActiveEntities() {
         final List<ClientAccessControlEntity> entities = Arrays.asList(testEntity);
         when(jpaRepository.findByIsActiveAndIsDeletedFalse(true)).thenReturn(entities);
 
@@ -150,7 +150,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns inactive entities.
      */
     @Test
-    void findByIsActiveAndIsDeletedFalse_ActiveFalse_ReturnsInactiveEntities() {
+    void findByIsActiveAndIsDeletedFalseActiveFalseReturnsInactiveEntities() {
         testEntity.setIsActive(false);
         final List<ClientAccessControlEntity> entities = Arrays.asList(testEntity);
         when(jpaRepository.findByIsActiveAndIsDeletedFalse(false)).thenReturn(entities);
@@ -168,7 +168,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns all non-deleted entities.
      */
     @Test
-    void findByIsDeletedFalse_NonDeletedEntitiesExist_ReturnsAllNonDeleted() {
+    void findByIsDeletedFalseNonDeletedEntitiesExistReturnsAllNonDeleted() {
         final List<ClientAccessControlEntity> entities = Arrays.asList(testEntity);
         when(jpaRepository.findByIsDeletedFalse()).thenReturn(entities);
 
@@ -185,7 +185,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns empty list.
      */
     @Test
-    void findByIsDeletedFalse_NoNonDeletedEntities_ReturnsEmptyList() {
+    void findByIsDeletedFalseNoNonDeletedEntitiesReturnsEmptyList() {
         when(jpaRepository.findByIsDeletedFalse()).thenReturn(new ArrayList<>());
 
         List<ClientAccessControlEntity> result = sqlRepository.findByIsDeletedFalse();
@@ -200,7 +200,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns true.
      */
     @Test
-    void existsByClientIdAndIsDeletedFalse_ExistingClient_ReturnsTrue() {
+    void existsByClientIdAndIsDeletedFalseExistingClientReturnsTrue() {
         when(jpaRepository.existsByClientIdAndIsDeletedFalse("client1")).thenReturn(true);
 
         boolean result = sqlRepository.existsByClientIdAndIsDeletedFalse("client1");
@@ -215,7 +215,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns false.
      */
     @Test
-    void existsByClientIdAndIsDeletedFalse_NonExistingClient_ReturnsFalse() {
+    void existsByClientIdAndIsDeletedFalseNonExistingClientReturnsFalse() {
         when(jpaRepository.existsByClientIdAndIsDeletedFalse("nonexistent")).thenReturn(false);
 
         boolean result = sqlRepository.existsByClientIdAndIsDeletedFalse("nonexistent");
@@ -230,7 +230,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository and returns deleted entity.
      */
     @Test
-    void findByClientIdAndIsDeletedTrue_SoftDeletedClient_ReturnsEntity() {
+    void findByClientIdAndIsDeletedTrueSoftDeletedClientReturnsEntity() {
         testEntity.setIsDeleted(true);
         when(jpaRepository.findByClientIdAndIsDeletedTrue("client1")).thenReturn(Optional.of(testEntity));
 
@@ -247,7 +247,7 @@ class ClientAccessControlRepositoryUnitTest {
      * Then delegates to JPA repository for deletion.
      */
     @Test
-    void delete_ValidEntity_DelegatesToJpa() {
+    void deleteValidEntityDelegatesToJpa() {
         sqlRepository.delete(testEntity);
 
         verify(jpaRepository, times(1)).delete(testEntity);

@@ -54,7 +54,7 @@ class YamlConfigurationMergerTest {
     private AccessControlConfigMerger merger;
 
     @Test
-    void testMerge_NoYamlOverrides_ReturnsDatabaseConfigs() {
+    void testMergeNoYamlOverridesReturnsDatabaseConfigs() {
         when(yamlProperties.getOverrides()).thenReturn(List.of());
 
         List<ClientAccessConfig> result = merger.merge(List.of(createDatabaseConfig("client1", "tenant1")));
@@ -65,7 +65,7 @@ class YamlConfigurationMergerTest {
     }
 
     @Test
-    void testMerge_YamlOverride_ReplacesDatabase() {
+    void testMergeYamlOverrideReplacesDatabase() {
         ClientAccessControlProperties.YamlOverride override = new ClientAccessControlProperties.YamlOverride();
         override.setClientId("client1");
         override.setTenant("tenant-yaml");
@@ -86,7 +86,7 @@ class YamlConfigurationMergerTest {
     }
 
     @Test
-    void testMerge_YamlOnlyClient_AddedToResult() {
+    void testMergeYamlOnlyClientAddedToResult() {
         ClientAccessControlProperties.YamlOverride override = new ClientAccessControlProperties.YamlOverride();
         override.setClientId("client2");
         override.setTenant("tenant2");

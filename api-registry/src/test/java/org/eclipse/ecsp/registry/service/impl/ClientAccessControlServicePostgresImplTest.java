@@ -97,7 +97,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testBulkCreate_Success() {
+    void testBulkCreateSuccess() {
         when(repository.existsByClientIdAndIsDeletedFalse(anyString())).thenReturn(false);
         when(repository.findByClientIdAndIsDeletedTrue(anyString())).thenReturn(Optional.empty());
         when(mapper.requestDtoToEntity(any(ClientAccessControlRequestDto.class))).thenReturn(entity);
@@ -113,7 +113,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testGetById_Success() {
+    void testGetByIdSuccess() {
         when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(response);
 
@@ -123,7 +123,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testGetById_NotFound() {
+    void testGetByIdNotFound() {
         when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getById("test-client-123"))
@@ -132,7 +132,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testGetAll_ActiveOnly() {
+    void testGetAllActiveOnly() {
         when(repository.findByIsActiveAndIsDeletedFalse(true)).thenReturn(List.of(entity));
         when(mapper.entityToResponseDto(any(ClientAccessControlEntity.class))).thenReturn(response);
 
@@ -143,7 +143,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testGetAll_IncludeInactive() {
+    void testGetAllIncludeInactive() {
         when(repository.findByIsDeletedFalse()).thenReturn(List.of(entity));
         when(mapper.entityToResponseDto(any(ClientAccessControlEntity.class))).thenReturn(response);
 
@@ -154,7 +154,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testUpdate_Success() {
+    void testUpdateSuccess() {
         when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
         when(repository.save(any(ClientAccessControlEntity.class))).thenReturn(entity);
         when(mapper.entityToResponseDto(entity)).thenReturn(response);
@@ -168,7 +168,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testDelete_SoftDelete() {
+    void testDeleteSoftDelete() {
         when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
         when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
 
@@ -180,7 +180,7 @@ class ClientAccessControlServicePostgresImplTest {
     }
 
     @Test
-    void testDelete_PermanentDelete() {
+    void testDeletePermanentDelete() {
         when(repository.findByClientIdAndIsDeletedFalse("test-client-123")).thenReturn(Optional.of(entity));
         when(eventPublisher.publishEvent(any(ClientAccessControlEventData.class))).thenReturn(true);
 

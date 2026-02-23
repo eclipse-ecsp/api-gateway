@@ -108,7 +108,7 @@ class ApiRouteServiceTest {
     }
 
     @Test
-    void testCreateOrUpdate_PublishesEvent() {
+    void testCreateOrUpdatePublishesEvent() {
         // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         apiRouteEntity.setService("test-service");
@@ -124,7 +124,7 @@ class ApiRouteServiceTest {
     }
 
     @Test
-    void testDelete_PublishesEvent() {
+    void testDeletePublishesEvent() {
         // Arrange
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
@@ -138,7 +138,7 @@ class ApiRouteServiceTest {
     }
 
     @Test
-    void testCreateOrUpdate_WithoutEventPublisher() {
+    void testCreateOrUpdateWithoutEventPublisher() {
         // Arrange - create service without event publisher
         ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
@@ -156,7 +156,7 @@ class ApiRouteServiceTest {
      * Test type             - Negative.
      */
     @Test
-    void testCreateOrUpdate_NullService_NoEventPublished() {
+    void testCreateOrUpdateNullServiceNoEventPublished() {
         // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         apiRouteEntity.setService(null);
@@ -178,7 +178,7 @@ class ApiRouteServiceTest {
      * Test type             - Negative.
      */
     @Test
-    void testDelete_NullService_NoEventPublished() {
+    void testDeleteNullServiceNoEventPublished() {
         // Arrange
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService(null);
@@ -198,7 +198,7 @@ class ApiRouteServiceTest {
      * Test type             - Negative.
      */
     @Test
-    void testRead_RouteNotFound_ThrowsException() {
+    void testReadRouteNotFoundThrowsException() {
         // Arrange
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
@@ -214,7 +214,7 @@ class ApiRouteServiceTest {
      * Test type             - Negative.
      */
     @Test
-    void testDelete_RouteNotFound_ThrowsException() {
+    void testDeleteRouteNotFoundThrowsException() {
         // Arrange
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
@@ -230,7 +230,7 @@ class ApiRouteServiceTest {
      * Test type             - Positive.
      */
     @Test
-    void testCreateOrUpdate_WithApiDocs() {
+    void testCreateOrUpdateWithApiDocs() {
         // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
@@ -253,7 +253,7 @@ class ApiRouteServiceTest {
      * Test type             - Positive.
      */
     @Test
-    void testCreateOrUpdate_WithApiDocsFalse() {
+    void testCreateOrUpdateWithApiDocsFalse() {
         // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
@@ -274,7 +274,7 @@ class ApiRouteServiceTest {
      * Test type             - Positive.
      */
     @Test
-    void testList_EmptyRepository() {
+    void testListEmptyRepository() {
         // Arrange
         Mockito.when(apiRouteRepo.findAll()).thenReturn(java.util.Collections.emptyList());
 
@@ -293,7 +293,7 @@ class ApiRouteServiceTest {
      * Test type             - Positive.
      */
     @Test
-    void testDelete_WithoutEventPublisher() {
+    void testDeleteWithoutEventPublisher() {
         // Arrange
         ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();

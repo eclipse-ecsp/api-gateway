@@ -62,7 +62,7 @@ class RateLimitConfigEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ValidEventData_SendViaThrottlerAndReturnTrue() {
+    void publishValidEventDataSendViaThrottlerAndReturnTrue() {
         // GIVEN: Valid event data
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -86,7 +86,7 @@ class RateLimitConfigEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ThrottlerFails_ReturnFalse() {
+    void publishThrottlerFailsReturnFalse() {
         // GIVEN: Event data and failing throttler
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -110,7 +110,7 @@ class RateLimitConfigEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnRateLimitConfigChange() {
+    void getEventTypeCalledReturnRateLimitConfigChange() {
         // GIVEN: Strategy instance
 
         // WHEN: Get event type
@@ -129,7 +129,7 @@ class RateLimitConfigEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_MultipleServicesAndRoutes_SendEventSuccessfully() {
+    void publishMultipleServicesAndRoutesSendEventSuccessfully() {
         // GIVEN: Event data with multiple services and routes
         List<String> services = List.of("service-1", "service-2");
         List<String> routes = List.of("route-1", "route-2", "route-3");
@@ -154,7 +154,7 @@ class RateLimitConfigEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_EmptyLists_SendEventSuccessfully() {
+    void publishEmptyListsSendEventSuccessfully() {
         // GIVEN: Event data with empty lists
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(List.of(), List.of());
 

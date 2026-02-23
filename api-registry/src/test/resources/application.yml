@@ -168,7 +168,7 @@ sp.restart.on.failure: ${sp_restart_on_failure:false}
 
 morphia:
   map.packages: ${mongodb_packages:org.eclipse.ecsp}
-  converters.fqn: ${mongodb_converters:org.bson.codecs.JsonObjectCodec,,org.eclipse.ecsp.registry.utils.OffsetDateTimeCodec}
+  converters.fqn: ${mongodb_converters:org.bson.codecs.JsonObjectCodec}
 
 # mongoDB, cosmosDB
 no.sql.database.type: ${api_registry_database_provider:mongoDB}

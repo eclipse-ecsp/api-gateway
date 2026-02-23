@@ -46,7 +46,7 @@ class NoOpsEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void publishEvent_ValidEventData_ReturnsTrue() {
+    void publishEventValidEventDataReturnsTrue() {
         // GIVEN: Valid event data
         TestEventData eventData = new TestEventData("test-event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
 
@@ -64,7 +64,7 @@ class NoOpsEventPublisherTest {
      * Test type             - Negative.
      */
     @Test
-    void publishEvent_NullEventId_ReturnsTrue() {
+    void publishEventNullEventIdReturnsTrue() {
         // GIVEN: Event with null ID
         TestEventData eventData = new TestEventData(null, RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
 
@@ -82,7 +82,7 @@ class NoOpsEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void publishEvent_MultipleEvents_AllReturnTrue() {
+    void publishEventMultipleEventsAllReturnTrue() {
         // GIVEN: Multiple events
         TestEventData event1 = new TestEventData("event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
         TestEventData event2 = new TestEventData("event-2", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);

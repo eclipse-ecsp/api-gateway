@@ -104,7 +104,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void constructor_WithPluginsDisabled_InitializesSuccessfully() {
+    void constructorWithPluginsDisabledInitializesSuccessfully() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -122,7 +122,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void constructor_WithPluginsEnabled_LoadsCustomPlugins() {
+    void constructorWithPluginsEnabledLoadsCustomPlugins() {
         GatewayFilterFactory<?> customPlugin = mock(GatewayFilterFactory.class);
         when(customPlugin.name()).thenReturn("CustomPlugin");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customPlugin));
@@ -145,7 +145,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void init_WithCustomPluginsDisabled_LogsMessage() {
+    void initWithCustomPluginsDisabledLogsMessage() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -167,7 +167,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void init_WithValidFilterOverride_ValidatesSuccessfully() {
+    void initWithValidFilterOverrideValidatesSuccessfully() {
         GatewayFilterFactory<?> customPlugin = mock(GatewayFilterFactory.class);
         when(customPlugin.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customPlugin));
@@ -201,7 +201,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void refreshRoutes_PublishesEvent() {
+    void refreshRoutesPublishesEvent() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -221,7 +221,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithValidRoutes_ReturnsRoutes() {
+    void getRoutesWithValidRoutesReturnsRoutes() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -274,7 +274,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithInvalidFilter_FiltersOutRoute() {
+    void getRoutesWithInvalidFilterFiltersOutRoute() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -318,7 +318,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithApiDocsEnabled_AddsToApiDocRoutes() {
+    void getRoutesWithApiDocsEnabledAddsToApiDocRoutes() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -369,7 +369,7 @@ class IgniteRouteLocatorTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void getRoutes_WithRouteCustomizers_AppliesCustomizers() {
+    void getRoutesWithRouteCustomizersAppliesCustomizers() {
         RouteCustomizer mockCustomizer = mock(RouteCustomizer.class);
         when(mockCustomizer.customize(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -394,7 +394,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getApiDocRoutes_ReturnsApiDocRoutes() {
+    void getApiDocRoutesReturnsApiDocRoutes() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -413,7 +413,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void init_WithFilterOverrideEnabled_ValidatesSuccessfully() {
+    void initWithFilterOverrideEnabledValidatesSuccessfully() {
         GatewayFilterFactory<?> customFilter = mock(GatewayFilterFactory.class);
         when(customFilter.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customFilter));
@@ -447,7 +447,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void init_WithInvalidFilterOverride_ThrowsException() {
+    void initWithInvalidFilterOverrideThrowsException() {
         GatewayFilterFactory<?> customFilter = mock(GatewayFilterFactory.class);
         when(customFilter.name()).thenReturn("CustomFilter");
         when(pluginLoader.loadPlugins()).thenReturn(List.of(customFilter));
@@ -482,7 +482,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithMethodPredicate_AddsMethodToRoute() {
+    void getRoutesWithMethodPredicateAddsMethodToRoute() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -534,7 +534,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithLocalCache_AddsCacheFilter() {
+    void getRoutesWithLocalCacheAddsCacheFilter() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -587,7 +587,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithRedisCache_AddsCacheFilter() {
+    void getRoutesWithRedisCacheAddsCacheFilter() {
         assertTrue(testCacheFilter("test-cache-key"));
         assertTrue(testCacheFilter(null));
         assertTrue(testCacheFilter(""));
@@ -645,7 +645,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithMetadata_SetsMetadata() {
+    void getRoutesWithMetadataSetsMetadata() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -696,7 +696,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithSchema_AddsSchemaValidator() {
+    void getRoutesWithSchemaAddsSchemaValidator() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -748,7 +748,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithDefaultFilters_AppliesDefaultFilters() {
+    void getRoutesWithDefaultFiltersAppliesDefaultFilters() {
         FilterDefinition defaultFilter = new FilterDefinition();
         defaultFilter.setName("TestFilter");
         when(gatewayProperties.getDefaultFilters()).thenReturn(List.of(defaultFilter));
@@ -799,7 +799,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithCacheNotEnabled_SkipsCacheFilter() {
+    void getRoutesWithCacheNotEnabledSkipsCacheFilter() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -849,7 +849,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithApiDocsDisabled_DoesNotAddToApiDocRoutes() {
+    void getRoutesWithApiDocsDisabledDoesNotAddToApiDocRoutes() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -897,7 +897,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithMalformedSchemaJson_HandlesGracefully() {
+    void getRoutesWithMalformedSchemaJsonHandlesGracefully() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -948,7 +948,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithMultiplePredicates_HandlesCorrectly() {
+    void getRoutesWithMultiplePredicatesHandlesCorrectly() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -1004,7 +1004,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithNullMetadata_HandlesGracefully() {
+    void getRoutesWithNullMetadataHandlesGracefully() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,
@@ -1052,7 +1052,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithSpringCloudGatewayConfigFilters_AppliesFilters() {
+    void getRoutesWithSpringCloudGatewayConfigFiltersAppliesFilters() {
         FilterDefinition configFilter = new FilterDefinition();
         configFilter.setName("TestFilter");
         when(springCloudGatewayConfig.getDefaultFilters()).thenReturn(List.of(configFilter));
@@ -1103,7 +1103,7 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutes_WithEmptyFilterList_HandlesGracefully() {
+    void getRoutesWithEmptyFilterListHandlesGracefully() {
         igniteRouteLocator = new IgniteRouteLocator(
                 configurationService,
                 gatewayFilterFactories,

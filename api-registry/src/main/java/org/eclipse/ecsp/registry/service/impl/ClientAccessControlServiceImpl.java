@@ -16,7 +16,7 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -111,15 +111,15 @@ public class ClientAccessControlServiceImpl implements ClientAccessControlServic
                 entity.setTenant(request.getTenant());
                 entity.setIsActive(request.getIsActive() != null ? request.getIsActive() : Boolean.TRUE);
                 entity.setAllow(request.getAllow());
-                entity.setUpdatedAt(OffsetDateTime.now());
+                entity.setUpdatedAt(LocalDateTime.now());
                 LOGGER.info("Restoring soft-deleted client access control: clientId={}", request.getClientId());
             } else {
                 // Create new record
                 entity = mapper.requestDtoToEntity(request);
                 entity.setId(request.getClientId());
                 entity.setIsDeleted(false);
-                entity.setCreatedAt(OffsetDateTime.now());
-                entity.setUpdatedAt(OffsetDateTime.now());
+                entity.setCreatedAt(LocalDateTime.now());
+                entity.setUpdatedAt(LocalDateTime.now());
             }
             entities.add(entity);
         }
@@ -207,7 +207,7 @@ public class ClientAccessControlServiceImpl implements ClientAccessControlServic
 
         
         entity.setAllow(request.getAllow() != null ? request.getAllow() : entity.getAllow());
-        entity.setUpdatedAt(OffsetDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
 
         ClientAccessControlEntity savedEntity = repository.save(entity);
 
@@ -230,8 +230,8 @@ public class ClientAccessControlServiceImpl implements ClientAccessControlServic
             LOGGER.info("Permanently deleted client access control: clientId={}", clientId);
         } else {
             entity.setIsDeleted(true);
-            entity.setDeletedAt(OffsetDateTime.now());
-            entity.setUpdatedAt(OffsetDateTime.now());
+            entity.setDeletedAt(LocalDateTime.now());
+            entity.setUpdatedAt(LocalDateTime.now());
             repository.save(entity);
             LOGGER.info("Soft deleted client access control: clientId={}", clientId);
         }

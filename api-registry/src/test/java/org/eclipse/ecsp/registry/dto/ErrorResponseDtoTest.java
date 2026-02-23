@@ -40,7 +40,7 @@ class ErrorResponseDtoTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_DefaultConstructor_CreateInstanceWithNullError() {
+    void constructorDefaultConstructorCreateInstanceWithNullError() {
         // GIVEN: No input
 
         // WHEN: Create instance using default constructor
@@ -60,7 +60,7 @@ class ErrorResponseDtoTest {
      * @throws Exception if test fails
      **/
     @Test
-    void setError_ValidErrorMessage_SetAndGetCorrectly() {
+    void setErrorValidErrorMessageSetAndGetCorrectly() {
         // GIVEN: DTO instance and error message
         ErrorResponseDto dto = new ErrorResponseDto();
         String errorMessage = "Test error message";
@@ -81,7 +81,7 @@ class ErrorResponseDtoTest {
      * @throws Exception if test fails
      **/
     @Test
-    void setError_NullValue_SetToNull() {
+    void setErrorNullValueSetToNull() {
         // GIVEN: DTO instance with initial error
         ErrorResponseDto dto = new ErrorResponseDto();
         dto.setError("Initial error");
@@ -102,7 +102,7 @@ class ErrorResponseDtoTest {
      * @throws Exception if test fails
      **/
     @Test
-    void setError_EmptyString_SetToEmptyString() {
+    void setErrorEmptyStringSetToEmptyString() {
         // GIVEN: DTO instance
         ErrorResponseDto dto = new ErrorResponseDto();
 
@@ -122,7 +122,7 @@ class ErrorResponseDtoTest {
      * @throws Exception if test fails
      **/
     @Test
-    void setError_LongErrorMessage_StoredAndRetrievedCorrectly() {
+    void setErrorLongErrorMessageStoredAndRetrievedCorrectly() {
         // GIVEN: DTO instance and long error message
         ErrorResponseDto dto = new ErrorResponseDto();
         String longError = "This is a very long error message that contains multiple details about what went wrong "

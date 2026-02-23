@@ -60,7 +60,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_TwoServices_ScheduleEventForEachService() {
+    void publishTwoServicesScheduleEventForEachService() {
         // GIVEN: Event data with 2 services
         List<String> services = List.of("service-1", "service-2");
         RouteChangeEventData eventData = new RouteChangeEventData(services, List.of());
@@ -83,7 +83,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_SingleService_ScheduleEventOnce() {
+    void publishSingleServiceScheduleEventOnce() {
         // GIVEN: Event data with single service
         RouteChangeEventData eventData = new RouteChangeEventData(List.of("service-1"), List.of());
 
@@ -104,7 +104,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_NoServices_ReturnTrueWithoutScheduling() {
+    void publishNoServicesReturnTrueWithoutScheduling() {
         // GIVEN: Event data with no services
         RouteChangeEventData eventData = new RouteChangeEventData(List.of(), List.of());
 
@@ -125,7 +125,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnRouteChange() {
+    void getEventTypeCalledReturnRouteChange() {
         // GIVEN: Strategy instance
 
         // WHEN: Get event type
@@ -144,7 +144,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_MultipleServices_ScheduleAllServices() {
+    void publishMultipleServicesScheduleAllServices() {
         // GIVEN: Event data with 5 services
         List<String> services = List.of("service-1", "service-2", "service-3", "service-4", "service-5");
         RouteChangeEventData eventData = new RouteChangeEventData(services, List.of());
@@ -170,7 +170,7 @@ class RouteChangeEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ValidEventData_AlwaysReturnTrue() {
+    void publishValidEventDataAlwaysReturnTrue() {
         // GIVEN: Event data
         RouteChangeEventData eventData = new RouteChangeEventData(List.of("service-1"), List.of());
 

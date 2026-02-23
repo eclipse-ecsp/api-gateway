@@ -42,7 +42,7 @@ class JarUtilsTest {
     Path tempDir;
 
     @Test
-    void loadClass_ValidJarWithClass_ReturnsClass() throws IOException {
+    void loadClassValidJarWithClassReturnsClass() throws IOException {
         // Create a test JAR with a class
         createTestJar(tempDir.toFile(), "test.jar", "java/lang/String.class");
 
@@ -57,7 +57,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void loadClass_InvalidPath_ReturnsNull() {
+    void loadClassInvalidPathReturnsNull() {
         Class<?> result = JarUtils.loadClass(
                 "/non/existent/path",
                 "com.example.TestClass",
@@ -68,7 +68,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void loadClass_ClassNotFound_ReturnsNull() throws IOException {
+    void loadClassClassNotFoundReturnsNull() throws IOException {
         // Create a valid JAR but try to load non-existent class
         createTestJar(tempDir.toFile(), "empty.jar", null);
 
@@ -82,7 +82,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void loadClass_ClassNameWithWhitespace_TrimsAndLoads() throws IOException {
+    void loadClassClassNameWithWhitespaceTrimsAndLoads() throws IOException {
         // Create a test JAR
         createTestJar(tempDir.toFile(), "test.jar", "java/lang/String.class");
 
@@ -97,7 +97,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_ValidDirectoryWithJars_ReturnsClassLoader() throws IOException {
+    void createClassLoaderValidDirectoryWithJarsReturnsClassLoader() throws IOException {
         // Create multiple test JARs
         createTestJar(tempDir.toFile(), "test1.jar", "Test1.class");
         createTestJar(tempDir.toFile(), "test2.jar", "Test2.class");
@@ -112,7 +112,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_NonExistentPath_ReturnsNull() {
+    void createClassLoaderNonExistentPathReturnsNull() {
         URLClassLoader result = JarUtils.createClassLoader(
                 "/non/existent/path",
                 getClass().getClassLoader()
@@ -122,7 +122,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_PathIsFile_ReturnsNull() throws IOException {
+    void createClassLoaderPathIsFileReturnsNull() throws IOException {
         // Create a file instead of a directory
         File file = new File(tempDir.toFile(), "notadirectory.txt");
         file.createNewFile();
@@ -136,7 +136,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_EmptyDirectory_ReturnsNull() {
+    void createClassLoaderEmptyDirectoryReturnsNull() {
         // tempDir is empty by default
         URLClassLoader result = JarUtils.createClassLoader(
                 tempDir.toString(),
@@ -147,7 +147,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_DirectoryWithNoJars_ReturnsNull() throws IOException {
+    void createClassLoaderDirectoryWithNoJarsReturnsNull() throws IOException {
         // Create non-JAR files
         new File(tempDir.toFile(), "test.txt").createNewFile();
         new File(tempDir.toFile(), "test.zip").createNewFile();
@@ -161,7 +161,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_MultipleJarsSorted_LoadsInOrder() throws IOException {
+    void createClassLoaderMultipleJarsSortedLoadsInOrder() throws IOException {
         // Create JARs that should be sorted alphabetically
         createTestJar(tempDir.toFile(), "z-last.jar", "Last.class");
         createTestJar(tempDir.toFile(), "a-first.jar", "First.class");
@@ -176,7 +176,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void createClassLoader_NullParentClassLoader_UsesSystemClassLoader() throws IOException {
+    void createClassLoaderNullParentClassLoaderUsesSystemClassLoader() throws IOException {
         createTestJar(tempDir.toFile(), "test.jar", "Test.class");
 
         URLClassLoader result = JarUtils.createClassLoader(
@@ -188,7 +188,7 @@ class JarUtilsTest {
     }
 
     @Test
-    void loadClass_NullParentClassLoader_ReturnsNull() throws IOException {
+    void loadClassNullParentClassLoaderReturnsNull() throws IOException {
         createTestJar(tempDir.toFile(), "test.jar", "java/lang/String.class");
 
         Class<?> result = JarUtils.loadClass(

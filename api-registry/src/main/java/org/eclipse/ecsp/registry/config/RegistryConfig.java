@@ -19,15 +19,11 @@
 package org.eclipse.ecsp.registry.config;
 
 import com.fasterxml.jackson.databind.MapperFeature;
-import com.mongodb.MongoClientSettings;
-
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
 import org.eclipse.ecsp.nosqldao.spring.config.IgniteDAOMongoConfigWithProps;
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
@@ -44,9 +40,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
+import java.time.LocalDateTime;
 
-import java.time.OffsetDateTime;
+import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 
 /**
  * RegistryConfig.
@@ -118,26 +114,26 @@ public class RegistryConfig {
     }
 
     /**
-     * Codec for OffsetDateTime to handle MongoDB serialization and deserialization.
+     * Codec for LocalDateTime to handle MongoDB serialization and deserialization.
      *
-     * @return Codec for OffsetDateTime
+     * @return Codec for LocalDateTime
      */
     @Bean
-    public Codec<OffsetDateTime> offsetDateTimeCodec() {
-        return new Codec<OffsetDateTime>() {
+    public Codec<LocalDateTime> localDateTimeCodec() {
+        return new Codec<LocalDateTime>() {
             @Override
-            public void encode(BsonWriter writer, OffsetDateTime value, EncoderContext encoderContext) {
+            public void encode(BsonWriter writer, LocalDateTime value, EncoderContext encoderContext) {
                 writer.writeString(value.toString());
             }
 
             @Override
-            public OffsetDateTime decode(BsonReader reader, DecoderContext decoderContext) {
-                return OffsetDateTime.parse(reader.readString());
+            public LocalDateTime decode(BsonReader reader, DecoderContext decoderContext) {
+                return LocalDateTime.parse(reader.readString());
             }
 
             @Override
-            public Class<OffsetDateTime> getEncoderClass() {
-                return OffsetDateTime.class;
+            public Class<LocalDateTime> getEncoderClass() {
+                return LocalDateTime.class;
             }
         };
     }

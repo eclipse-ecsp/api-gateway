@@ -16,8 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for ClientAccessControlMetrics.
  *
- * <p>
- * Tests all metric recording methods:
+ * <p>Tests all metric recording methods:
  * - Request counters (checked, allowed, denied)
  * - Cache counters (hit, miss)
  * - Cache size gauge
@@ -205,7 +204,7 @@ class ClientAccessControlMetricsTest {
     }
 
     @Test
-    void testSanitization_NullValue() {
+    void testSanitizationNullValue() {
         // When: Record with null client ID
         metrics.recordRequestChecked(null);
 
@@ -219,7 +218,7 @@ class ClientAccessControlMetricsTest {
     }
 
     @Test
-    void testSanitization_EmptyValue() {
+    void testSanitizationEmptyValue() {
         // When: Record with empty client ID
         metrics.recordRequestChecked("");
 
@@ -233,7 +232,7 @@ class ClientAccessControlMetricsTest {
     }
 
     @Test
-    void testSanitization_LongValue() {
+    void testSanitizationLongValue() {
         // Given: Very long client ID (>100 chars)
         String longClientId = "a".repeat(LONG_CLIENT_ID_LENGTH);
 

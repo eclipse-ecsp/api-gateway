@@ -62,7 +62,7 @@ class ClientAccessControlEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ValidEventData_SendViaThrottlerAndReturnTrue() {
+    void publishValidEventDataSendViaThrottlerAndReturnTrue() {
         // GIVEN: Valid event data
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(List.of("client-1"));
 
@@ -85,7 +85,7 @@ class ClientAccessControlEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ThrottlerFails_ReturnFalse() {
+    void publishThrottlerFailsReturnFalse() {
         // GIVEN: Event data and failing throttler
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(List.of("client-1"));
 
@@ -108,7 +108,7 @@ class ClientAccessControlEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_MultipleClientIds_SendEventWithAllIds() {
+    void publishMultipleClientIdsSendEventWithAllIds() {
         // GIVEN: Event data with multiple client IDs
         List<String> clientIds = List.of("client-1", "client-2", "client-3");
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(clientIds);
@@ -132,7 +132,7 @@ class ClientAccessControlEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnClientAccessControlUpdated() {
+    void getEventTypeCalledReturnClientAccessControlUpdated() {
         // GIVEN: Strategy instance
 
         // WHEN: Get event type
@@ -151,7 +151,7 @@ class ClientAccessControlEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_EmptyClientIdList_SendEventSuccessfully() {
+    void publishEmptyClientIdListSendEventSuccessfully() {
         // GIVEN: Event data with empty client ID list
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(List.of());
 

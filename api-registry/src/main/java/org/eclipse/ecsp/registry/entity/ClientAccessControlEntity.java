@@ -30,7 +30,7 @@ import org.eclipse.ecsp.domain.Version;
 import org.eclipse.ecsp.entities.IgniteEntity;
 import org.hibernate.annotations.Type;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -116,20 +116,20 @@ public class ClientAccessControlEntity implements IgniteEntity {
      * Auto-populated on insert.
      */
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     /**
      * Last update timestamp.
      * Auto-populated on update.
      */
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     /**
      * Soft deletion timestamp (NULL if not deleted).
      */
     @Column(name = "deleted_at")
-    private OffsetDateTime deletedAt;
+    private LocalDateTime deletedAt;
 
     private Version schemaVersion;
 }

@@ -21,7 +21,6 @@ package org.eclipse.ecsp.registry.integration;
 import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.events.RouteEventThrottler;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,7 +47,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>NOTE: These tests are disabled because RegistryApplication excludes JPA auto-configuration,
  * preventing context loading. The event-driven functionality is validated through unit tests.
  */
-@Disabled("RegistryApplication excludes JPA, preventing context loading. Functionality validated via unit tests.")
 @SpringBootTest(
     properties = {
         "api-registry.events.enabled=true",
@@ -95,14 +93,14 @@ class EventDrivenRouteRefreshIntegrationTest {
     private StringRedisTemplate redisTemplate;
 
     @Test
-    void testRedisContainer_IsRunning() {
+    void testRedisContainerIsRunning() {
         // Verify Redis container is running
         assertThat(redis.isRunning()).isTrue();
         assertThat(redis.getFirstMappedPort()).isGreaterThan(0);
     }
 
     @Test
-    void testRedisConnectivity_BasicOperations() {
+    void testRedisConnectivityBasicOperations() {
         // Verify Redis is accessible and basic operations work
         String testKey = "test-key-" + UUID.randomUUID();
         String testValue = "test-value";
@@ -117,19 +115,19 @@ class EventDrivenRouteRefreshIntegrationTest {
     }
 
     @Test
-    void testEventPublisher_IsConfigured() {
+    void testEventPublisherIsConfigured() {
         // Verify event publisher is properly autowired
         assertThat(eventPublisher).isNotNull();
     }
 
     @Test
-    void testEventThrottler_IsConfigured() {
+    void testEventThrottlerIsConfigured() {
         // Verify event throttler is properly autowired
         assertThat(eventThrottler).isNotNull();
     }
 
     @Test
-    void testEventPublisher_CanPublishEvent() throws InterruptedException {
+    void testEventPublisherCanPublishEvent() throws InterruptedException {
         // Test that event publisher can be invoked without errors and publishes to Redis
         String serviceId = "test-service-" + UUID.randomUUID();
         CountDownLatch latch = new CountDownLatch(1);
@@ -161,7 +159,7 @@ class EventDrivenRouteRefreshIntegrationTest {
     }
 
     @Test
-    void testRedisTemplate_CanPublishToChannel() {
+    void testRedisTemplateCanPublishToChannel() {
         // Test that we can publish to the Redis channel
         String testMessage = "test-message";
         String channel = "route-changes-it";

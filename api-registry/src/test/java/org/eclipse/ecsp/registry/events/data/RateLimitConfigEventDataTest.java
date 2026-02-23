@@ -44,7 +44,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_WithServicesAndRoutes_CreateInstanceCorrectly() {
+    void constructorWithServicesAndRoutesCreateInstanceCorrectly() {
         // GIVEN: Lists of services and routes
         List<String> services = List.of("service-1", "service-2");
         List<String> routes = List.of("route-1", "route-2", "route-3");
@@ -74,7 +74,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_FullConstructor_CreateInstanceWithAllFields() {
+    void constructorFullConstructorCreateInstanceWithAllFields() {
         // GIVEN: All fields
         String eventId = "event-456";
         Instant timestamp = Instant.now();
@@ -100,7 +100,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnRateLimitConfigChange() {
+    void getEventTypeCalledReturnRateLimitConfigChange() {
         // GIVEN: Event data
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -121,7 +121,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getServices_AttemptToModify_ThrowUnsupportedOperationException() {
+    void getServicesAttemptToModifyThrowUnsupportedOperationException() {
         // GIVEN: Event data
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -145,7 +145,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getRoutes_AttemptToModify_ThrowUnsupportedOperationException() {
+    void getRoutesAttemptToModifyThrowUnsupportedOperationException() {
         // GIVEN: Event data
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -169,7 +169,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_EmptyLists_CreateInstanceCorrectly() {
+    void constructorEmptyListsCreateInstanceCorrectly() {
         // GIVEN: Empty lists
         List<String> services = List.of();
         List<String> routes = List.of();
@@ -194,7 +194,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_MultipleServicesAndRoutes_StoreAllCorrectly() {
+    void constructorMultipleServicesAndRoutesStoreAllCorrectly() {
         // GIVEN: Multiple services and routes
         List<String> services = List.of("service-1", "service-2", "service-3", "service-4", "service-5");
         List<String> routes = List.of("route-1", "route-2", "route-3", "route-4", "route-5",
@@ -217,7 +217,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void toString_Called_ReturnNonNullStringWithData() {
+    void toStringCalledReturnNonNullStringWithData() {
         // GIVEN: Event data
         RateLimitConfigEventData eventData = new RateLimitConfigEventData(
                 List.of("service-1"), List.of("route-1"));
@@ -239,7 +239,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_OnlyServicesNoRoutes_CreateInstanceCorrectly() {
+    void constructorOnlyServicesNoRoutesCreateInstanceCorrectly() {
         // GIVEN: Services but no routes
         List<String> services = List.of("service-1", "service-2");
         List<String> routes = List.of();
@@ -261,7 +261,7 @@ class RateLimitConfigEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_OnlyRoutesNoServices_CreateInstanceCorrectly() {
+    void constructorOnlyRoutesNoServicesCreateInstanceCorrectly() {
         // GIVEN: Routes but no services
         List<String> services = List.of();
         List<String> routes = List.of("route-1", "route-2");

@@ -27,7 +27,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractService_StandardPath_ReturnsServiceName() {
+    void extractServiceStandardPathReturnsServiceName() {
         // GIVEN: Standard path with service and route
         String path = "/user-service/get-profile";
 
@@ -45,7 +45,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractRoute_StandardPath_ReturnsRoutePath() {
+    void extractRouteStandardPathReturnsRoutePath() {
         // GIVEN: Standard path with service and route
         String path = "/user-service/get-profile";
 
@@ -63,7 +63,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractService_NestedRoutePath_ReturnsServiceName() {
+    void extractServiceNestedRoutePathReturnsServiceName() {
         // GIVEN: Path with nested route
         String path = "/vehicle-service/api/v1/vehicles";
 
@@ -81,7 +81,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractRoute_NestedRoutePath_ReturnsFullRoute() {
+    void extractRouteNestedRoutePathReturnsFullRoute() {
         // GIVEN: Path with nested route
         String path = "/vehicle-service/api/v1/vehicles";
 
@@ -99,7 +99,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractService_ServiceOnlyPath_ReturnsServiceName() {
+    void extractServiceServiceOnlyPathReturnsServiceName() {
         // GIVEN: Path with only service name
         String path = "/healthz";
 
@@ -117,7 +117,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractRoute_ServiceOnlyPath_ReturnsEmptyString() {
+    void extractRouteServiceOnlyPathReturnsEmptyString() {
         // GIVEN: Path with only service name
         String path = "/healthz";
 
@@ -135,7 +135,7 @@ class PathExtractorTest {
      * Test type             - Negative.
      */
     @Test
-    void extractService_NullPath_ReturnsEmptyString() {
+    void extractServiceNullPathReturnsEmptyString() {
         // GIVEN: Null path
         String path = null;
 
@@ -153,7 +153,7 @@ class PathExtractorTest {
      * Test type             - Negative.
      */
     @Test
-    void extractRoute_NullPath_ReturnsEmptyString() {
+    void extractRouteNullPathReturnsEmptyString() {
         // GIVEN: Null path
         String path = null;
 
@@ -171,7 +171,7 @@ class PathExtractorTest {
      * Test type             - Negative.
      */
     @Test
-    void extractService_EmptyPath_ReturnsEmptyString() {
+    void extractServiceEmptyPathReturnsEmptyString() {
         // GIVEN: Empty path
         String path = "";
 
@@ -189,7 +189,7 @@ class PathExtractorTest {
      * Test type             - Negative.
      */
     @Test
-    void extractRoute_EmptyPath_ReturnsEmptyString() {
+    void extractRouteEmptyPathReturnsEmptyString() {
         // GIVEN: Empty path
         String path = "";
 
@@ -207,7 +207,7 @@ class PathExtractorTest {
      * Test type             - Negative.
      */
     @Test
-    void extractService_BlankPath_ReturnsEmptyString() {
+    void extractServiceBlankPathReturnsEmptyString() {
         // GIVEN: Blank path
         String path = "   ";
 
@@ -225,7 +225,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractService_PathWithoutLeadingSlash_ReturnsServiceName() {
+    void extractServicePathWithoutLeadingSlashReturnsServiceName() {
         // GIVEN: Path without leading slash
         String path = "user-service/profile";
 
@@ -243,7 +243,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractRoute_PathWithoutLeadingSlash_ReturnsRoutePath() {
+    void extractRoutePathWithoutLeadingSlashReturnsRoutePath() {
         // GIVEN: Path without leading slash
         String path = "user-service/profile";
 
@@ -261,7 +261,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractService_MultipleSlashesInRoute_ReturnsFirstSegment() {
+    void extractServiceMultipleSlashesInRouteReturnsFirstSegment() {
         // GIVEN: Path with multiple slashes
         String path = "/api/v1/users/123";
 
@@ -279,7 +279,7 @@ class PathExtractorTest {
      * Test type             - Positive.
      */
     @Test
-    void extractRoute_MultipleSlashesInRoute_ReturnsFullRoute() {
+    void extractRouteMultipleSlashesInRouteReturnsFullRoute() {
         // GIVEN: Path with multiple slashes
         String path = "/api/v1/users/123";
 

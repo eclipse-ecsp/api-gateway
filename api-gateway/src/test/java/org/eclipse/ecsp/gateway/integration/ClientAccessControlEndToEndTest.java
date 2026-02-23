@@ -26,7 +26,7 @@ import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -87,7 +87,7 @@ class ClientAccessControlEndToEndTest {
     private ClientAccessControlGatewayFilterFactory filterFactory;
     private AccessRuleMatcherService ruleMatcherService;
     private ClientAccessControlMetrics metrics;
-    private ClientAccessControlCacheService cacheService;
+    private ClientAccessControlService cacheService;
     private GatewayFilterChain mockFilterChain;
 
     @BeforeEach
@@ -100,7 +100,7 @@ class ClientAccessControlEndToEndTest {
 
         ruleMatcherService = new AccessRuleMatcherService();
         metrics = mock(ClientAccessControlMetrics.class);
-        cacheService = mock(ClientAccessControlCacheService.class);
+        cacheService = mock(ClientAccessControlService.class);
 
         // Create filter factory
         filterFactory = new ClientAccessControlGatewayFilterFactory(
@@ -117,7 +117,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-1: Should extract client ID from JWT using configurable claim names")
-    void testJwtClaimExtraction_Success() {
+    void testJwtClaimExtractionSuccess() {
         // Given: JWT with clientId claim
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"));
@@ -138,7 +138,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-1: Should extract client ID from alternative claim (azp)")
-    void testJwtClaimExtraction_AlternativeClaim() {
+    void testJwtClaimExtractionAlternativeClaim() {
         // Given: JWT with azp claim (no clientId)
         String jwt = createJwt(CLIENT_ID, "azp");
         ClientAccessConfig config = createConfig(CLIENT_ID, List.of("*:*"));
@@ -157,7 +157,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-2: Should reject request without JWT token")
-    void testMissingJwt_Rejected() {
+    void testMissingJwtRejected() {
         // Given: No JWT token
         String path = "/" + USER_SERVICE + "/" + PROFILE_ROUTE;
         ServerWebExchange exchange = createExchange(null, path);
@@ -175,7 +175,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-3: Should allow access when client has matching allow rule")
-    void testAllowRule_AccessGranted() {
+    void testAllowRuleAccessGranted() {
         // Given: Client with specific allow rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
@@ -199,7 +199,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("AS-4: Should deny access when client has deny rule")
-    void testDenyRule_AccessDenied() {
+    void testDenyRuleAccessDenied() {
         // Given: Client with deny rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
@@ -223,7 +223,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should allow wildcard service matching")
-    void testWildcardService_Matches() {
+    void testWildcardServiceMatches() {
         // Given: Client with wildcard service rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
@@ -245,7 +245,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should allow wildcard route matching")
-    void testWildcardRoute_Matches() {
+    void testWildcardRouteMatches() {
         // Given: Client with wildcard route rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
@@ -268,7 +268,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should deny by default when no allow rules match")
-    void testDenyByDefault_NoMatchingRules() {
+    void testDenyByDefaultNoMatchingRules() {
         // Given: Client with specific allow rule
         String jwt = createJwt(CLIENT_ID, "clientId");
         ClientAccessConfig config = createConfig(
@@ -291,7 +291,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should reject client ID with SQL injection attempt")
-    void testSqlInjection_Rejected() {
+    void testSqlInjectionRejected() {
         // Given: JWT with malicious client ID
         String maliciousClientId = "test' OR '1'='1";
         String jwt = createJwt(maliciousClientId, "clientId");
@@ -311,7 +311,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should reject client ID with XSS attempt")
-    void testXssInjection_Rejected() {
+    void testXssInjectionRejected() {
         // Given: JWT with XSS payload
         String maliciousClientId = "<script>alert('xss')</script>";
         String jwt = createJwt(maliciousClientId, "clientId");
@@ -331,7 +331,7 @@ class ClientAccessControlEndToEndTest {
 
     @Test
     @DisplayName("Should skip validation for configured paths")
-    void testSkipPaths_Bypassed() {
+    void testSkipPathsBypassed() {
         // Given: Request to skip path
         String path = "/actuator/health";
         ServerWebExchange exchange = createExchange(null, path);

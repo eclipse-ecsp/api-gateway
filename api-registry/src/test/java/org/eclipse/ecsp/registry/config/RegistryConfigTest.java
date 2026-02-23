@@ -34,14 +34,14 @@ import static org.mockito.Mockito.when;
 class RegistryConfigTest {
 
     @Test
-    void objectMapperBuilderCustomizer_ReturnsCustomizer() {
+    void objectMapperBuilderCustomizerReturnsCustomizer() {
         RegistryConfig config = new RegistryConfig();
         
         assertNotNull(config.objectMapperBuilderCustomizer());
     }
 
     @Test
-    void registryDisableEndpointFilter_DisablesAllEndpoints() {
+    void registryDisableEndpointFilterDisablesAllEndpoints() {
         RegistryConfig config = new RegistryConfig();
         ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
         EndpointId endpointId = mock(EndpointId.class);
@@ -55,14 +55,14 @@ class RegistryConfigTest {
     }
 
     @Test
-    void noSqlDatabaseConfig_CanBeInstantiated() {
+    void noSqlDatabaseConfigCanBeInstantiated() {
         RegistryConfig.NoSqlDatabaseConfig config = new RegistryConfig.NoSqlDatabaseConfig();
         
         assertNotNull(config);
     }
 
     @Test
-    void sqlDatabaseConfig_CanBeInstantiated() {
+    void sqlDatabaseConfigCanBeInstantiated() {
         RegistryConfig.SqlDatabaseConfig config = new RegistryConfig.SqlDatabaseConfig();
         
         assertNotNull(config);

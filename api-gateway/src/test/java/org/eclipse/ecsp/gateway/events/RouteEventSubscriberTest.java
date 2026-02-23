@@ -63,7 +63,7 @@ class RouteEventSubscriberTest {
     }
 
     @Test
-    void testOnMessage_ValidEvent_TriggersRefresh() throws Exception {
+    void testOnMessageValidEventTriggersRefresh() throws Exception {
         RouteChangeEvent event = newEvent(RouteEventType.ROUTE_CHANGE);
         when(message.getBody()).thenReturn(objectMapper.writeValueAsBytes(event));
 
@@ -73,7 +73,7 @@ class RouteEventSubscriberTest {
     }
 
     @Test
-    void testOnMessage_InvalidJson_HandlesGracefully() {
+    void testOnMessageInvalidJsonHandlesGracefully() {
         when(message.getBody()).thenReturn("invalid-json".getBytes());
 
         subscriber.onMessage(message, null);
@@ -82,14 +82,14 @@ class RouteEventSubscriberTest {
     }
 
     @Test
-    void testOnMessage_NullMessage_HandlesGracefully() {
+    void testOnMessageNullMessageHandlesGracefully() {
         subscriber.onMessage(null, null);
 
         verifyNoInteractions(routeRefreshService);
     }
 
     @Test
-    void testOnMessage_RetryOnFailure() throws Exception {
+    void testOnMessageRetryOnFailure() throws Exception {
         RouteChangeEvent event = newEvent(RouteEventType.ROUTE_CHANGE);
         when(message.getBody()).thenReturn(objectMapper.writeValueAsBytes(event));
         doThrow(new RestClientException("API Registry unreachable")).when(routeRefreshService).refreshRoutes();
@@ -100,7 +100,7 @@ class RouteEventSubscriberTest {
     }
 
     @Test
-    void testOnMessage_UpdatesMetrics() throws Exception {
+    void testOnMessageUpdatesMetrics() throws Exception {
         RouteChangeEvent event = newEvent(RouteEventType.ROUTE_CHANGE);
         when(message.getBody()).thenReturn(objectMapper.writeValueAsBytes(event));
 

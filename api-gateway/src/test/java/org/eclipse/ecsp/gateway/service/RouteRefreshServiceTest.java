@@ -22,7 +22,7 @@ class RouteRefreshServiceTest {
     private RouteRefreshService routeRefreshService;
 
     @Test
-    void testRefreshRoutes_PublishesEvent() {
+    void testRefreshRoutesPublishesEvent() {
         // Act
         routeRefreshService.refreshRoutes();
 

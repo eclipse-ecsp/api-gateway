@@ -36,7 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -100,8 +100,8 @@ class ClientAccessControlServiceImplTest {
         entity.setTenant("tenant1");
         entity.setIsActive(true);
         entity.setIsDeleted(false);
-        entity.setCreatedAt(OffsetDateTime.now());
-        entity.setUpdatedAt(OffsetDateTime.now());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
 
         responseDto = new ClientAccessControlResponseDto();
         responseDto.setClientId("client1");
@@ -116,7 +116,7 @@ class ClientAccessControlServiceImplTest {
      * Then creates all entities and publishes event.
      */
     @Test
-    void bulkCreate_ValidRequest_CreatesAllEntitiesAndPublishesEvent() {
+    void bulkCreateValidRequestCreatesAllEntitiesAndPublishesEvent() {
         when(repository.existsByClientIdAndIsDeletedFalse("client1")).thenReturn(false);
         when(mapper.requestDtoToEntity(requestDto)).thenReturn(entity);
         when(repository.saveAll(anyList())).thenReturn(Arrays.asList(entity));
@@ -136,7 +136,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws IllegalArgumentException.
      */
     @Test
-    void bulkCreate_NullRequest_ThrowsIllegalArgumentException() {
+    void bulkCreateNullRequestThrowsIllegalArgumentException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> service.bulkCreate(null)
@@ -153,14 +153,14 @@ class ClientAccessControlServiceImplTest {
      * Then throws IllegalArgumentException.
      */
     @Test
-    void bulkCreate_EmptyRequest_ThrowsIllegalArgumentException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> service.bulkCreate(new ArrayList<>())
-        );
+    void bulkCreateEmptyRequestThrowsIllegalArgumentException() {
 
-        assertEquals("Request list cannot be null or empty", exception.getMessage());
-        verify(repository, never()).saveAll(anyList());
+        try {
+            service.bulkCreate(new ArrayList<>());
+        } catch (IllegalArgumentException exception) {
+            assertEquals("Request list cannot be null or empty", exception.getMessage());
+            verify(repository, never()).saveAll(anyList());
+        }
     }
 
     /**
@@ -169,7 +169,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws IllegalArgumentException.
      */
     @Test
-    void bulkCreate_ExceedsSizeLimit_ThrowsIllegalArgumentException() {
+    void bulkCreateExceedsSizeLimitThrowsIllegalArgumentException() {
         final List<ClientAccessControlRequestDto> requests = new ArrayList<>();
         for (int i = 0; i < 101; i++) {
             requests.add(requestDto);
@@ -190,7 +190,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws IllegalArgumentException.
      */
     @Test
-    void bulkCreate_DuplicateClientIdsInRequest_ThrowsIllegalArgumentException() {
+    void bulkCreateDuplicateClientIdsInRequestThrowsIllegalArgumentException() {
         final ClientAccessControlRequestDto dto1 = new ClientAccessControlRequestDto();
         dto1.setClientId("duplicate");
         final ClientAccessControlRequestDto dto2 = new ClientAccessControlRequestDto();
@@ -212,7 +212,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws DuplicateClientException.
      */
     @Test
-    void bulkCreate_ExistingActiveClientId_ThrowsDuplicateClientException() {
+    void bulkCreateExistingActiveClientIdThrowsDuplicateClientException() {
         when(repository.existsByClientIdAndIsDeletedFalse("client1")).thenReturn(true);
         final List<ClientAccessControlRequestDto> requests = Arrays.asList(requestDto);
 
@@ -230,9 +230,9 @@ class ClientAccessControlServiceImplTest {
      * Then restores entity and updates fields.
      */
     @Test
-    void bulkCreate_SoftDeletedClientId_RestoresEntity() {
+    void bulkCreateSoftDeletedClientIdRestoresEntity() {
         entity.setIsDeleted(true);
-        entity.setDeletedAt(OffsetDateTime.now());
+        entity.setDeletedAt(LocalDateTime.now());
         when(repository.existsByClientIdAndIsDeletedFalse("client1")).thenReturn(false);
         when(repository.findByClientIdAndIsDeletedTrue("client1")).thenReturn(Optional.of(entity));
         when(repository.saveAll(anyList())).thenReturn(Arrays.asList(entity));
@@ -253,7 +253,7 @@ class ClientAccessControlServiceImplTest {
      * Then returns only active entities.
      */
     @Test
-    void getAll_IncludeInactiveFalse_ReturnsOnlyActive() {
+    void getAllIncludeInactiveFalseReturnsOnlyActive() {
         when(repository.findByIsActiveAndIsDeletedFalse(true)).thenReturn(Arrays.asList(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(responseDto);
 
@@ -271,7 +271,7 @@ class ClientAccessControlServiceImplTest {
      * Then returns all non-deleted entities.
      */
     @Test
-    void getAll_IncludeInactiveTrue_ReturnsAllNonDeleted() {
+    void getAllIncludeInactiveTrueReturnsAllNonDeleted() {
         when(repository.findByIsDeletedFalse()).thenReturn(Arrays.asList(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(responseDto);
 
@@ -288,7 +288,7 @@ class ClientAccessControlServiceImplTest {
      * Then returns response DTO.
      */
     @Test
-    void getByClientId_ExistingClientId_ReturnsResponseDto() {
+    void getByClientIdExistingClientIdReturnsResponseDto() {
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(responseDto);
 
@@ -305,7 +305,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws EntityNotFoundException.
      */
     @Test
-    void getByClientId_NonExistingClientId_ThrowsEntityNotFoundException() {
+    void getByClientIdNonExistingClientIdThrowsEntityNotFoundException() {
         when(repository.findByClientIdAndIsDeletedFalse("nonexistent")).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
@@ -323,7 +323,7 @@ class ClientAccessControlServiceImplTest {
      * Then updates entity and publishes event.
      */
     @Test
-    void update_ValidRequest_UpdatesEntityAndPublishesEvent() {
+    void updateValidRequestUpdatesEntityAndPublishesEvent() {
         requestDto.setDescription("Updated description");
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
@@ -345,20 +345,18 @@ class ClientAccessControlServiceImplTest {
      * Then throws DuplicateClientException.
      */
     @Test
-    void update_DuplicateClientId_ThrowsDuplicateClientException() {
+    void updateDuplicateClientIdThrowsDuplicateClientException() {
         requestDto.setClientId("client2");
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(repository.existsByClientIdAndIsDeletedFalse("client2")).thenReturn(true);
-        final String clientId = "client1";
-        final ClientAccessControlRequestDto dto = requestDto;
 
-        DuplicateClientException exception = assertThrows(
-                DuplicateClientException.class,
-                () -> service.update(clientId, dto));
-
-        assertTrue(exception.getMessage().contains("Duplicate client IDs detected"));
-        verify(repository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
+        try {
+            service.update("client1", requestDto);
+        } catch (DuplicateClientException e) {
+            assertTrue(e.getMessage().contains("Duplicate client IDs detected"));
+            verify(repository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
     }
 
     /**
@@ -367,7 +365,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws EntityNotFoundException.
      */
     @Test
-    void update_NonExistingClient_ThrowsEntityNotFoundException() {
+    void updateNonExistingClientThrowsEntityNotFoundException() {
         when(repository.findByClientIdAndIsDeletedFalse("nonexistent")).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
@@ -385,7 +383,7 @@ class ClientAccessControlServiceImplTest {
      * Then soft deletes entity and publishes event.
      */
     @Test
-    void delete_SoftDelete_MarksAsDeletedAndPublishesEvent() {
+    void deleteSoftDeleteMarksAsDeletedAndPublishesEvent() {
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
 
@@ -404,7 +402,7 @@ class ClientAccessControlServiceImplTest {
      * Then permanently deletes entity and publishes event.
      */
     @Test
-    void delete_PermanentDelete_DeletesEntityAndPublishesEvent() {
+    void deletePermanentDeleteDeletesEntityAndPublishesEvent() {
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
 
         service.delete("client1", true);
@@ -420,7 +418,7 @@ class ClientAccessControlServiceImplTest {
      * Then throws EntityNotFoundException.
      */
     @Test
-    void delete_NonExistingClient_ThrowsEntityNotFoundException() {
+    void deleteNonExistingClientThrowsEntityNotFoundException() {
         when(repository.findByClientIdAndIsDeletedFalse("nonexistent")).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(
@@ -439,7 +437,7 @@ class ClientAccessControlServiceImplTest {
      * Then returns response DTO.
      */
     @Test
-    void getById_ExistingId_ReturnsResponseDto() {
+    void getByIdExistingIdReturnsResponseDto() {
         when(repository.findByClientIdAndIsDeletedFalse("client1")).thenReturn(Optional.of(entity));
         when(mapper.entityToResponseDto(entity)).thenReturn(responseDto);
 

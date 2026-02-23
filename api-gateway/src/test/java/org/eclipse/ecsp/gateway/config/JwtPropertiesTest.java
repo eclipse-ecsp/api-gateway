@@ -61,7 +61,7 @@ class JwtPropertiesTest {
      * Verifies that JWT properties are correctly bound from configuration.
      */
     @Test
-    void bind_whenValidConfiguration_thenBindsPropertiesCorrectly() {
+    void bindWhenValidConfigurationThenBindsPropertiesCorrectly() {
         // Given
         Map<String, Object> properties = new HashMap<>();
         properties.put("jwt.token-claim-to-header-mapping.sub", "X-User-Id");
@@ -100,7 +100,7 @@ class JwtPropertiesTest {
      * Verifies that token header validation configs are correctly bound.
      */
     @Test
-    void bind_whenTokenHeaderValidationConfig_thenBindsCorrectly() {
+    void bindWhenTokenHeaderValidationConfigThenBindsCorrectly() {
         // Given
         Map<String, Object> properties = new HashMap<>();
         properties.put("jwt.token-header-validation-config.authorization.required", "true");
@@ -135,7 +135,7 @@ class JwtPropertiesTest {
      * Verifies that multiple public key sources can be configured.
      */
     @Test
-    void bind_whenMultipleKeySources_thenBindsAllSources() {
+    void bindWhenMultipleKeySourcesThenBindsAllSources() {
         // Given
         Map<String, Object> properties = new HashMap<>();
         properties.put("jwt.key-sources[0].id", "jwks-provider");
@@ -178,7 +178,7 @@ class JwtPropertiesTest {
      * Verifies that empty configurations are handled gracefully.
      */
     @Test
-    void bind_whenEmptyConfiguration_thenHandlesGracefully() {
+    void bindWhenEmptyConfigurationThenHandlesGracefully() {
         // Given
         Map<String, Object> properties = new HashMap<>();
         ConfigurationPropertySource source = new MapConfigurationPropertySource(properties);
@@ -198,7 +198,7 @@ class JwtPropertiesTest {
      * Verifies that all properties can be set and retrieved correctly.
      */
     @Test
-    void settersAndGetters_whenCalled_thenWorkCorrectly() {
+    void settersAndGettersWhenCalledThenWorkCorrectly() {
         // Given
         Map<String, TokenHeaderValidationConfig> headerConfig = new HashMap<>();
         headerConfig.put("authorization", new TokenHeaderValidationConfig(true, "Bearer "));
@@ -225,7 +225,7 @@ class JwtPropertiesTest {
      * Verifies that key sources with authentication credentials are handled correctly.
      */
     @Test
-    void bind_whenKeySourceHasCredentials_thenBindsCredentialsCorrectly() {
+    void bindWhenKeySourceHasCredentialsThenBindsCredentialsCorrectly() {
         // Given
         Map<String, Object> properties = new HashMap<>();
         properties.put("jwt.key-sources[0].id", "secured-provider");
@@ -258,7 +258,7 @@ class JwtPropertiesTest {
      * Verifies that null properties don't cause issues.
      */
     @Test
-    void properties_whenNull_thenHandledSafely() {
+    void propertiesWhenNullThenHandledSafely() {
         // Given
         JwtProperties nullProperties = new JwtProperties();
 

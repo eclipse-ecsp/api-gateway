@@ -63,7 +63,7 @@ class ServiceHealthEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ValidEventData_SendViaThrottlerAndReturnTrue() {
+    void publishValidEventDataSendViaThrottlerAndReturnTrue() {
         // GIVEN: Valid event data
         ServiceHealthEventData eventData = new ServiceHealthEventData(
                 List.of("service-1"),
@@ -88,7 +88,7 @@ class ServiceHealthEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_ThrottlerFails_ReturnFalse() {
+    void publishThrottlerFailsReturnFalse() {
         // GIVEN: Event data and failing throttler
         ServiceHealthEventData eventData = new ServiceHealthEventData(
                 List.of("service-1"),
@@ -113,7 +113,7 @@ class ServiceHealthEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnServiceHealthChange() {
+    void getEventTypeCalledReturnServiceHealthChange() {
         // GIVEN: Strategy instance
 
         // WHEN: Get event type
@@ -132,7 +132,7 @@ class ServiceHealthEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_MultipleServices_SendEventWithAllServices() {
+    void publishMultipleServicesSendEventWithAllServices() {
         // GIVEN: Event data with multiple services
         List<String> services = List.of("service-1", "service-2", "service-3");
         Map<String, String> healthStatuses = Map.of(
@@ -160,7 +160,7 @@ class ServiceHealthEventStrategyTest {
      * @throws Exception if test fails
      **/
     @Test
-    void publish_EmptyServiceList_SendEventSuccessfully() {
+    void publishEmptyServiceListSendEventSuccessfully() {
         // GIVEN: Event data with empty service list
         ServiceHealthEventData eventData = new ServiceHealthEventData(
                 List.of(),

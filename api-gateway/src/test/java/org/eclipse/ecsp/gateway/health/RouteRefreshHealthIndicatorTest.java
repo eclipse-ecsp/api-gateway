@@ -38,7 +38,7 @@ class RouteRefreshHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_Up_RedisConnectedAndFallbackInactive() {
+    void testHealthUpRedisConnectedAndFallbackInactive() {
         // Arrange
         when(fallbackScheduler.checkRedisConnection()).thenReturn(true);
         when(fallbackScheduler.isFallbackActive()).thenReturn(false);
@@ -55,7 +55,7 @@ class RouteRefreshHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_Degraded_FallbackActive() {
+    void testHealthDegradedFallbackActive() {
         // Arrange
         when(fallbackScheduler.checkRedisConnection()).thenReturn(true);
         when(fallbackScheduler.isFallbackActive()).thenReturn(true);
@@ -69,7 +69,7 @@ class RouteRefreshHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_Degraded_RedisConnectionFailed() {
+    void testHealthDegradedRedisConnectionFailed() {
         // Arrange
         when(fallbackScheduler.checkRedisConnection()).thenReturn(false);
         when(fallbackScheduler.isFallbackActive()).thenReturn(true);
@@ -83,7 +83,7 @@ class RouteRefreshHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_Down_UnexpectedException() {
+    void testHealthDownUnexpectedException() {
         // Arrange
         when(fallbackScheduler.checkRedisConnection()).thenThrow(new RuntimeException("Unexpected error"));
 

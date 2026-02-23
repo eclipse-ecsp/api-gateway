@@ -77,7 +77,7 @@ class RedisEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void publishEvent_ValidEventData_PublishesToRedis() throws Exception {
+    void publishEventValidEventDataPublishesToRedis() throws Exception {
         // GIVEN: Valid event data
         TestEventData eventData = new TestEventData("test-event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
         String expectedJson = "{\"eventId\":\"test-event-1\"}";
@@ -99,7 +99,7 @@ class RedisEventPublisherTest {
      * Test type             - Negative.
      */
     @Test
-    void publishEvent_JsonProcessingException_ReturnsFalse() throws Exception {
+    void publishEventJsonProcessingExceptionReturnsFalse() throws Exception {
         // GIVEN: Event data that fails serialization
         TestEventData eventData = new TestEventData("test-event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
         when(objectMapper.writeValueAsString(eventData))
@@ -121,7 +121,7 @@ class RedisEventPublisherTest {
      * Test type             - Negative.
      */
     @Test
-    void publishEvent_RedisException_ReturnsFalse() throws Exception {
+    void publishEventRedisExceptionReturnsFalse() throws Exception {
         // GIVEN: Redis template throws exception
         TestEventData eventData = new TestEventData("test-event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
         String expectedJson = "{\"eventId\":\"test-event-1\"}";
@@ -144,7 +144,7 @@ class RedisEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void publishEvent_CustomChannel_PublishesToConfiguredChannel() throws Exception {
+    void publishEventCustomChannelPublishesToConfiguredChannel() throws Exception {
         // GIVEN: Custom channel configuration
         String customChannel = "custom-channel";
         when(redisConfig.getChannel()).thenReturn(customChannel);
@@ -168,7 +168,7 @@ class RedisEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void publishEvent_MultipleEvents_AllPublished() throws Exception {
+    void publishEventMultipleEventsAllPublished() throws Exception {
         // GIVEN: Multiple events
         TestEventData event1 = new TestEventData("event-1", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);
         TestEventData event2 = new TestEventData("event-2", RouteEventType.CLIENT_ACCESS_CONTROL_UPDATED);

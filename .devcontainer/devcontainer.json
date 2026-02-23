@@ -1,6 +1,6 @@
 {
   "name": "ecsp-api-gateway-devcontainer",
-  "image": "ubuntu:24.04",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
@@ -58,8 +58,5 @@
       "onAutoForward": "ignore"
     }
   },
-  "otherPortsAttributes": {"onAutoForward": "ignore"},
-  "mounts": [
-    "source=/data/home/akumar87/codebase/bitbucket/api-gateway-test,target=/workspaces/api-gateway-test,type=bind,consistency=cached"
-  ]
+  "otherPortsAttributes": {"onAutoForward": "ignore"}
 }

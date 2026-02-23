@@ -91,7 +91,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_SingleService() {
+    void testScheduleEventSingleService() {
         // Arrange
         String serviceName = "test-service";
 
@@ -115,7 +115,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_MultipleServices_Consolidates() {
+    void testScheduleEventMultipleServicesConsolidates() {
         // Arrange
         final String service1 = "service-1";
         final String service2 = "service-2";
@@ -145,7 +145,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_TimerResets() {
+    void testScheduleEventTimerResets() {
         // Arrange
         String service1 = "service-1";
         String service2 = "service-2";
@@ -175,7 +175,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_DuplicateServices_DeduplicatesInSameWindow() {
+    void testScheduleEventDuplicateServicesDeduplicatesInSameWindow() {
         // Arrange
         String serviceName = "test-service";
 
@@ -201,7 +201,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testShutdown_CancelsScheduledTasks() {
+    void testShutdownCancelsScheduledTasks() {
         // Arrange - schedule an event but don't let it complete
         throttler.scheduleEvent("test-service");
 
@@ -219,7 +219,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testMultipleWindows_PublishesMultipleTimes() {
+    void testMultipleWindowsPublishesMultipleTimes() {
         // Arrange & Act
         // First window
         throttler.scheduleEvent("service-1");
@@ -247,7 +247,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_NullServiceName_DoesNotPublish() {
+    void testScheduleEventNullServiceNameDoesNotPublish() {
         // Arrange & Act
         throttler.scheduleEvent(null);
 
@@ -257,7 +257,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_EmptyServiceName_DoesNotPublish() {
+    void testScheduleEventEmptyServiceNameDoesNotPublish() {
         // Arrange & Act
         throttler.scheduleEvent("");
 
@@ -267,7 +267,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testSendEvent_PublishesSuccessfully() {
+    void testSendEventPublishesSuccessfully() {
         // Arrange
         java.util.List<String> serviceNames = java.util.List.of("service-1");
         java.util.List<String> routeIds = java.util.List.of("route-1");
@@ -289,7 +289,7 @@ class RouteEventThrottlerTest {
      * Test type             - Positive.
      */
     @Test
-    void testGetPendingServiceCount_ReturnsCorrectCount() {
+    void testGetPendingServiceCountReturnsCorrectCount() {
         // Arrange & Act
         throttler.scheduleEvent("service-1");
         throttler.scheduleEvent("service-2");
@@ -307,7 +307,7 @@ class RouteEventThrottlerTest {
      * Test type             - Positive.
      */
     @Test
-    void testGetPendingServiceCount_ZeroAfterFlush() {
+    void testGetPendingServiceCountZeroAfterFlush() {
         // Arrange
         throttler.scheduleEvent("service-1");
 
@@ -329,7 +329,7 @@ class RouteEventThrottlerTest {
      * Test type             - Negative.
      */
     @Test
-    void testSendEvent_PublisherFails_ReturnsFalse() {
+    void testSendEventPublisherFailsReturnsFalse() {
         // Arrange
         when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenReturn(false);
         java.util.List<String> serviceNames = java.util.List.of("service-1");
@@ -351,7 +351,7 @@ class RouteEventThrottlerTest {
      * Test type             - Negative.
      */
     @Test
-    void testSendEvent_PublisherThrowsException_ReturnsFalse() {
+    void testSendEventPublisherThrowsExceptionReturnsFalse() {
         // Arrange
         when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenThrow(new RuntimeException("Test exception"));
         java.util.List<String> serviceNames = java.util.List.of("service-1");
@@ -373,7 +373,7 @@ class RouteEventThrottlerTest {
      * Test type             - Positive.
      */
     @Test
-    void testShutdown_MultipleCallsAreIdempotent() {
+    void testShutdownMultipleCallsAreIdempotent() {
         // Act
         throttler.shutdown();
         throttler.shutdown();

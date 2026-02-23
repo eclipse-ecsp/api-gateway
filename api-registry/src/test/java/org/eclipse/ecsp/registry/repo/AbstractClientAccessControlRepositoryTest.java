@@ -18,7 +18,9 @@
 
 package org.eclipse.ecsp.registry.repo;
 
+import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,12 @@ abstract class AbstractClientAccessControlRepositoryTest {
     @Autowired
     protected ClientAccessControlRepository repository;
 
+    @BeforeAll
+    static void beforeAll() {
+        CollectorRegistry.defaultRegistry.clear(); // Clear Prometheus metrics registry before all tests
+    }
+
+
     @BeforeEach
     void setUp() {
         repository.deleteAll();
@@ -56,7 +64,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test findByClientIdAndIsDeletedFalse - should find existing non-deleted client.
      */
     @Test
-    void testFindByClientIdAndIsDeletedFalse_Found() {
+    void testFindByClientIdAndIsDeletedFalseFound() {
         // Given: Entity exists in database
         ClientAccessControlEntity entity = createEntity("client-123", "tenant-a", true, false);
         repository.save(entity);
@@ -75,7 +83,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test findByClientIdAndIsDeletedFalse - should not find deleted client.
      */
     @Test
-    void testFindByClientIdAndIsDeletedFalse_NotFoundWhenDeleted() {
+    void testFindByClientIdAndIsDeletedFalseNotFoundWhenDeleted() {
         // Given: Deleted entity exists in database
         ClientAccessControlEntity entity = createEntity("client-456", "tenant-a", true, true);
         repository.save(entity);
@@ -92,7 +100,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test findByClientIdAndIsDeletedFalse - should not find non-existent client.
      */
     @Test
-    void testFindByClientIdAndIsDeletedFalse_NotFoundWhenNotExists() {
+    void testFindByClientIdAndIsDeletedFalseNotFoundWhenNotExists() {
         // When: Find non-existent clientId
         Optional<ClientAccessControlEntity> result = repository.findByClientIdAndIsDeletedFalse("non-existent");
 
@@ -104,7 +112,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test findByIsActiveAndIsDeletedFalse - should find only active non-deleted clients.
      */
     @Test
-    void testFindByIsActiveAndIsDeletedFalse_ActiveOnly() {
+    void testFindByIsActiveAndIsDeletedFalseActiveOnly() {
         // Given: Mixed active/inactive entities
         repository.save(createEntity("client-active-1", "tenant-a", true, false));
         repository.save(createEntity("client-active-2", "tenant-a", true, false));
@@ -125,7 +133,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test findByIsActiveAndIsDeletedFalse - should find only inactive non-deleted clients.
      */
     @Test
-    void testFindByIsActiveAndIsDeletedFalse_InactiveOnly() {
+    void testFindByIsActiveAndIsDeletedFalseInactiveOnly() {
         // Given: Mixed active/inactive entities
         repository.save(createEntity("client-active-1", "tenant-a", true, false));
         repository.save(createEntity("client-inactive-1", "tenant-a", false, false));
@@ -165,7 +173,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
     * Test findByIsDeletedFalse - should return empty list when all deleted.
      */
     @Test
-    void testFindByIsDeletedFalse_EmptyWhenAllDeleted() {
+    void testFindByIsDeletedFalseEmptyWhenAllDeleted() {
         // Given: All entities are deleted
         repository.save(createEntity("client-1", "tenant-a", true, true));
         repository.save(createEntity("client-2", "tenant-a", true, true));
@@ -182,7 +190,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
     * Test findByIsDeletedFalse with tenant filtering in assertion.
      */
     @Test
-    void testFindByIsDeletedFalse_FilterByTenantInAssertion() {
+    void testFindByIsDeletedFalseFilterByTenantInAssertion() {
         // Given: Entities with different tenants
         repository.save(createEntity("client-1", "tenant-a", true, false));
         repository.save(createEntity("client-2", "tenant-a", true, false));
@@ -206,7 +214,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
     * Test findByIsDeletedFalse with non-existent tenant filter should return empty.
      */
     @Test
-    void testFindByIsDeletedFalse_EmptyForNonExistentTenantFilter() {
+    void testFindByIsDeletedFalseEmptyForNonExistentTenantFilter() {
         // Given: Entities exist but not for target tenant
         repository.save(createEntity("client-1", "tenant-a", true, false));
         
@@ -224,7 +232,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test existsByClientIdAndIsDeletedFalse - should return true for existing non-deleted client.
      */
     @Test
-    void testExistsByClientIdAndIsDeletedFalse_True() {
+    void testExistsByClientIdAndIsDeletedFalseTrue() {
         // Given: Entity exists in database
         repository.save(createEntity("client-exists", "tenant-a", true, false));
         
@@ -240,7 +248,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test existsByClientIdAndIsDeletedFalse - should return false for deleted client.
      */
     @Test
-    void testExistsByClientIdAndIsDeletedFalse_FalseWhenDeleted() {
+    void testExistsByClientIdAndIsDeletedFalseFalseWhenDeleted() {
         // Given: Deleted entity exists in database
         repository.save(createEntity("client-deleted", "tenant-a", true, true));
         
@@ -256,7 +264,7 @@ abstract class AbstractClientAccessControlRepositoryTest {
      * Test existsByClientIdAndIsDeletedFalse - should return false for non-existent client.
      */
     @Test
-    void testExistsByClientIdAndIsDeletedFalse_FalseWhenNotExists() {
+    void testExistsByClientIdAndIsDeletedFalseFalseWhenNotExists() {
         // When: Check existence of non-existent client
         boolean exists = repository.existsByClientIdAndIsDeletedFalse("non-existent");
 
@@ -279,8 +287,8 @@ abstract class AbstractClientAccessControlRepositoryTest {
         // Create allow_rules as List
         entity.setAllow(List.of("service-a:*", "service-b:route-1"));
         
-        entity.setCreatedAt(java.time.OffsetDateTime.now());
-        entity.setUpdatedAt(java.time.OffsetDateTime.now());
+        entity.setCreatedAt(java.time.LocalDateTime.now());
+        entity.setUpdatedAt(java.time.LocalDateTime.now());
         
         return entity;
     }

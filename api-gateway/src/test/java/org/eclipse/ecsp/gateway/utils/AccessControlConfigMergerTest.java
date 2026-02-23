@@ -73,7 +73,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Positive.
      */
     @Test
-    void merge_NoYamlOverrides_ReturnsDatabaseConfigs() {
+    void mergeNoYamlOverridesReturnsDatabaseConfigs() {
         // GIVEN: Database configs and no YAML overrides
         List<ClientAccessConfig> dbConfigs = List.of(
                 createClientAccessConfig("client1"),
@@ -98,7 +98,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Positive.
      */
     @Test
-    void merge_YamlOverrideExists_YamlTakesPrecedence() {
+    void mergeYamlOverrideExistsYamlTakesPrecedence() {
         // GIVEN: Database config and YAML override for same client
         List<ClientAccessConfig> dbConfigs = List.of(
                 createClientAccessConfig("client1", "DB")
@@ -123,7 +123,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Positive.
      */
     @Test
-    void merge_YamlOnlyClient_AddsToResult() {
+    void mergeYamlOnlyClientAddsToResult() {
         // GIVEN: Database has client1, YAML has client2
         List<ClientAccessConfig> dbConfigs = List.of(
                 createClientAccessConfig("client1")
@@ -148,7 +148,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Positive.
      */
     @Test
-    void merge_MixedConfigs_PreservesNonOverriddenDatabaseConfigs() {
+    void mergeMixedConfigsPreservesNonOverriddenDatabaseConfigs() {
         // GIVEN: Database has client1, client2, client3; YAML overrides client2
         List<ClientAccessConfig> dbConfigs = List.of(
                 createClientAccessConfig("client1"),
@@ -178,7 +178,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Negative.
      */
     @Test
-    void merge_EmptyDatabaseConfigs_ReturnsYamlConfigs() {
+    void mergeEmptyDatabaseConfigsReturnsYamlConfigs() {
         // GIVEN: Empty database, YAML has client1
         List<ClientAccessConfig> dbConfigs = new ArrayList<>();
         ClientAccessControlProperties.YamlOverride yamlOverride = createYamlOverride("client1");
@@ -201,7 +201,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Negative.
      */
     @Test
-    void merge_YamlOverrideWithNullClientId_SkipsOverride() {
+    void mergeYamlOverrideWithNullClientIdSkipsOverride() {
         // GIVEN: YAML override with null clientId
         List<ClientAccessConfig> dbConfigs = List.of(createClientAccessConfig("client1"));
         ClientAccessControlProperties.YamlOverride yamlOverride = new ClientAccessControlProperties.YamlOverride();
@@ -223,7 +223,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Negative.
      */
     @Test
-    void merge_YamlOverrideWithBlankClientId_SkipsOverride() {
+    void mergeYamlOverrideWithBlankClientIdSkipsOverride() {
         // GIVEN: YAML override with blank clientId
         List<ClientAccessConfig> dbConfigs = List.of(createClientAccessConfig("client1"));
         ClientAccessControlProperties.YamlOverride yamlOverride = new ClientAccessControlProperties.YamlOverride();
@@ -245,7 +245,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Positive.
      */
     @Test
-    void getYamlOverrideCount_MultipleOverrides_ReturnsCorrectCount() {
+    void getYamlOverrideCountMultipleOverridesReturnsCorrectCount() {
         // GIVEN: Multiple YAML overrides
         when(yamlProperties.getOverrides()).thenReturn(List.of(
                 createYamlOverride("client1"),
@@ -267,7 +267,7 @@ class AccessControlConfigMergerTest {
      * Test type             - Negative.
      */
     @Test
-    void getYamlOverrideCount_NoOverrides_ReturnsZero() {
+    void getYamlOverrideCountNoOverridesReturnsZero() {
         // GIVEN: No YAML overrides
         when(yamlProperties.getOverrides()).thenReturn(List.of());
 

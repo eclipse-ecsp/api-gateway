@@ -46,7 +46,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithValidMap_ShouldReturnJson() {
+    void convertToDatabaseColumnWithValidMapShouldReturnJson() {
         // Arrange
         Map<String, String> map = new HashMap<>();
         map.put("key1", "value1");
@@ -64,7 +64,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithEmptyMap_ShouldReturnNull() {
+    void convertToDatabaseColumnWithEmptyMapShouldReturnNull() {
         // Arrange
         Map<String, String> map = new HashMap<>();
 
@@ -76,7 +76,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithNullMap_ShouldReturnNull() {
+    void convertToDatabaseColumnWithNullMapShouldReturnNull() {
         // Act
         String result = converter.convertToDatabaseColumn(null);
 
@@ -85,7 +85,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithSingleEntry_ShouldReturnValidJson() {
+    void convertToDatabaseColumnWithSingleEntryShouldReturnValidJson() {
         // Arrange
         Map<String, String> map = new HashMap<>();
         map.put("headerName", "X-API-Key");
@@ -100,7 +100,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithSpecialCharacters_ShouldHandleCorrectly() {
+    void convertToDatabaseColumnWithSpecialCharactersShouldHandleCorrectly() {
         // Arrange
         Map<String, String> map = new HashMap<>();
         map.put("key", "value with spaces");
@@ -116,7 +116,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithValidJson_ShouldReturnMap() {
+    void convertToEntityAttributeWithValidJsonShouldReturnMap() {
         // Arrange
         String json = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
 
@@ -131,7 +131,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithEmptyString_ShouldReturnEmptyMap() {
+    void convertToEntityAttributeWithEmptyStringShouldReturnEmptyMap() {
         // Act
         Map<String, String> result = converter.convertToEntityAttribute("");
 
@@ -141,7 +141,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithNullString_ShouldReturnEmptyMap() {
+    void convertToEntityAttributeWithNullStringShouldReturnEmptyMap() {
         // Act
         Map<String, String> result = converter.convertToEntityAttribute(null);
 
@@ -151,7 +151,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithInvalidJson_ShouldReturnEmptyMap() {
+    void convertToEntityAttributeWithInvalidJsonShouldReturnEmptyMap() {
         // Arrange
         String invalidJson = "not a valid json";
 
@@ -164,7 +164,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithMalformedJson_ShouldReturnEmptyMap() {
+    void convertToEntityAttributeWithMalformedJsonShouldReturnEmptyMap() {
         // Arrange
         String malformedJson = "{\"key\":\"value\"";
 
@@ -177,7 +177,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithSingleEntry_ShouldReturnMapWithOneEntry() {
+    void convertToEntityAttributeWithSingleEntryShouldReturnMapWithOneEntry() {
         // Arrange
         String json = "{\"headerName\":\"X-API-Key\"}";
 
@@ -191,7 +191,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void roundTrip_ConvertToDbAndBack_ShouldMaintainData() {
+    void roundTripConvertToDbAndBackShouldMaintainData() {
         // Arrange
         Map<String, String> original = new HashMap<>();
         original.put("key1", "value1");
@@ -209,7 +209,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_WithWhitespaceJson_ShouldReturnEmptyMap() {
+    void convertToEntityAttributeWithWhitespaceJsonShouldReturnEmptyMap() {
         // Arrange
         String whitespaceJson = "   ";
 
@@ -222,7 +222,7 @@ class MapToJsonConverterTest {
     }
 
     @Test
-    void convertToDatabaseColumn_WithComplexValues_ShouldHandleCorrectly() {
+    void convertToDatabaseColumnWithComplexValuesShouldHandleCorrectly() {
         // Arrange
         Map<String, String> map = new HashMap<>();
         map.put("url", "https://example.com/api?param=value");

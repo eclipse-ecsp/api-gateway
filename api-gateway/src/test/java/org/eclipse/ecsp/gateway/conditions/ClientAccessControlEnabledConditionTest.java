@@ -21,6 +21,8 @@ package org.eclipse.ecsp.gateway.conditions;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.annotation.ConditionContext;
@@ -58,13 +60,13 @@ class ClientAccessControlEnabledConditionTest {
      * Test type             - Positive.
      */
     @Test
-    void matches_PropertySetToTrue_ReturnsTrue() {
+    void matchesPropertySetToTrueReturnsTrue() {
         // GIVEN: Property is set to "true"
         ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
         when(conditionContext.getEnvironment()).thenReturn(environment);
         when(environment.getProperty(
-                eq(GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled"), 
-                eq("false"))).thenReturn("true");
+                GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled", 
+                "false")).thenReturn("true");
 
         // WHEN: Condition is evaluated
         boolean result = condition.matches(conditionContext, metadata);
@@ -74,66 +76,23 @@ class ClientAccessControlEnabledConditionTest {
     }
 
     /**
-     * Test purpose          - Verify matches method returns false when property is set to "false".
-     * Test data             - Property value "false".
-     * Test expected result  - Returns false.
-     * Test type             - Positive.
+     * Test purpose          - Verify matches method returns false for non-"true" property values.
+     * Test data             - Property values: "false", "invalid", and empty string.
+     * Test expected result  - Returns false for all non-"true" values.
+     * Test type             - Negative.
      */
-    @Test
-    void matches_PropertySetToFalse_ReturnsFalse() {
-        // GIVEN: Property is set to "false"
+    @ParameterizedTest
+    @ValueSource(strings = {"false", "invalid", ""})
+    void matchesReturnsFalseForNonTruePropertyValues(String propertyValue) {
+        // GIVEN: Property is set to a non-true value
         ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
         when(conditionContext.getEnvironment()).thenReturn(environment);
-        when(environment.getProperty(
-                eq(GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled"), 
-                eq("false"))).thenReturn("false");
+        when(environment.getProperty(anyString(), eq("false"))).thenReturn(propertyValue);
 
         // WHEN: Condition is evaluated
         boolean result = condition.matches(conditionContext, metadata);
 
         // THEN: Condition should not match
-        assertFalse(result);
-    }
-
-    /**
-     * Test purpose          - Verify matches method returns false when property is not set.
-     * Test data             - Property returns default value "false".
-     * Test expected result  - Returns false.
-     * Test type             - Negative.
-     */
-    @Test
-    void matches_PropertyNotSet_ReturnsFalse() {
-        // GIVEN: Property not set, returns default "false"
-        ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
-        when(conditionContext.getEnvironment()).thenReturn(environment);
-        when(environment.getProperty(anyString(), eq("false"))).thenReturn("false");
-
-        // WHEN: Condition is evaluated
-        boolean result = condition.matches(conditionContext, metadata);
-
-        // THEN: Condition should not match (default is false)
-        assertFalse(result);
-    }
-
-    /**
-     * Test purpose          - Verify matches method handles invalid boolean values.
-     * Test data             - Property value "invalid".
-     * Test expected result  - Returns false.
-     * Test type             - Negative.
-     */
-    @Test
-    void matches_InvalidBooleanValue_ReturnsFalse() {
-        // GIVEN: Property has invalid boolean value
-        ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
-        when(conditionContext.getEnvironment()).thenReturn(environment);
-        when(environment.getProperty(
-                eq(GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled"), 
-                eq("false"))).thenReturn("invalid");
-
-        // WHEN: Condition is evaluated
-        boolean result = condition.matches(conditionContext, metadata);
-
-        // THEN: Condition should not match (invalid parses as false)
         assertFalse(result);
     }
 
@@ -144,13 +103,13 @@ class ClientAccessControlEnabledConditionTest {
      * Test type             - Positive.
      */
     @Test
-    void matches_PropertySetToUppercaseTrue_ReturnsTrue() {
+    void matchesPropertySetToUppercaseTrueReturnsTrue() {
         // GIVEN: Property is set to "TRUE" (uppercase)
         ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
         when(conditionContext.getEnvironment()).thenReturn(environment);
         when(environment.getProperty(
-                eq(GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled"), 
-                eq("false"))).thenReturn("TRUE");
+                GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled", 
+                "false")).thenReturn("TRUE");
 
         // WHEN: Condition is evaluated
         boolean result = condition.matches(conditionContext, metadata);
@@ -159,25 +118,5 @@ class ClientAccessControlEnabledConditionTest {
         assertTrue(result);
     }
 
-    /**
-     * Test purpose          - Verify matches method handles empty string.
-     * Test data             - Property value "" (empty).
-     * Test expected result  - Returns false.
-     * Test type             - Negative.
-     */
-    @Test
-    void matches_PropertySetToEmptyString_ReturnsFalse() {
-        // GIVEN: Property is empty string
-        ClientAccessControlEnabledCondition condition = new ClientAccessControlEnabledCondition();
-        when(conditionContext.getEnvironment()).thenReturn(environment);
-        when(environment.getProperty(
-                eq(GatewayConstants.CLIENT_ACCESS_CONTROL_PREFIX + ".enabled"), 
-                eq("false"))).thenReturn("");
 
-        // WHEN: Condition is evaluated
-        boolean result = condition.matches(conditionContext, metadata);
-
-        // THEN: Condition should not match (empty parses as false)
-        assertFalse(result);
-    }
 }

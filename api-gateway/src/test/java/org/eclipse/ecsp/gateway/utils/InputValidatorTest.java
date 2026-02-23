@@ -20,7 +20,7 @@ class InputValidatorTest {
      * Test type             - Positive.
      */
     @Test
-    void isValid_CleanInput_ReturnsTrue() {
+    void isValidCleanInputReturnsTrue() {
         // GIVEN: Valid client ID
         String validClientId = "client123ABC";
 
@@ -38,7 +38,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_NullInput_ReturnsFalse() {
+    void isValidNullInputReturnsFalse() {
         // GIVEN: Null input
         String nullInput = null;
 
@@ -56,7 +56,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_EmptyString_ReturnsFalse() {
+    void isValidEmptyStringReturnsFalse() {
         // GIVEN: Empty string
         String emptyInput = "";
 
@@ -74,7 +74,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_BlankString_ReturnsFalse() {
+    void isValidBlankStringReturnsFalse() {
         // GIVEN: Whitespace only
         String blankInput = "   ";
 
@@ -92,7 +92,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_SqlInjectionUnionSelect_ReturnsFalse() {
+    void isValidSqlInjectionUnionSelectReturnsFalse() {
         // GIVEN: SQL injection with UNION SELECT
         String sqlInjection = "' UNION SELECT * FROM users--";
 
@@ -110,7 +110,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_SqlInjectionOrTrue_ReturnsFalse() {
+    void isValidSqlInjectionOrTrueReturnsFalse() {
         // GIVEN: SQL injection with OR condition
         String sqlInjection = "' or 1=1--";
 
@@ -128,7 +128,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_SqlInjectionWithComment_ReturnsFalse() {
+    void isValidSqlInjectionWithCommentReturnsFalse() {
         // GIVEN: SQL injection with comment
         String sqlInjection = "admin'--";
 
@@ -146,7 +146,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_XssWithScriptTag_ReturnsFalse() {
+    void isValidXssWithScriptTagReturnsFalse() {
         // GIVEN: XSS attack with script tag
         String xssAttack = "<script>alert('XSS')</script>";
 
@@ -164,7 +164,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_XssWithOnerror_ReturnsFalse() {
+    void isValidXssWithOnerrorReturnsFalse() {
         // GIVEN: XSS attack with onerror
         String xssAttack = "<img src=x onerror=alert('XSS')>";
 
@@ -182,7 +182,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_XssWithJavascriptProtocol_ReturnsFalse() {
+    void isValidXssWithJavascriptProtocolReturnsFalse() {
         // GIVEN: XSS attack with javascript protocol
         String xssAttack = "javascript:alert('XSS')";
 
@@ -200,7 +200,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_PathTraversalDotDotSlash_ReturnsFalse() {
+    void isValidPathTraversalDotDotSlashReturnsFalse() {
         // GIVEN: Path traversal attack
         String pathTraversal = "../../etc/passwd";
 
@@ -218,7 +218,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void isValid_PathTraversalBackslash_ReturnsFalse() {
+    void isValidPathTraversalBackslashReturnsFalse() {
         // GIVEN: Path traversal with backslash
         String pathTraversal = "..\\..\\windows\\system32";
 
@@ -236,7 +236,7 @@ class InputValidatorTest {
      * Test type             - Positive.
      */
     @Test
-    void detectsSqlInjection_InsertKeyword_ReturnsTrue() {
+    void detectsSqlInjectionInsertKeywordReturnsTrue() {
         // GIVEN: Input with SQL INSERT keyword
         String input = "INSERT INTO users";
 
@@ -254,7 +254,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void detectsSqlInjection_CleanInput_ReturnsFalse() {
+    void detectsSqlInjectionCleanInputReturnsFalse() {
         // GIVEN: Clean input
         String input = "normalClientId123";
 
@@ -272,7 +272,7 @@ class InputValidatorTest {
      * Test type             - Positive.
      */
     @Test
-    void detectsXss_IframeTag_ReturnsTrue() {
+    void detectsXssIframeTagReturnsTrue() {
         // GIVEN: Input with iframe tag
         String input = "<iframe src='evil.com'></iframe>";
 
@@ -290,7 +290,7 @@ class InputValidatorTest {
      * Test type             - Positive.
      */
     @Test
-    void detectsPathTraversal_UrlEncodedTraversal_ReturnsTrue() {
+    void detectsPathTraversalUrlEncodedTraversalReturnsTrue() {
         // GIVEN: URL-encoded path traversal
         String input = "%2e%2e%2f%2e%2e%2f";
 
@@ -308,7 +308,7 @@ class InputValidatorTest {
      * Test type             - Negative.
      */
     @Test
-    void detectionMethods_NullInput_ReturnsFalse() {
+    void detectionMethodsNullInputReturnsFalse() {
         // GIVEN: Null input
 
         // WHEN: Detection methods are called
@@ -329,7 +329,7 @@ class InputValidatorTest {
      * Test type             - Positive.
      */
     @Test
-    void isValid_ValidSpecialCharacters_ReturnsTrue() {
+    void isValidValidSpecialCharactersReturnsTrue() {
         // GIVEN: Valid client ID with allowed special chars
         String validInput = "client-id_123";
 

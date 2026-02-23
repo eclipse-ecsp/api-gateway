@@ -54,7 +54,7 @@ class RouteEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void testOnApplicationReady_PublishesInitialEvent() {
+    void testOnApplicationReadyPublishesInitialEvent() {
         // Arrange
         ApplicationReadyEvent event = mock(ApplicationReadyEvent.class);
 
@@ -73,7 +73,7 @@ class RouteEventPublisherTest {
      * Test type             - Positive.
      */
     @Test
-    void testConstructor_InitializesSuccessfully() {
+    void testConstructorInitializesSuccessfully() {
         // Arrange & Act
         RouteEventPublisher newPublisher = new RouteEventPublisher(throttler);
 

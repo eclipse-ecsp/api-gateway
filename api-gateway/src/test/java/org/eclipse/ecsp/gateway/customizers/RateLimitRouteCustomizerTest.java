@@ -103,14 +103,14 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void constructor_WithValidDependencies_InitializesSuccessfully() {
+    void constructorWithValidDependenciesInitializesSuccessfully() {
         RateLimitRouteCustomizer testCustomizer =
             new RateLimitRouteCustomizer(rateLimitConfigResolver, applicationContext);
         assertNotNull(testCustomizer, "Customizer should be initialized");
     }
 
     @Test
-    void customize_WithNullRateLimit_ReturnsRouteUnchanged() throws URISyntaxException {
+    void customizeWithNullRateLimitReturnsRouteUnchanged() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         int originalFilterCount = routeDef.getFilters().size();
@@ -125,7 +125,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithValidRateLimit_AddsRateLimitFilter() throws URISyntaxException {
+    void customizeWithValidRateLimitAddsRateLimitFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -141,7 +141,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithRateLimit_SetsCorrectConfiguration() throws URISyntaxException {
+    void customizeWithRateLimitSetsCorrectConfiguration() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("client-ip", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -166,7 +166,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithCamelCaseKeyResolver_ResolvesCorrectly() throws URISyntaxException {
+    void customizeWithCamelCaseKeyResolverResolvesCorrectly() throws URISyntaxException {
         assertTrue(testKeyResolverResolves("client-ip"));
         assertTrue(testKeyResolverResolves("client_ip"));
         assertTrue(testKeyResolverResolves("CLIENT-IP"));
@@ -190,7 +190,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithNonExistentKeyResolver_DoesNotAddFilter() throws URISyntaxException {
+    void customizeWithNonExistentKeyResolverDoesNotAddFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("nonExistentResolver", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -206,7 +206,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithCustomArgs_AddsArgsToMetadata() throws URISyntaxException {
+    void customizeWithCustomArgsAddsArgsToMetadata() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -226,7 +226,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithCustomArgs_AddsArgsToFilterConfig() throws URISyntaxException {
+    void customizeWithCustomArgsAddsArgsToFilterConfig() throws URISyntaxException {
         final IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -244,7 +244,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithEmptyCustomArgs_DoesNotAddMetadata() throws URISyntaxException {
+    void customizeWithEmptyCustomArgsDoesNotAddMetadata() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -260,7 +260,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithResolverNameNeedingSuffix_AppendsKeyResolverSuffix() throws URISyntaxException {
+    void customizeWithResolverNameNeedingSuffixAppendsKeyResolverSuffix() throws URISyntaxException {
         // Create a fresh customizer with only useridKeyResolver (needs suffix)
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("useridKeyResolver", userIdKeyResolver);
@@ -312,7 +312,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithIncludeHeadersFalse_AddsRemoveHeaderFilters() throws URISyntaxException {
+    void customizeWithIncludeHeadersFalseAddsRemoveHeaderFilters() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -330,7 +330,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithHeaderKeyResolver_ResolvesProperly() throws URISyntaxException {
+    void customizeWithHeaderKeyResolverResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver headerResolver = org.mockito.Mockito.mock(KeyResolver.class);
         specificResolvers.put(GatewayConstants.HEADER_KEY_RESOLVER, headerResolver);
@@ -369,7 +369,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithRoutePathKeyResolver_ResolvesProperly() throws URISyntaxException {
+    void customizeWithRoutePathKeyResolverResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("routePathKeyResolver", userIdKeyResolver);
         
@@ -407,7 +407,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithRouteNameKeyResolver_ResolvesProperly() throws URISyntaxException {
+    void customizeWithRouteNameKeyResolverResolvesProperly() throws URISyntaxException {
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         KeyResolver routeNameResolver = org.mockito.Mockito.mock(KeyResolver.class);
         specificResolvers.put("routeNameKeyResolver", routeNameResolver);
@@ -446,7 +446,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithEmptyKeyResolver_DoesNotAddFilter() throws URISyntaxException {
+    void customizeWithEmptyKeyResolverDoesNotAddFilter() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -462,7 +462,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithCustomResolverName_ResolvesCorrectly() throws URISyntaxException {
+    void customizeWithCustomResolverNameResolvesCorrectly() throws URISyntaxException {
         KeyResolver customResolver = org.mockito.Mockito.mock(KeyResolver.class);
         Map<String, KeyResolver> specificResolvers = new HashMap<>();
         specificResolvers.put("myCustomResolver", customResolver);
@@ -500,7 +500,7 @@ class RateLimitRouteCustomizerTest {
     }
 
     @Test
-    void customize_WithDenyEmptyKeyAndEmptyKeyStatus_AddsToFilterConfig() throws URISyntaxException {
+    void customizeWithDenyEmptyKeyAndEmptyKeyStatusAddsToFilterConfig() throws URISyntaxException {
         IgniteRouteDefinition igniteRoute = createIgniteRoute();
         final RouteDefinition routeDef = createRouteDefinition();
         RateLimit rateLimit = createRateLimit("clientIp", REPLENISH_RATE_100, BURST_CAPACITY_200);

@@ -20,7 +20,7 @@ package org.eclipse.ecsp.gateway.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
 import org.eclipse.ecsp.gateway.model.AccessRule;
@@ -38,7 +38,6 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -62,10 +61,9 @@ import static org.mockito.Mockito.when;
  * <p>Tests FR-039 to FR-043: YAML overrides take precedence over database.
  * Uses test profile with inline YAML configuration.
  *
- * <p>Validates AS-5: YAML overrides database configuration for emergency access changes.
+ * <p>Validates YAML overrides database configuration for emergency access changes.
  */
 @SpringBootTest
-@ActiveProfiles("yaml-precedence-test")
 @DirtiesContext
 @TestPropertySource(properties = {
     //  Enable client access control feature
@@ -96,8 +94,8 @@ import static org.mockito.Mockito.when;
     
     // Disable features not relevant for this test
     "api.gateway.jwt.key-sources=",  // Empty JWT key sources to prevent PublicKeyServiceImpl initialization errors
-    "spring.redis.host=localhost",  // Required for ReactiveRedisTemplate mock
-    "spring.redis.port=6379"
+    "spring.data.redis.host=localhost",  // Required for ReactiveRedisTemplate mock
+    "spring.data.redis.port=6379"
 })
 @DisplayName("YAML Configuration Precedence Integration Tests")
 class YamlConfigurationPrecedenceIntegrationTest {
@@ -155,7 +153,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
 
     @BeforeAll
     static void setUpWireMock() {
-        PrometheusRegistry.defaultRegistry.clear();
+        CollectorRegistry.defaultRegistry.clear();
         // Initialize and start WireMock server before Spring context
         wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
         wireMockServer.start();
@@ -271,19 +269,12 @@ class YamlConfigurationPrecedenceIntegrationTest {
         List<ClientAccessConfig> merged = merger.merge(databaseConfigs);
 
         // Assert
-        assertThat(merged).hasSize(FOUR_CONFIGS); // 1 database + 3 YAML-only
-
-        // Verify database config preserved
-        assertThat(merged).anyMatch(c -> 
-                c.getClientId().equals("regular-client") && "DATABASE".equals(c.getSource()));
-
-        // Verify all YAML clients added
-        assertThat(merged).anyMatch(c -> 
-                c.getClientId().equals("emergency-client") && "YAML_OVERRIDE".equals(c.getSource()));
-        assertThat(merged).anyMatch(c -> 
-                c.getClientId().equals("restricted-client") && "YAML_OVERRIDE".equals(c.getSource()));
-        assertThat(merged).anyMatch(c -> 
-                c.getClientId().equals("audit-client") && "YAML_OVERRIDE".equals(c.getSource()));
+        assertThat(merged)
+                .hasSize(FOUR_CONFIGS) // 1 database + 3 YAML-only
+                .anyMatch(c -> c.getClientId().equals("regular-client") && "DATABASE".equals(c.getSource()))
+                .anyMatch(c -> c.getClientId().equals("emergency-client") && "YAML_OVERRIDE".equals(c.getSource()))
+                .anyMatch(c -> c.getClientId().equals("restricted-client") && "YAML_OVERRIDE".equals(c.getSource()))
+                .anyMatch(c -> c.getClientId().equals("audit-client") && "YAML_OVERRIDE".equals(c.getSource()));
     }
 
     @Test
@@ -342,7 +333,7 @@ class YamlConfigurationPrecedenceIntegrationTest {
 
     @Test
     @DisplayName("Database configs without YAML overrides should be preserved")
-    void testDatabaseOnly_Preserved() {
+    void testDatabaseOnlyPreserved() {
         // Arrange - database configs without YAML matches
         List<ClientAccessConfig> databaseConfigs = Arrays.asList(
                 createDatabaseConfig("client1", "tenant1"),
@@ -354,16 +345,17 @@ class YamlConfigurationPrecedenceIntegrationTest {
         List<ClientAccessConfig> merged = merger.merge(databaseConfigs);
 
         // Assert
-        assertThat(merged).hasSize(SIX_CONFIGS); // 3 database + 3 YAML-only
+        assertThat(merged)
+                .hasSize(SIX_CONFIGS) // 3 database + 3 YAML-only
+                .anyMatch(c -> c.getClientId().equals("client1") && "DATABASE".equals(c.getSource()))
+                .anyMatch(c -> c.getClientId().equals("client2") && "DATABASE".equals(c.getSource()))
+                .anyMatch(c -> c.getClientId().equals("client3") && "DATABASE".equals(c.getSource()));
 
-        // Verify database configs preserved with DATABASE source
-        assertThat(merged.stream().filter(c -> "DATABASE".equals(c.getSource()))).hasSize(EXPECTED_OVERRIDE_COUNT);
-        assertThat(merged).anyMatch(c -> c.getClientId().equals("client1") && "DATABASE".equals(c.getSource()));
-        assertThat(merged).anyMatch(c -> c.getClientId().equals("client2") && "DATABASE".equals(c.getSource()));
-        assertThat(merged).anyMatch(c -> c.getClientId().equals("client3") && "DATABASE".equals(c.getSource()));
+        assertThat(merged.stream().filter(c -> "DATABASE".equals(c.getSource())))
+                .hasSize(EXPECTED_OVERRIDE_COUNT);
 
-        // Verify YAML configs added
-        assertThat(merged.stream().filter(c -> "YAML_OVERRIDE".equals(c.getSource()))).hasSize(EXPECTED_OVERRIDE_COUNT);
+        assertThat(merged.stream().filter(c -> "YAML_OVERRIDE".equals(c.getSource())))
+                .hasSize(EXPECTED_OVERRIDE_COUNT);
     }
 
     @Test
@@ -389,19 +381,18 @@ class YamlConfigurationPrecedenceIntegrationTest {
         List<AccessRule> rules = ruleMatcherService.parseRules(restrictedOverride.getAllow());
 
         // Assert
-        assertThat(rules).hasSizeGreaterThanOrEqualTo(RESTRICTED_CLIENT_INDEX);
-
-        // Verify allow rule
-        assertThat(rules).anyMatch(r ->
-                r.getService().equals("user-service")
-                && r.getRoute().equals("profile")
-                && !r.isDeny());
-
-        // Verify deny rule (! prefix)
-        assertThat(rules).anyMatch(r ->
-                r.getService().equals("payment-service")
-                && r.getRoute().equals("*")
-                && r.isDeny());
+        assertThat(rules)
+                .hasSizeGreaterThanOrEqualTo(RESTRICTED_CLIENT_INDEX)
+                // Verify allow rule
+                .anyMatch(r ->
+                        r.getService().equals("user-service")
+                        && r.getRoute().equals("profile")
+                        && !r.isDeny())
+                // Verify deny rule (! prefix)
+                .anyMatch(r ->
+                        r.getService().equals("payment-service")
+                        && r.getRoute().equals("*")
+                        && r.isDeny());
     }
 
     // Helper method

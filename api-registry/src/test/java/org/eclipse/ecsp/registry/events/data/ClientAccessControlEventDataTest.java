@@ -45,7 +45,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_WithClientIds_CreateInstanceCorrectly() {
+    void constructorWithClientIdsCreateInstanceCorrectly() {
         // GIVEN: List of client IDs
         List<String> clientIds = List.of("client-1", "client-2");
 
@@ -72,7 +72,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_WithClientIdsAndOperation_CreateInstanceCorrectly() {
+    void constructorWithClientIdsAndOperationCreateInstanceCorrectly() {
         // GIVEN: List of client IDs and operation
         List<String> clientIds = List.of("client-1");
         String operation = "CREATE";
@@ -96,7 +96,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_FullConstructor_CreateInstanceWithAllFields() {
+    void constructorFullConstructorCreateInstanceWithAllFields() {
         // GIVEN: All fields
         String eventId = "event-123";
         Instant timestamp = Instant.now();
@@ -122,7 +122,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getEventType_Called_ReturnClientAccessControlUpdated() {
+    void getEventTypeCalledReturnClientAccessControlUpdated() {
         // GIVEN: Event data
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(List.of("client-1"));
 
@@ -142,7 +142,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void getClientIds_AttemptToModify_ThrowUnsupportedOperationException() {
+    void getClientIdsAttemptToModifyThrowUnsupportedOperationException() {
         // GIVEN: Event data
         ClientAccessControlEventData eventData = new ClientAccessControlEventData(List.of("client-1"));
 
@@ -165,7 +165,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_EmptyClientIdList_CreateInstanceCorrectly() {
+    void constructorEmptyClientIdListCreateInstanceCorrectly() {
         // GIVEN: Empty client ID list
         List<String> clientIds = List.of();
 
@@ -187,7 +187,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void constructor_NullOperation_CreateInstanceCorrectly() {
+    void constructorNullOperationCreateInstanceCorrectly() {
         // GIVEN: Client IDs and null operation
         List<String> clientIds = List.of("client-1");
 
@@ -208,7 +208,7 @@ class ClientAccessControlEventDataTest {
      * @throws Exception if test fails
      **/
     @Test
-    void toStringAndEquals_TwoInstances_WorkCorrectly() {
+    void toStringAndEqualsTwoInstancesWorkCorrectly() {
         // GIVEN: Two event data instances
         List<String> clientIds = List.of("client-1");
         ClientAccessControlEventData eventData1 = new ClientAccessControlEventData(clientIds, "CREATE");

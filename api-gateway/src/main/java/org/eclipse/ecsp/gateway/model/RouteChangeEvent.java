@@ -73,6 +73,9 @@ public class RouteChangeEvent implements Serializable {
      * Constructor for RouteChangeEvent.
      *
      * @param services list of service names that changed
+     * @param routes list of route IDs that changed
+     * @param clientIds list of client IDs affected by the change
+     * @param operation type of operation performed (CREATE, UPDATE, DELETE)
      */
     public RouteChangeEvent(List<String> services, List<String> routes, List<String> clientIds, String operation) {
         this(UUID.randomUUID().toString(), 

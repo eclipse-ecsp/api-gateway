@@ -1,16 +1,12 @@
 package org.eclipse.ecsp.registry.mapper;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.eclipse.ecsp.registry.dto.ClientAccessControlRequestDto;
 import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
 import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -47,14 +43,9 @@ class ClientAccessControlMapperTest {
     private static final String SERVICE_ANOTHER = "another-service:route";
 
     private ClientAccessControlMapper mapper;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
         mapper = new ClientAccessControlMapper();
     }
 
@@ -67,9 +58,9 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void entityToResponseDto_ValidEntity_Success() {
+    void entityToResponseDtoValidEntitySuccess() {
         // GIVEN:
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = LocalDateTime.now();
         List<String> rules = Arrays.asList(SERVICE_USER, SERVICE_PAYMENT_REFUND);
         
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
@@ -106,7 +97,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void entityToResponseDto_NullEntity_ReturnsNull() {
+    void entityToResponseDtoNullEntityReturnsNull() {
         // GIVEN:
         // null entity
 
@@ -126,7 +117,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void requestDtoToEntity_ValidDto_Success() {
+    void requestDtoToEntityValidDtoSuccess() {
         // GIVEN:
         List<String> rules = Arrays.asList(SERVICE_VEHICLE);
         ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
@@ -161,7 +152,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void requestDtoToEntity_NullDto_ReturnsNull() {
+    void requestDtoToEntityNullDtoReturnsNull() {
         // GIVEN:
         // null DTO
 
@@ -181,9 +172,9 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void updateEntityFromRequestDto_ValidInputs_UpdatesMutableFields() {
+    void updateEntityFromRequestDtoValidInputsUpdatesMutableFields() {
         // GIVEN:
-        OffsetDateTime originalCreatedAt = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+        LocalDateTime originalCreatedAt = LocalDateTime.now().minusDays(1);
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
                 .id(EXISTING_CLIENT_ID)
                 .clientId(EXISTING_CLIENT_ID)
@@ -225,7 +216,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void updateEntityFromRequestDto_NullInputs_NoException() {
+    void updateEntityFromRequestDtoNullInputsNoException() {
         // GIVEN:
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
                 .clientId(TEST_CLIENT_ID)
@@ -252,9 +243,9 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void entityToResponseDto_EmptyAllowList_Success() {
+    void entityToResponseDtoEmptyAllowListSuccess() {
         // GIVEN:
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = LocalDateTime.now();
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
                 .id(TEST_CLIENT_ID)
                 .clientId(TEST_CLIENT_ID)
@@ -284,7 +275,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void requestDtoToEntity_ValidDto_SetsIdFromClientId() {
+    void requestDtoToEntityValidDtoSetsIdFromClientId() {
         // GIVEN:
         ClientAccessControlRequestDto dto = ClientAccessControlRequestDto.builder()
                 .clientId(TEST_CLIENT_ID)
@@ -312,7 +303,7 @@ class ClientAccessControlMapperTest {
      * @throws Exception if test fails.
      */
     @Test
-    void updateEntityFromRequestDto_DifferentClientId_PreservesOriginal() {
+    void updateEntityFromRequestDtoDifferentClientIdPreservesOriginal() {
         // GIVEN:
         ClientAccessControlEntity entity = ClientAccessControlEntity.builder()
                 .id(TEST_CLIENT_ID)

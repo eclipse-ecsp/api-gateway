@@ -24,7 +24,7 @@ import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
 import org.eclipse.ecsp.gateway.service.AccessRuleMatcherService;
-import org.eclipse.ecsp.gateway.service.ClientAccessControlCacheService;
+import org.eclipse.ecsp.gateway.service.ClientAccessControlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,7 +81,7 @@ class ClientAccessControlGatewayFilterTest {
     private AccessRuleMatcherService accessRuleMatcherService;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
-    private ClientAccessControlCacheService cacheService;
+    private ClientAccessControlService cacheService;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
     private ClientAccessControlMetrics metrics;
@@ -297,7 +297,7 @@ class ClientAccessControlGatewayFilterTest {
         // GIVEN: All dependencies
         ClientAccessControlProperties props = new ClientAccessControlProperties();
         AccessRuleMatcherService ruleMatcherService = mock(AccessRuleMatcherService.class);
-        ClientAccessControlCacheService cache = mock(ClientAccessControlCacheService.class);
+        ClientAccessControlService cache = mock(ClientAccessControlService.class);
         ClientAccessControlMetrics metricsService = mock(ClientAccessControlMetrics.class);
 
         // WHEN: Create filter factory

@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Cache key: clientId (String)
  * Cache value: ClientAccessConfig (pre-parsed rules)
  */
-public class ClientAccessControlCacheService {
-    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ClientAccessControlCacheService.class);
+public class ClientAccessControlService {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ClientAccessControlService.class);
     private final ConcurrentHashMap<String, ClientAccessConfig> cache = new ConcurrentHashMap<>();
     private final AccessRuleMatcherService ruleMatcherService;
     private final ApiRegistryClient apiRegistryClient;
@@ -43,7 +43,7 @@ public class ClientAccessControlCacheService {
      * @param yamlConfigurationMerger the YAML configuration merger
      * @param metrics the client access control metrics
      */
-    public ClientAccessControlCacheService(AccessRuleMatcherService ruleMatcherService, 
+    public ClientAccessControlService(AccessRuleMatcherService ruleMatcherService, 
             ApiRegistryClient apiRegistryClient, 
             AccessControlConfigMerger yamlConfigurationMerger, 
             ClientAccessControlMetrics metrics) {

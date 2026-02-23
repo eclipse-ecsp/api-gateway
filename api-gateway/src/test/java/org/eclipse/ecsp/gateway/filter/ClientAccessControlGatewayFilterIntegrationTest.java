@@ -93,8 +93,8 @@ import static org.mockito.Mockito.when;
     
     // Disable features not relevant for this test
     "api.gateway.jwt.key-sources=",  // Empty JWT key sources to prevent PublicKeyServiceImpl initialization errors
-    "spring.redis.host=localhost",
-    "spring.redis.port=6379"
+    "spring.data.redis.host=localhost",
+    "spring.data.redis.port=6379"
 })
 class ClientAccessControlGatewayFilterIntegrationTest {
 
@@ -154,7 +154,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     }
 
     @Test
-    void testValidJwtWithClient_IdClaim() {
+    void testValidJwtWithClientIdClaimUnderscoreVariant() {
         String jwt = createJwt("auth0-client-789", "client_id");
 
         webTestClient

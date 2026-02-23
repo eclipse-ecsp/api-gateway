@@ -79,7 +79,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_StandardRoute_AddsFilter() {
+    void customizeStandardRouteAddsFilter() {
         // GIVEN: Route with path that should not be skipped
         setupRouteWithPath("/api/users");
 
@@ -101,7 +101,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_PathMatchesSkipPattern_SkipsFilter() {
+    void customizePathMatchesSkipPatternSkipsFilter() {
         // GIVEN: Route with path matching skip pattern
         setupRouteWithPath("/actuator/health");
         when(properties.getSkipPaths()).thenReturn(List.of("/actuator/**", "/health/**"));
@@ -120,7 +120,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_ApiDocsRoute_SkipsFilter() {
+    void customizeApiDocsRouteSkipsFilter() {
         // GIVEN: Route marked as API docs
         IgniteRouteDefinition apiDocsDefinition = new IgniteRouteDefinition();
         apiDocsDefinition.setId("api-docs-route");
@@ -147,7 +147,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_WildcardSkipPattern_SkipsMatchingPaths() {
+    void customizeWildcardSkipPatternSkipsMatchingPaths() {
         // GIVEN: Route with path matching wildcard pattern
         setupRouteWithPath("/public/images/logo.png");
         when(properties.getSkipPaths()).thenReturn(List.of("/public/**"));
@@ -166,7 +166,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Negative.
      */
     @Test
-    void customize_PathDoesNotMatchSkipPatterns_AddsFilter() {
+    void customizePathDoesNotMatchSkipPatternsAddsFilter() {
         // GIVEN: Route with path not matching any skip patterns
         setupRouteWithPath("/api/private/users");
         when(properties.getSkipPaths()).thenReturn(List.of("/actuator/**", "/health", "/public/**"));
@@ -186,7 +186,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Negative.
      */
     @Test
-    void customize_EmptyRoutePath_AddsFilter() {
+    void customizeEmptyRoutePathAddsFilter() {
         // GIVEN: Route with no path predicates
         igniteRouteDefinition.setPredicates(new ArrayList<>());
         when(properties.getSkipPaths()).thenReturn(List.of("/actuator/**"));
@@ -205,7 +205,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_ExactPathMatch_SkipsFilter() {
+    void customizeExactPathMatchSkipsFilter() {
         // GIVEN: Route with exact path in skip list
         setupRouteWithPath("/health");
         when(properties.getSkipPaths()).thenReturn(List.of("/health", "/metrics"));
@@ -224,7 +224,7 @@ class ClientAccessControlCustomizerTest {
      * Test type             - Positive.
      */
     @Test
-    void customize_RouteWithExistingFilters_PreservesAndAddsFilter() {
+    void customizeRouteWithExistingFiltersPreservesAndAddsFilter() {
         // GIVEN: Route with existing filters
         setupRouteWithPath("/api/users");
         FilterDefinition existingFilter = new FilterDefinition();

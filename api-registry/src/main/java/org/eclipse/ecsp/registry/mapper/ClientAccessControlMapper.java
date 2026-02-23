@@ -5,8 +5,7 @@ import org.eclipse.ecsp.registry.dto.ClientAccessControlResponseDto;
 import org.eclipse.ecsp.registry.entity.ClientAccessControlEntity;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.LocalDateTime;
 
 /**
  * Manual mapper for Client Access Control entity/document to DTO conversions.
@@ -64,7 +63,7 @@ public class ClientAccessControlMapper {
         entity.setAllow(dto.getAllow());
         
         // Initialize timestamps
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = LocalDateTime.now();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         
@@ -88,6 +87,6 @@ public class ClientAccessControlMapper {
         entity.setTenant(dto.getTenant());
         entity.setIsActive(dto.getIsActive());
         entity.setAllow(dto.getAllow());
-        entity.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        entity.setUpdatedAt(LocalDateTime.now());
     }
 }

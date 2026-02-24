@@ -89,7 +89,7 @@ class RouteChangeEventTest {
         
         // Test reflexivity - event should equal itself
         assertThat(event1).isEqualTo(event1);
-        assertThat(event1.hashCode()).isEqualTo(event1.hashCode());
+        assertThat(event1.hashCode()).hasSameHashCodeAs(event1.hashCode());
         
         assertThat(event1.toString()).contains("RouteChangeEventData").contains("s1").contains("r1");
     }

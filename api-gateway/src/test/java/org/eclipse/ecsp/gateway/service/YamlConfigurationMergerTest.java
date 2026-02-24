@@ -100,9 +100,10 @@ class YamlConfigurationMergerTest {
 
         List<ClientAccessConfig> result = merger.merge(List.of(createDatabaseConfig("client1", "tenant1")));
 
-        assertThat(result).hasSize(2);
-        assertThat(result).anyMatch(c -> c.getClientId().equals("client1") && c.getSource().equals("DATABASE"));
-        assertThat(result).anyMatch(c -> c.getClientId().equals("client2") && c.getSource().equals("YAML_OVERRIDE"));
+        assertThat(result)
+                .hasSize(2)
+                .anyMatch(c -> c.getClientId().equals("client1") && c.getSource().equals("DATABASE"))
+                .anyMatch(c -> c.getClientId().equals("client2") && c.getSource().equals("YAML_OVERRIDE"));
     }
 
     private ClientAccessConfig createDatabaseConfig(String clientId, String tenant) {

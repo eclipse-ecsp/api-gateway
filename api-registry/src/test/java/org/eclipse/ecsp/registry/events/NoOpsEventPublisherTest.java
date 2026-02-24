@@ -101,15 +101,22 @@ class NoOpsEventPublisherTest {
      */
     private static class TestEventData extends AbstractEventData {
         private final RouteEventType eventType;
-
+        private final String eventId;
+        
         public TestEventData(String eventId, RouteEventType eventType) {
             super();
+            this.eventId = eventId;
             this.eventType = eventType;
         }
 
         @Override
         public RouteEventType getEventType() {
             return eventType;
+        }
+
+        @Override
+        public String getEventId() {
+            return eventId;
         }
     }
 }

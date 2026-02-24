@@ -66,8 +66,8 @@ class CorrelationIdFilterTest {
         StepVerifier.create(result)
                 .verifyComplete();
 
-        assertThat(exchange.getAttributes().get(GatewayConstants.CORRELATION_ID))
-                .isEqualTo(TEST_CORRELATION_ID);
+        assertThat(exchange.getAttributes())
+                .containsEntry(GatewayConstants.CORRELATION_ID, TEST_CORRELATION_ID);
         assertThat(exchange.getResponse().getHeaders().getFirst(CORRELATION_ID_HEADER))
                 .isEqualTo(TEST_CORRELATION_ID);
     }
@@ -85,10 +85,12 @@ class CorrelationIdFilterTest {
         StepVerifier.create(result)
                 .verifyComplete();
 
+        assertThat(exchange.getAttributes())
+                .containsKey(GatewayConstants.CORRELATION_ID);
         String correlationId = (String) exchange.getAttributes().get(GatewayConstants.CORRELATION_ID);
-        assertThat(correlationId).isNotNull();
-        assertThat(correlationId).isNotBlank();
-        assertThat(correlationId).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+        assertThat(correlationId).isNotNull()
+                .isNotBlank()
+                .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
         assertThat(exchange.getResponse().getHeaders().getFirst(CORRELATION_ID_HEADER))
                 .isEqualTo(correlationId);
@@ -110,9 +112,9 @@ class CorrelationIdFilterTest {
                 .verifyComplete();
 
         String correlationId = (String) exchange.getAttributes().get(GatewayConstants.CORRELATION_ID);
-        assertThat(correlationId).isNotNull();
-        assertThat(correlationId).isNotBlank();
-        assertThat(correlationId).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+        assertThat(correlationId).isNotNull()
+                .isNotBlank()
+                .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
 
     @Test

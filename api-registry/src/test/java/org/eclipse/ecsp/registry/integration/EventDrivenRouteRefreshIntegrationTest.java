@@ -63,6 +63,8 @@ class EventDrivenRouteRefreshIntegrationTest {
     private static final int TEST_TIMEOUT_SECONDS = 10;
     private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
+    /** Max seconds to wait for the subscriber thread to obtain a Redis connection. */
+    private static final long SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS = 5L;
 
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
@@ -130,28 +132,40 @@ class EventDrivenRouteRefreshIntegrationTest {
     void testEventPublisherCanPublishEvent() throws InterruptedException {
         // Test that event publisher can be invoked without errors and publishes to Redis
         String serviceId = "test-service-" + UUID.randomUUID();
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch messageLatch = new CountDownLatch(1);
+        // Separate latch to signal that the Redis connection is obtained and subscribe() is about to be called.
+        // This prevents a race condition on CI where obtaining the connection takes longer than
+        // SUBSCRIPTION_START_WAIT_MS, causing the published event to be missed because the
+        // subscription was not yet registered on the Redis server.
+        CountDownLatch subscriptionReady = new CountDownLatch(1);
         String channel = "route-changes-it";
 
         // Subscribe to channel in a separate thread
         Thread subscriber = new Thread(() -> {
+            // Signal that connection is obtained; subscribe() is about to be invoked.
+            // The main thread waits on subscriptionReady before publishing, ensuring
+            // the SUBSCRIBE command has been sent before any message is published.
+            subscriptionReady.countDown();
             redisTemplate.getConnectionFactory().getConnection().subscribe((message, pattern) -> {
                 if (new String(message.getBody()).contains(serviceId)) {
-                    latch.countDown();
+                    messageLatch.countDown();
                 }
             }, channel.getBytes());
         });
         subscriber.start();
 
-        // Allow time for subscription to start
-        latch.await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
+        // Wait until the subscriber thread has obtained the connection and is about
+        // to call subscribe(). Then add a brief grace period so the SUBSCRIBE command
+        // is fully acknowledged by Redis before we publish — critical on slow CI runners.
+        subscriptionReady.await(SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Thread.sleep(SUBSCRIPTION_START_WAIT_MS);
 
         // This should not throw an exception
         eventThrottler.scheduleEvent(serviceId);
 
         // Wait for debouncing delay to complete and event to be received
         // Debounce is 100ms.
-        boolean received = latch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+        boolean received = messageLatch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
 
         assertThat(received)
                 .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)

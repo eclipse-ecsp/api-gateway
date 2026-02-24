@@ -320,7 +320,7 @@ public class ClientAccessControlGatewayFilterFactory extends
     private Mono<Void> handleDeniedRequest(ServerWebExchange exchange, String requestPath, String clientId,
                                            Instant validationStart, String denialReason, 
                                            String logMessage, String responseMessage) {
-        LOGGER.warn("[AUDIT] " + logMessage + " - reason={} - Request denied", requestPath, denialReason);
+        LOGGER.warn("[AUDIT] {} - reason={} - Request denied", logMessage, denialReason);
         metrics.recordRequestDenied(clientId, UNKNOWN, requestPath, denialReason);
         metrics.recordValidationDuration(Duration.between(validationStart, Instant.now()), clientId);
         return unauthorizedResponse(exchange, responseMessage);

@@ -61,7 +61,6 @@ class EventDrivenRouteRefreshIntegrationTest {
 
     private static final int REDIS_PORT = 6379;
     private static final int TEST_TIMEOUT_SECONDS = 10;
-    private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
     /** Max seconds to wait for the subscriber thread to obtain a Redis connection. */
     private static final long SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS = 5L;
@@ -138,6 +137,8 @@ class EventDrivenRouteRefreshIntegrationTest {
         // SUBSCRIPTION_START_WAIT_MS, causing the published event to be missed because the
         // subscription was not yet registered on the Redis server.
         CountDownLatch subscriptionReady = new CountDownLatch(1);
+        // Latch to signal that the SUBSCRIBE command has been fully acknowledged by Redis
+        CountDownLatch subscriptionAcknowledged = new CountDownLatch(1);
         String channel = "route-changes-it";
 
         // Subscribe to channel in a separate thread
@@ -151,14 +152,15 @@ class EventDrivenRouteRefreshIntegrationTest {
                     messageLatch.countDown();
                 }
             }, channel.getBytes());
+            subscriptionAcknowledged.countDown();
         });
         subscriber.start();
 
         // Wait until the subscriber thread has obtained the connection and is about
-        // to call subscribe(). Then add a brief grace period so the SUBSCRIBE command
-        // is fully acknowledged by Redis before we publish — critical on slow CI runners.
+        // to call subscribe(). Then wait for the SUBSCRIBE command to be fully acknowledged
+        // by Redis before we publish — critical on slow CI runners.
         subscriptionReady.await(SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        Thread.sleep(SUBSCRIPTION_START_WAIT_MS);
+        subscriptionAcknowledged.await(SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         // This should not throw an exception
         eventThrottler.scheduleEvent(serviceId);

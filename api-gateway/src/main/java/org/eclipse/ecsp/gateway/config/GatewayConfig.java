@@ -18,11 +18,13 @@
 
 package org.eclipse.ecsp.gateway.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
+import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
@@ -194,6 +196,18 @@ public class GatewayConfig {
     @Bean
     public WebProperties.Resources resources() {
         return new WebProperties.Resources();
+    }
+
+    /**
+     * Exposes the shared ObjectMapper instance as a Spring-managed bean.
+     * Required because Spring Boot 4.x no longer auto-configures ObjectMapper
+     * via the transitive dependency chain for WebFlux applications.
+     *
+     * @return configured ObjectMapper instance
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        return ObjectMapperUtil.getObjectMapper();
     }
 
     /**

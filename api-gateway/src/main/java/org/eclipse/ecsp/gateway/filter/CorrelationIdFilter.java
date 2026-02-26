@@ -22,6 +22,7 @@ import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -44,6 +45,12 @@ import java.util.UUID;
  */
 @Component
 public class CorrelationIdFilter implements WebFilter, Ordered {
+    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CorrelationIdFilter.class);
+    private static final String CORRELATION_ID_HEADER = "correlationId";
+
+    @Value("${api.gateway.correlation-id-header:correlationId}")
+    private String headerName = CORRELATION_ID_HEADER;
+
     /**
      * Default constructor.
      */
@@ -51,8 +58,7 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
         // Default constructor
     }
 
-    private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CorrelationIdFilter.class);
-    private static final String CORRELATION_ID_HEADER = "correlationId";
+   
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -60,18 +66,18 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
         String correlationId = extractOrGenerateCorrelationId(exchange);
 
         // Add correlation ID to exchange attributes
-        exchange.getAttributes().put(GatewayConstants.CORRELATION_ID, correlationId);
+        exchange.getAttributes().put(headerName, correlationId);
 
         // Add correlation ID to response header for client traceability
-        exchange.getResponse().getHeaders().add(CORRELATION_ID_HEADER, correlationId);
+        exchange.getResponse().getHeaders().add(headerName, correlationId);
 
         // Set MDC for logging in this thread
-        MDC.put(GatewayConstants.CORRELATION_ID, correlationId);
+        MDC.put(headerName, correlationId);
 
         // Propagate correlation ID in reactive context
         return chain.filter(exchange)
-                .contextWrite(Context.of(GatewayConstants.CORRELATION_ID, correlationId))
-                .doFinally(signalType -> MDC.remove(GatewayConstants.CORRELATION_ID));
+                .contextWrite(Context.of(headerName, correlationId))
+                .doFinally(signalType -> MDC.remove(headerName));
     }
 
     /**
@@ -83,18 +89,18 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
     private String extractOrGenerateCorrelationId(ServerWebExchange exchange) {
         List<String> correlationHeaders = exchange.getRequest()
                 .getHeaders()
-                .get(CORRELATION_ID_HEADER);
+                .get(headerName);
 
         if (correlationHeaders != null && !correlationHeaders.isEmpty()) {
             String correlationId = correlationHeaders.get(0);
             if (correlationId != null && !correlationId.isBlank()) {
-                LOGGER.debug("Using existing correlation ID: {}", correlationId);
+                LOGGER.debug("Using existing {} header: {}", headerName, correlationId);
                 return correlationId.trim();
             }
         }
 
         String newCorrelationId = UUID.randomUUID().toString();
-        LOGGER.debug("Generated new correlation ID: {}", newCorrelationId);
+        LOGGER.debug("Generated new {} header: {}", headerName, newCorrelationId);
         return newCorrelationId;
     }
 

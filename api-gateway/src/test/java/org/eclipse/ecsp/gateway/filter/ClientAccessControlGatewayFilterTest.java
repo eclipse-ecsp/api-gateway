@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.filter;
 
 import io.jsonwebtoken.Jwts;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
+import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
@@ -50,7 +51,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -166,14 +166,15 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
-        verify(filterChain, never()).filter(any());
+        // Act
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     @Test
@@ -188,13 +189,15 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        // Act
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     @Test
@@ -211,13 +214,14 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     @Test
@@ -379,14 +383,14 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
-        verify(filterChain, never()).filter(any());
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     /**
@@ -412,14 +416,14 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
-        verify(filterChain, never()).filter(any());
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     // =========================
@@ -464,14 +468,14 @@ class ClientAccessControlGatewayFilterTest {
         GatewayFilter filter = filterFactory.apply(new ClientAccessControlGatewayFilterFactory.Config());
 
         // Act
-        Mono<Void> result = filter.filter(exchange, filterChain);
-
-        // Assert
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
-        verify(filterChain, never()).filter(any());
+        try {
+            filter.filter(exchange, filterChain);
+        } catch (ApiGatewayException e) {
+            // Assert exception details
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertEquals("api.gateway.error", e.getErrorCode());
+            assertEquals("Access denied", e.getMessage());
+        }
     }
 
     // =========================

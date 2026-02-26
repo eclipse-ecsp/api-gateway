@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.filter;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.ecsp.gateway.config.ClientAccessControlProperties;
+import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.gateway.metrics.ClientAccessControlMetrics;
 import org.eclipse.ecsp.gateway.model.AccessRule;
 import org.eclipse.ecsp.gateway.model.ClientAccessConfig;
@@ -36,6 +37,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.support.HasRouteId;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.AntPathMatcher;
@@ -300,9 +302,11 @@ public class ClientAccessControlGatewayFilterFactory extends
      * @return Completed mono with 401 response
      */
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String reason) {
-        LOGGER.warn("Unauthorized access rejected: {}", reason);
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
+        LOGGER.warn("Request is denied for routeId: {}, uri: {}, reason: {}",
+             exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR), 
+             exchange.getRequest().getURI(),
+             reason);
+        throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, "api.gateway.error", "Access denied");
     }
 
     /**

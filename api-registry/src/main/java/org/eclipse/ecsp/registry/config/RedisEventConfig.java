@@ -24,9 +24,9 @@ import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -41,7 +41,7 @@ import java.time.Duration;
  */
 @Configuration
 @ConditionalOnProperty(name = "api-registry.events.enabled", havingValue = "true")
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@Import({DataRedisAutoConfiguration.class, DataRedisReactiveAutoConfiguration.class})
 public class RedisEventConfig {
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RedisEventConfig.class);

@@ -52,6 +52,11 @@ public class RequestHeaderKeyResolver implements KeyResolver {
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+        if (route == null) {
+            LOGGER.error("Route is not available in exchange");
+            return Mono.empty();
+        }
+        
         Map<String, Object> rateLimitConfig = RouteUtils.getRateLimitArgs(route);
 
         String headerName = (String) rateLimitConfig.keySet().stream()
@@ -64,10 +69,10 @@ public class RequestHeaderKeyResolver implements KeyResolver {
             return Mono.empty();
         }
 
-        String headerValue = exchange.getRequest().getHeaders().entrySet()
+        String headerValue = exchange.getRequest().getHeaders().toSingleValueMap().entrySet()
             .stream()
             .filter(entry -> entry.getKey().equalsIgnoreCase(headerName))
-            .map(entry -> entry.getValue().get(0))
+            .map(Map.Entry::getValue)
             .findFirst()
             .orElse(null);
 

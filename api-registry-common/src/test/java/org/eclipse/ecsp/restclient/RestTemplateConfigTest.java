@@ -19,25 +19,28 @@
 package org.eclipse.ecsp.restclient;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.RestTemplate;
 
 /**
  * RestTemplateConfigTest.
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class RestTemplateConfigTest {
 
-    @InjectMocks
     private RestTemplateConfig restTemplateConfig;
+    
+    @BeforeEach
+    void setUp() {
+        restTemplateConfig = new RestTemplateConfig();
+    }
 
     @Test
     void restTemplateTest() {
-        RestTemplate restTemplate = restTemplateConfig.restTemplate(new RestTemplateBuilder());
+        RestTemplate restTemplate = restTemplateConfig.restTemplate();
         Assertions.assertNotNull(restTemplate);
     }
 

@@ -205,7 +205,7 @@ public class AccessLog implements GlobalFilter, Ordered {
 
     private void appendResponseHeaders(ServerWebExchange exchange, StringBuilder logMsg) {
         logMsg.append(", Response Headers: {");
-        String headersLog = exchange.getResponse().getHeaders().entrySet().stream()
+        String headersLog = exchange.getResponse().getHeaders().toSingleValueMap().entrySet().stream()
                 .filter(entry -> !skipResponseHeadersSet.contains(entry.getKey().toLowerCase()))
                 .map(entry -> entry.getKey() + ": " + entry.getValue())
                 .collect(Collectors.joining(", "));
@@ -215,7 +215,7 @@ public class AccessLog implements GlobalFilter, Ordered {
 
     private void appendRequestHeaders(ServerWebExchange exchange, StringBuilder logMsg) {
         logMsg.append(", Request Headers: {");
-        String headersLog = exchange.getRequest().getHeaders().entrySet().stream()
+        String headersLog = exchange.getRequest().getHeaders().toSingleValueMap().entrySet().stream()
                 .filter(entry -> !skipRequestHeadersSet.contains(entry.getKey().toLowerCase()))
                 .map(entry -> entry.getKey() + ": " + entry.getValue())
                 .collect(Collectors.joining(", "));

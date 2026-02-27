@@ -45,6 +45,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.route.Route;
@@ -138,6 +139,9 @@ class JwtAuthValidatorTest {
 
     @BeforeEach
     void setupJwtAuthValidator() {
+        // Initialize mocks
+        MockitoAnnotations.openMocks(this);
+        
         // Setup mock JWT properties
         setupMockJwtProperties();
 

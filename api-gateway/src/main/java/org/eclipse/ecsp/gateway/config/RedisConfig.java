@@ -23,9 +23,9 @@ import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -39,7 +39,7 @@ import java.time.Duration;
 @Configuration
 @ConditionOnRedisEnabled
 @NoArgsConstructor
-@Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@Import({DataRedisAutoConfiguration.class, DataRedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
     @Value("${redis.cluster.topology-refresh.duration.ms:30000}")

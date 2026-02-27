@@ -61,11 +61,11 @@
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.21.0</jackson-bom.version>
-        <jjwt.version>0.12.7</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.42</lombok.version>
-        <spring-boot.version>4.0.2</spring-boot.version>
+        <spring-boot.version>4.0.3</spring-boot.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
-        <spring-cloud-resilience4j.version>3.3.0</spring-cloud-resilience4j.version>
+        <spring-cloud-resilience4j.version>3.3.1</spring-cloud-resilience4j.version>
         <spring-cloud-starter-gateway.version>5.0.1</spring-cloud-starter-gateway.version>
         <springdoc.version>3.0.1</springdoc.version>
         <!-- maven-plugin dependant versions ordered by artifactId -->
@@ -81,7 +81,7 @@
         <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
 
         <!--Checkstyle plugin properties -->
-        <checkstyle.version>11.0.0</checkstyle.version>
+         <checkstyle.version>11.0.0</checkstyle.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <checkstyle.suppressions.location>checkstyle-suppressions.xml</checkstyle.suppressions.location>
@@ -129,7 +129,7 @@
         </sonar.exclusions>
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec
         </jacoco.ut.execution.data.file>
-        <spring-security.version>7.0.2</spring-security.version>
+        <spring-security.version>7.0.3</spring-security.version>
         <bouncycastle.version>1.82</bouncycastle.version>
         <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
@@ -152,6 +152,7 @@
         <netty.version>4.2.9.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
+        <hibernate-core.version>7.1.8.Final</hibernate-core.version>
     </properties>
 
     <repositories>
@@ -378,6 +379,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${hibernate-core.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

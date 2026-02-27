@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.registry.entity;
 
-import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -30,7 +29,8 @@ import lombok.ToString;
 import org.eclipse.ecsp.domain.Version;
 import org.eclipse.ecsp.entities.IgniteEntity;
 import org.eclipse.ecsp.register.model.RouteDefinition;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Defines the structure of ApiRouteEntity.
@@ -60,7 +60,7 @@ public class ApiRouteEntity implements IgniteEntity {
     @Column(name = "apidocs")
     private Boolean apiDocs;
 
-    @Type(value = JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private RouteDefinition route;
 

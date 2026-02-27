@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
@@ -389,6 +390,7 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
     @Getter
     @Setter
     @ToString
+    @NoArgsConstructor
     public static class Config {
         private boolean removeUnknownHeaders = false;
         private Set<String> allowHeaders;

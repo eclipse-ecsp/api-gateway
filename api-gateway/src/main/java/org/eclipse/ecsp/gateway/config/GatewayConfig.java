@@ -18,11 +18,13 @@
 
 package org.eclipse.ecsp.gateway.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
+import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
@@ -41,6 +43,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
@@ -50,6 +56,8 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import javax.net.ssl.SSLException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * GatewayConfig Configration class.
@@ -88,7 +96,7 @@ public class GatewayConfig {
     public static final String FALLBACK_URI = "/fallback/**";
 
     /**
-     * This is a work around override in order to support
+     * This is a work around override in order to support.
      * HTTP2 Procotol on netty.
      * Refer - <a href="https://github.com/spring-cloud/spring-cloud-gateway/issues/2580">...</a>
      * By doing this, we can still use HTTPS on the gateway and HTTP
@@ -191,6 +199,18 @@ public class GatewayConfig {
     }
 
     /**
+     * Exposes the shared ObjectMapper instance as a Spring-managed bean.
+     * Required because Spring Boot 4.x no longer auto-configures ObjectMapper
+     * via the transitive dependency chain for WebFlux applications.
+     *
+     * @return configured ObjectMapper instance
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        return ObjectMapperUtil.getObjectMapper();
+    }
+
+    /**
      * EndpointFilter to restrict exposing endpoints other than defined in exposeEndpoints.
      *
      * @return instance of {@link EndpointFilter}
@@ -201,6 +221,42 @@ public class GatewayConfig {
     EndpointFilter<ExposableWebEndpoint> gatewayEndpointFilter() {
         LOGGER.info("Metrics are not enabled, disabling all endpoints.");
         return (endpoint -> false);
+    }
+
+    /**
+     * Configure RetryTemplate with exponential backoff.
+     *
+     * @return configured RetryTemplate
+     */
+    @Bean("jwkRefreshRetryTemplate")
+    public RetryTemplate jwkRefreshRetryTemplate(JwtProperties properties) {
+        // Configure exponential backoff policy
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(properties.getRetry().getInitialIntervalMs());
+        backOffPolicy.setMultiplier(properties.getRetry().getMultiplier());
+        backOffPolicy.setMaxInterval(properties.getRetry().getMaxIntervalMs());
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+
+        // Configure retry policy with max attempts
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions = new HashMap<>();
+        retryableExceptions.put(RestClientException.class, true);
+        retryableExceptions.put(Exception.class, true);
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
+                properties.getRetry().getMaxAttempts(),
+                retryableExceptions
+        );
+        retryTemplate.setRetryPolicy(retryPolicy);
+
+        LOGGER.info("Jwks Refresh RetryTemplate configured: " 
+            + "maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
+                properties.getRetry().getMaxAttempts(),
+                properties.getRetry().getInitialIntervalMs(),
+                properties.getRetry().getMultiplier(),
+                properties.getRetry().getMaxIntervalMs());
+
+        return retryTemplate;
     }
 
 }

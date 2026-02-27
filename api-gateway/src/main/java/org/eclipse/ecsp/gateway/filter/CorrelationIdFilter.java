@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.gateway.filter;
 
-import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.slf4j.MDC;

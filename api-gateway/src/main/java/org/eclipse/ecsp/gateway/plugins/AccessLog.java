@@ -58,6 +58,13 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.G
 @ConditionalOnProperty(name = "api.gateway.accesslog.enabled", havingValue = "true", matchIfMissing = true)
 public class AccessLog implements GlobalFilter, Ordered {
     /**
+     * Default constructor.
+     */
+    public AccessLog() {
+        // Default constructor
+    }
+
+    /**
      * created a logger instance.
      */
     private static final IgniteLogger LOGGER =

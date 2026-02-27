@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.clients;
 
+import org.eclipse.ecsp.gateway.model.ClientAccessControlConfigDto;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.model.RateLimit;
 import org.eclipse.ecsp.gateway.service.RouteUtils;
@@ -58,6 +59,8 @@ public class ApiRegistryClient {
     private String routeUserId;
     @Value("${api.registry.rate-limits-endpoint:/v1/config/rate-limits}")
     private String rateLimitsEndpoint;
+    @Value("${api.registry.client-access-control-endpoint:/v1/config/client-access-control}")
+    private String accessControlEndpoint;
     private final WebClient webClient;
     private final RouteUtils routeUtils;
     private final RetryTemplate retryTemplate;
@@ -67,6 +70,9 @@ public class ApiRegistryClient {
     
     // Thread-safe cache to store last successfully fetched rate limits
     private final List<RateLimit> cachedRateLimits = new CopyOnWriteArrayList<>();
+
+    // Thread-safe cache to store last successfully fetched client access control configurations
+    private final List<ClientAccessControlConfigDto> cachedClientAccessControlConfigs = new CopyOnWriteArrayList<>();
 
     /**
      * Constructor for ApiRegistryClient.
@@ -264,5 +270,49 @@ public class ApiRegistryClient {
     public void clearRateLimitCache() {
         LOGGER.info("Clearing rate limit cache");
         cachedRateLimits.clear();
+    }
+
+    /**
+    * Fetches client access control configurations from the API registry service.
+    * If the registry is unavailable or returns empty configurations, returns empty list.
+    *
+    * @return list of client access control configurations provided by the registry
+    */
+    public List<ClientAccessControlConfigDto> getClientAccessControlConfigs() {
+        LOGGER.debug("Loading client access control configurations");
+        try {
+            return retryTemplate.execute(context -> {
+                LOGGER.info("Attempt {} to fetch client access control configurations from api-registry", 
+                    context.getRetryCount() + 1);
+                return fetchClientAccessControlConfigsOnce();
+            });
+        } catch (Exception exception) {
+            LOGGER.error("Error while fetching client access control configurations from api-registry: {}",
+                 exception.getMessage());
+            return cachedClientAccessControlConfigs;
+        }
+    }
+
+    private List<ClientAccessControlConfigDto> fetchClientAccessControlConfigsOnce() {
+        // @formatter:off
+        return this.webClient.get().uri(accessControlEndpoint)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(GatewayConstants.USER_ID, routeUserId)
+                .header(GatewayConstants.SCOPE, routeScopes)
+                .retrieve()
+                .bodyToFlux(ClientAccessControlConfigDto.class)
+                .collectList()
+                .doOnNext(configs -> {
+                    LOGGER.info("Successfully fetched {} client access control configurations"
+                        + " from api-registry", configs.size());
+                    cachedClientAccessControlConfigs.clear();
+                    cachedClientAccessControlConfigs.addAll(configs);
+                })
+                .doOnError(throwable -> 
+                    LOGGER.error("Error while fetching client access control configurations " 
+                    + "from api-registry: {}", throwable.getMessage())
+                )
+                .block();
+        // @formatter:on
     }
 }

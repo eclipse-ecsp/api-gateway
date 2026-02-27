@@ -126,7 +126,7 @@ public class IgniteRouteLocator implements RouteLocator {
      * @param routeCustomizers       the list of route customizers
      */
     public IgniteRouteLocator(ConfigurationService configurationService,
-                              List<GatewayFilterFactory> gatewayFilterFactories,
+                              List<GatewayFilterFactory<?>> gatewayFilterFactories,
                               GatewayProperties gatewayProperties,
                               @Value("${plugin.enabled}") boolean pluginEnabled,
                               PluginLoader pluginLoader,
@@ -147,7 +147,7 @@ public class IgniteRouteLocator implements RouteLocator {
             LOGGER.debug("Loading custom plugins...");
             List<Object> plugins = pluginLoader.loadPlugins();
             plugins.forEach(p -> {
-                GatewayFilterFactory plugin = (GatewayFilterFactory) p;
+                GatewayFilterFactory<?> plugin = (GatewayFilterFactory<?>) p;
                 LOGGER.info("Registering Filter factory with custom filter with name: {}", plugin.name());
                 this.gatewayFilterFactories.put(plugin.name(), plugin);
             });

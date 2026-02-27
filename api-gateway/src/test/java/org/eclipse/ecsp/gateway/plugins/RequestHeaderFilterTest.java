@@ -22,6 +22,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory;
+import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.Config;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.GlobalHeaderConfig;
@@ -29,6 +30,7 @@ import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -74,6 +76,12 @@ class RequestHeaderFilterTest {
     WireMockServer wireMockServer;
     @Autowired
     RequestHeaderFilter requestHeaderFilter;
+
+
+    @BeforeAll
+    static void setUp() {
+        CollectorRegistry.defaultRegistry.clear();
+    }
 
     @AfterEach
     void afterEach() {

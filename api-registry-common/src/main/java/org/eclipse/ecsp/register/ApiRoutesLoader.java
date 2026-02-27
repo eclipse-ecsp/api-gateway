@@ -409,6 +409,7 @@ public class ApiRoutesLoader extends OpenApiResource {
         if (operation.getExtensions() != null
                 && operation.getExtensions().containsKey(CachingTagger.CACHE_EXTENSION)
                 && method.name().equalsIgnoreCase("GET")) {
+            @SuppressWarnings("unchecked")
             Map<String, String> cacheConfig = (Map<String, String>) operation.getExtensions()
                     .get(CachingTagger.CACHE_EXTENSION);
             LOGGER.info("caching extensions --" + operation.getExtensions());

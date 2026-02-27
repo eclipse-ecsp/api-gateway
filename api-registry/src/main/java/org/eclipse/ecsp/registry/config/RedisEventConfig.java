@@ -43,6 +43,12 @@ import java.time.Duration;
 @ConditionalOnProperty(name = "api-registry.events.enabled", havingValue = "true")
 @Import({RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisEventConfig {
+    /**
+     * Default constructor.
+     */
+    public RedisEventConfig() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RedisEventConfig.class);
 

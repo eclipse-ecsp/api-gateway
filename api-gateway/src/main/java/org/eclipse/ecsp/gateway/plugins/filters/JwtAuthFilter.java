@@ -500,7 +500,9 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
 
             if (scopeObj instanceof List<?>) {
                 // scopes are in the form of List
-                userScopes = new HashSet<>((List<String>) scopeObj);
+                @SuppressWarnings("unchecked")
+                HashSet<String> scopeSet = new HashSet<>((List<String>) scopeObj);
+                userScopes = scopeSet;
             } else if (scopeObj instanceof String scopeStr) {
                 String delimiter = scopeStr.contains(",") ? "," : StringUtils.SPACE;
                 userScopes = new HashSet<>(Arrays.asList(scopeStr.split(delimiter)));

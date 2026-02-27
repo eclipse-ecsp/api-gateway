@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.conditions;
 
+import lombok.NoArgsConstructor;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -30,6 +31,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  *
  * @author Abhishek Kumar
  */
+@NoArgsConstructor
 public class RouteRefreshEventEnabledCondition implements Condition {
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteRefreshEventEnabledCondition.class);

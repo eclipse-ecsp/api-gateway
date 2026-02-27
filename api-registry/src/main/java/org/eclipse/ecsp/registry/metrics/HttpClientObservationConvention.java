@@ -43,6 +43,12 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "api-registry.metrics.enabled", matchIfMissing = true, havingValue = "true")
 public class HttpClientObservationConvention extends DefaultClientRequestObservationConvention {
+    /**
+     * Default constructor.
+     */
+    public HttpClientObservationConvention() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(HttpClientObservationConvention.class);
 

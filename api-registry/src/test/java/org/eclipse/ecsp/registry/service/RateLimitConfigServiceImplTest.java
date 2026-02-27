@@ -21,7 +21,7 @@ package org.eclipse.ecsp.registry.service;
 import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +86,7 @@ class RateLimitConfigServiceImplTest {
     private RateLimitConfigRepository rateLimitConfigRepository;
 
     @Mock
-    private RouteEventPublisher eventPublisher;
+    private EventPublisherContext eventPublisher;
 
     @Captor
     private ArgumentCaptor<RateLimitConfigEntity> entityCaptor;
@@ -110,7 +110,7 @@ class RateLimitConfigServiceImplTest {
     // ==================== addOrUpdateRateLimitConfigs Tests ====================
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_Success_WithRouteId() {
+    void testAddOrUpdateRateLimitConfigsSuccessWithRouteId() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigEntity entity = createRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -131,7 +131,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_Success_WithService() {
+    void testAddOrUpdateRateLimitConfigsSuccessWithService() {
         // Arrange
         RateLimitConfigDto dto = createValidServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
         RateLimitConfigEntity entity = createServiceEntity("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -151,7 +151,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_MultipleConfigs_Success() {
+    void testAddOrUpdateRateLimitConfigsMultipleConfigsSuccess() {
         // Arrange
         RateLimitConfigDto dto1 = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createValidServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -171,7 +171,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_BothRouteIdAndService_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsBothRouteIdAndServiceThrowsException() {
         // Arrange
         RateLimitConfigDto dto = new RateLimitConfigDto();
         dto.setRouteId("route1");
@@ -195,7 +195,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_NeitherRouteIdNorService_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsNeitherRouteIdNorServiceThrowsException() {
         // Arrange
         RateLimitConfigDto dto = new RateLimitConfigDto();
         dto.setReplenishRate(REPLENISH_RATE_100);
@@ -217,7 +217,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_NegativeReplenishRate_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsNegativeReplenishRateThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", NEGATIVE_REPLENISH_RATE, BURST_CAPACITY_200);
 
@@ -235,7 +235,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_ZeroReplenishRate_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsZeroReplenishRateThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", 0, BURST_CAPACITY_200);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -251,7 +251,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_NegativeBurstCapacity_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsNegativeBurstCapacityThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, NEGATIVE_BURST_CAPACITY);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -267,7 +267,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_BurstCapacityLessThanReplenishRate_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsBurstCapacityLessThanReplenishRateThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_200, BURST_CAPACITY_100);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -285,7 +285,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_ExceedsMaxReplenishRate_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsExceedsMaxReplenishRateThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", EXCEEDS_MAX_REPLENISH_RATE, EXCEEDS_MAX_BURST_CAPACITY);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -302,7 +302,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_ExceedsMaxBurstCapacity_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsExceedsMaxBurstCapacityThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, EXCEEDS_MAX_BURST_CAPACITY);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -319,7 +319,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_InvalidRequestedTokens_Negative_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsInvalidRequestedTokensNegativeThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         dto.setRequestedTokens(NEGATIVE_REQUESTED_TOKENS);
@@ -337,7 +337,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_InvalidRequestedTokens_ExceedsMax_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsInvalidRequestedTokensExceedsMaxThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         dto.setRequestedTokens(EXCEEDS_MAX_REQUESTED_TOKENS);
@@ -355,7 +355,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_MissingKeyResolver_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsMissingKeyResolverThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         dto.setKeyResolver(null);
@@ -373,7 +373,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_InvalidKeyResolver_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsInvalidKeyResolverThrowsException() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         dto.setKeyResolver("INVALID_RESOLVER");
@@ -391,7 +391,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_BurstCapacityEqualToReplenishRate_Success() {
+    void testAddOrUpdateRateLimitConfigsBurstCapacityEqualToReplenishRateSuccess() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_100);
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
@@ -409,7 +409,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_DuplicateRouteIds_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsDuplicateRouteIdsThrowsException() {
         // Arrange
         RateLimitConfigDto dto1 = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -428,7 +428,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_DuplicateServices_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsDuplicateServicesThrowsException() {
         // Arrange
         RateLimitConfigDto dto1 = createValidServiceDto("service1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createValidServiceDto("service1", REPLENISH_RATE_150, BURST_CAPACITY_250);
@@ -447,7 +447,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_WithHeaderType_Success() {
+    void testAddOrUpdateRateLimitConfigsWithHeaderTypeSuccess() {
         // Arrange
         RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         dto.setKeyResolver("HEADER");
@@ -475,7 +475,7 @@ class RateLimitConfigServiceImplTest {
     // ==================== updateRateLimitConfig Tests ====================
 
     @Test
-    void testUpdateRateLimitConfig_Success_RouteId() {
+    void testUpdateRateLimitConfigSuccessRouteId() {
         // Arrange
         String routeId = "route1";
 
@@ -502,7 +502,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_Success_Service() {
+    void testUpdateRateLimitConfigSuccessService() {
         // Arrange
         String serviceId = "service1";
         RateLimitConfigDto updateDto = createValidServiceDto(serviceId, REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -524,7 +524,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_NotFound_ThrowsException() {
+    void testUpdateRateLimitConfigNotFoundThrowsException() {
         // Arrange
         String id = "nonexistent";
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -543,7 +543,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_BlankId_ThrowsException() {
+    void testUpdateRateLimitConfigBlankIdThrowsException() {
         // Arrange
         String id = "";
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -560,7 +560,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_NullId_ThrowsException() {
+    void testUpdateRateLimitConfigNullIdThrowsException() {
         // Arrange
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
 
@@ -575,7 +575,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_InvalidData_BothRouteIdAndService_ThrowsException() {
+    void testUpdateRateLimitConfigInvalidDataBothRouteIdAndServiceThrowsException() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto updateDto = new RateLimitConfigDto();
@@ -601,7 +601,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_InvalidReplenishRate_ThrowsException() {
+    void testUpdateRateLimitConfigInvalidReplenishRateThrowsException() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto updateDto = createValidRouteDto("route1", NEGATIVE_REPLENISH_RATE, BURST_CAPACITY_200);
@@ -621,7 +621,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_ExceedsMaxLimits_ThrowsException() {
+    void testUpdateRateLimitConfigExceedsMaxLimitsThrowsException() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto updateDto = createValidRouteDto("route1",
@@ -642,7 +642,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_InvalidKeyResolver_ThrowsException() {
+    void testUpdateRateLimitConfigInvalidKeyResolverThrowsException() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -667,7 +667,7 @@ class RateLimitConfigServiceImplTest {
     // ==================== getRateLimitConfigs Tests ====================
 
     @Test
-    void testGetRateLimitConfigs_Success() {
+    void testGetRateLimitConfigsSuccess() {
         // Arrange
         RateLimitConfigEntity entity1 = createRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigEntity entity2 = createServiceEntity("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -685,7 +685,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testGetRateLimitConfigs_EmptyList_ReturnsEmptyList() {
+    void testGetRateLimitConfigsEmptyListReturnsEmptyList() {
         // Arrange
         when(rateLimitConfigRepository.findAll()).thenReturn(Collections.emptyList());
 
@@ -699,7 +699,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testGetRateLimitConfigs_ConvertsEntityToDto_Correctly() {
+    void testGetRateLimitConfigsConvertsEntityToDtoCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = createRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         entity.setIncludeHeaders(true);
@@ -725,7 +725,7 @@ class RateLimitConfigServiceImplTest {
     // ==================== deleteRateLimitConfig Tests ====================
 
     @Test
-    void testDeleteRateLimitConfig_Success() {
+    void testDeleteRateLimitConfigSuccess() {
         // Arrange
         String id = "route1";
         RateLimitConfigEntity entity = createRouteEntity(id, REPLENISH_RATE_100, BURST_CAPACITY_200);
@@ -742,7 +742,7 @@ class RateLimitConfigServiceImplTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_NotFound_ThrowsException() {
+    void testDeleteRateLimitConfigNotFoundThrowsException() {
         // Arrange
         String id = "nonexistent";
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.empty());

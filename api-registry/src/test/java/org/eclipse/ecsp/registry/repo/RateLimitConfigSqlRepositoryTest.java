@@ -65,7 +65,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findById_WithExistingEntity_ReturnsEntity() {
+    void findByIdWithExistingEntityReturnsEntity() {
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         entity.setId("test-id-1");
         entity.setService("test-service");
@@ -83,7 +83,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findById_WithNonExistingEntity_ReturnsEmpty() {
+    void findByIdWithNonExistingEntityReturnsEmpty() {
         when(jpaRepository.findById(anyString())).thenReturn(Optional.empty());
 
         Optional<RateLimitConfigEntity> result = repository.findById("non-existing-id");
@@ -93,7 +93,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findAll_WithMultipleEntities_ReturnsAllEntities() {
+    void findAllWithMultipleEntitiesReturnsAllEntities() {
         RateLimitConfigEntity entity1 = new RateLimitConfigEntity();
         entity1.setId("test-id-1");
         entity1.setService("service-1");
@@ -116,7 +116,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findAll_WithEmptyDatabase_ReturnsEmptyList() {
+    void findAllWithEmptyDatabaseReturnsEmptyList() {
         when(jpaRepository.findAll()).thenReturn(List.of());
 
         List<RateLimitConfigEntity> result = repository.findAll();
@@ -127,7 +127,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void save_WithNewEntity_PersistsEntity() {
+    void saveWithNewEntityPersistsEntity() {
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         entity.setId("test-id-1");
         entity.setService("test-service");
@@ -144,7 +144,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void save_WithExistingEntity_UpdatesEntity() {
+    void saveWithExistingEntityUpdatesEntity() {
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         entity.setId("test-id-1");
         entity.setService("test-service");
@@ -160,7 +160,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void delete_WithExistingEntity_RemovesEntity() {
+    void deleteWithExistingEntityRemovesEntity() {
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         entity.setId("test-id-1");
         entity.setService("test-service");
@@ -174,7 +174,7 @@ class RateLimitConfigSqlRepositoryTest {
 
     @Test
     @SuppressWarnings("checkstyle:MagicNumber")
-    void saveAll_WithMultipleEntities_PersistsAllEntities() {
+    void saveAllWithMultipleEntitiesPersistsAllEntities() {
         RateLimitConfigEntity entity1 = new RateLimitConfigEntity();
         entity1.setId("test-id-1");
         entity1.setService("service-1");
@@ -198,7 +198,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findByService_WithExistingService_ReturnsEntity() {
+    void findByServiceWithExistingServiceReturnsEntity() {
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         entity.setId("test-id-1");
         entity.setService("test-service");
@@ -215,7 +215,7 @@ class RateLimitConfigSqlRepositoryTest {
     }
 
     @Test
-    void findByService_WithNonExistingService_ReturnsEmpty() {
+    void findByServiceWithNonExistingServiceReturnsEmpty() {
         when(jpaRepository.findByService(anyString())).thenReturn(Optional.empty());
 
         Optional<RateLimitConfigEntity> result = repository.findByService("non-existing-service");

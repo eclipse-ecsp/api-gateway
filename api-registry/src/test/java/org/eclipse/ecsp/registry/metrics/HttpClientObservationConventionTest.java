@@ -62,7 +62,7 @@ class HttpClientObservationConventionTest {
 
     @Test
     @SuppressWarnings("checkstyle:MagicNumber")
-    void getLowCardinalityKeyValues_WithValidContext_ReturnsKeyValues() throws IOException {
+    void getLowCardinalityKeyValuesWithValidContextReturnsKeyValues() throws IOException {
         when(context.getCarrier()).thenReturn(request);
         when(request.getMethod()).thenReturn(org.springframework.http.HttpMethod.GET);
         when(request.getURI()).thenReturn(URI.create("http://localhost/test"));
@@ -77,7 +77,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithValidRequest_ExtractsPath() {
+    void urlWithValidRequestExtractsPath() {
         URI testUri = URI.create("http://localhost:8080/api/test");
         when(context.getCarrier()).thenReturn(request);
         when(request.getURI()).thenReturn(testUri);
@@ -95,7 +95,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithNullRequest_ReturnsDefaultValue() {
+    void urlWithNullRequestReturnsDefaultValue() {
         when(context.getCarrier()).thenReturn(null);
 
         KeyValue url = convention.url(context);
@@ -107,7 +107,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithSuccessResponse_ReturnsSuccess() throws IOException {
+    void outcomeStatusWithSuccessResponseReturnsSuccess() throws IOException {
         assertTrue(testOutCome(HttpStatus.OK.value(), "SUCCESS"));
         assertTrue(testOutCome(HttpStatus.NOT_FOUND.value(), "CLIENT_ERROR"));
         assertTrue(testOutCome(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SERVER_ERROR"));
@@ -130,7 +130,7 @@ class HttpClientObservationConventionTest {
 
     @Test
     @SuppressWarnings("checkstyle:MagicNumber")
-    void outcomeStatus_WithError_ReturnsErrorOrServerError() throws IOException {
+    void outcomeStatusWithErrorReturnsErrorOrServerError() throws IOException {
         when(context.getResponse()).thenReturn(response);
         when(context.getError()).thenReturn(new RuntimeException("Test error"));
         when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(500));
@@ -146,7 +146,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithNullResponse_ReturnsUnknown() {
+    void outcomeStatusWithNullResponseReturnsUnknown() {
         when(context.getResponse()).thenReturn(null);
         when(context.getError()).thenReturn(null);
 
@@ -159,7 +159,7 @@ class HttpClientObservationConventionTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void outcomeStatus_WithIOException_ReturnsUnknown() throws IOException {
+    void outcomeStatusWithIOExceptionReturnsUnknown() throws IOException {
         when(context.getResponse()).thenReturn(response);
         when(context.getError()).thenReturn(null);
         when(response.getStatusCode()).thenThrow(new IOException("Network error"));

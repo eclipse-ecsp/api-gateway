@@ -38,6 +38,7 @@ public interface RateLimitConfigService {
     /**
      * Method to update a rate limit configuration.
      *
+     * @param id ID of the rate limit configuration to be updated
      * @param config RateLimitConfigDto object to be updated
      * @return Updated RateLimitConfigDto object
      */

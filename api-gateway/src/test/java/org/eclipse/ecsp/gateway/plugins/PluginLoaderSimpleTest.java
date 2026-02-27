@@ -63,12 +63,12 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void constructor_WithValidContext_InitializesSuccessfully() {
+    void constructorWithValidContextInitializesSuccessfully() {
         assertNotNull(pluginLoader);
     }
 
     @Test
-    void initialize_WithPluginDisabled_DoesNotThrowException() {
+    void initializeWithPluginDisabledDoesNotThrowException() {
         TestPropertyValues.of("plugin.enabled=false", "plugin.path=/some/path").applyTo(applicationContext);
 
         try {
@@ -79,7 +79,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void initialize_WithPluginEnabledButNoPath_DoesNotThrowException() {
+    void initializeWithPluginEnabledButNoPathDoesNotThrowException() {
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=").applyTo(applicationContext);
 
         try {
@@ -90,7 +90,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void initialize_WithPluginEnabledAndValidPath_InitializesSuccessfully() throws Exception {
+    void initializeWithPluginEnabledAndValidPathInitializesSuccessfully() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -105,7 +105,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugins_WithNoClasses_ReturnsEmptyList() {
+    void loadPluginsWithNoClassesReturnsEmptyList() {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", Collections.emptyList());
 
         final List<Object> plugins = pluginLoader.loadPlugins();
@@ -115,7 +115,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugins_WithNullClasses_ReturnsEmptyList() {
+    void loadPluginsWithNullClassesReturnsEmptyList() {
         ReflectionTestUtils.setField(pluginLoader, "pluginJarClasses", null);
 
         final List<Object> plugins = pluginLoader.loadPlugins();
@@ -125,18 +125,18 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugin_WithBlankClassName_ThrowsException() {
+    void loadPluginWithBlankClassNameThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> pluginLoader.loadPlugin(""));
         assertThrows(IllegalArgumentException.class, () -> pluginLoader.loadPlugin("   "));
     }
 
     @Test
-    void loadPlugin_WithNullClassName_ThrowsException() {
+    void loadPluginWithNullClassNameThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> pluginLoader.loadPlugin(null));
     }
 
     @Test
-    void loadPlugin_WithNoClassLoaderInitialized_ThrowsException() {
+    void loadPluginWithNoClassLoaderInitializedThrowsException() {
         TestPropertyValues.of("plugin.path=").applyTo(applicationContext);
         ReflectionTestUtils.setField(pluginLoader, "initializationAttempted", false);
         ReflectionTestUtils.setField(pluginLoader, "pluginJarPath", "");
@@ -146,7 +146,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugin_WithValidClass_LoadsSuccessfully() throws Exception {
+    void loadPluginWithValidClassLoadsSuccessfully() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -160,7 +160,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugin_WithClassNotFound_ThrowsException() throws Exception {
+    void loadPluginWithClassNotFoundThrowsException() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -172,7 +172,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void loadPlugin_WithClassNameHavingWhitespace_TrimsAndLoads() throws Exception {
+    void loadPluginWithClassNameHavingWhitespaceTrimsAndLoads() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -186,7 +186,7 @@ class PluginLoaderSimpleTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void sanitize_WithNullList_ReturnsEmptyList() {
+    void sanitizeWithNullListReturnsEmptyList() {
         final List<String> result = (List<String>) ReflectionTestUtils.invokeMethod(
             pluginLoader, "sanitize", (List<String>) null);
 
@@ -196,7 +196,7 @@ class PluginLoaderSimpleTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void sanitize_WithEmptyList_ReturnsEmptyList() {
+    void sanitizeWithEmptyListReturnsEmptyList() {
         final List<String> result = (List<String>) ReflectionTestUtils.invokeMethod(
             pluginLoader, "sanitize", Collections.emptyList());
 
@@ -206,7 +206,7 @@ class PluginLoaderSimpleTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void sanitize_WithValidStrings_ReturnsCleanedList() {
+    void sanitizeWithValidStringsReturnsCleanedList() {
         final List<String> input = Arrays.asList("  test1  ", "test2", "  test1  ", null, "", "  ");
         final List<String> result = (List<String>) ReflectionTestUtils.invokeMethod(
             pluginLoader, "sanitize", input);
@@ -220,7 +220,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void destroy_WithoutClassLoader_HandlesGracefully() {
+    void destroyWithoutClassLoaderHandlesGracefully() {
         try {
             pluginLoader.destroy();
         } catch (final Exception e) {
@@ -229,7 +229,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void destroy_WithClassLoader_ClosesSuccessfully() throws Exception {
+    void destroyWithClassLoaderClosesSuccessfully() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -245,7 +245,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void ensurePluginInfrastructure_CalledMultipleTimes_InitializesOnce() throws Exception {
+    void ensurePluginInfrastructureCalledMultipleTimesInitializesOnce() throws Exception {
         final File jarFile = createTestJar();
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
@@ -263,7 +263,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void initialize_WithInvalidPath_HandlesGracefully() {
+    void initializeWithInvalidPathHandlesGracefully() {
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=/nonexistent/path/to/jars", 
                 "plugin.classes=com.example.Plugin").applyTo(applicationContext);
 
@@ -275,7 +275,7 @@ class PluginLoaderSimpleTest {
     }
 
     @Test
-    void initialize_WithWhitespaceInClassList_SanitizesCorrectly() {
+    void initializeWithWhitespaceInClassListSanitizesCorrectly() {
         // Set environment properties before calling postProcessBeanFactory
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=/some/path", 
                 "plugin.classes=  com.example.Plugin1  ,,com.example.Plugin2,  ,", 

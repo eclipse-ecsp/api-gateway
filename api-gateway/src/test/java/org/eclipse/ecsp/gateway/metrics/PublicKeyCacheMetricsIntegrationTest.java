@@ -29,6 +29,7 @@ import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
 import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
 import org.eclipse.ecsp.gateway.rest.ApiGatewayController;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,8 +38,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -59,6 +67,7 @@ import static org.mockito.Mockito.when;
     webEnvironment = WebEnvironment.RANDOM_PORT
 )
 @ActiveProfiles("test")
+@Testcontainers
 @TestPropertySource(properties = {
     "api.gateway.metrics.enabled=true",
     "api.gateway.metrics.public-key-cache.enabled=true"
@@ -75,6 +84,7 @@ class PublicKeyCacheMetricsIntegrationTest {
     public static final double DOUBLE_1000 = 1000.0;
     public static final double DOUBLE_2 = 2.0;
     public static final int EXPECTED = 2;
+    private static final int REDIS_PORT = 6379;
 
     @Autowired
     private MeterRegistry meterRegistry;
@@ -94,6 +104,25 @@ class PublicKeyCacheMetricsIntegrationTest {
     @MockitoBean
     private ApiRegistryClient apiRegistryClient;
 
+    @SuppressWarnings("resource") // Managed by Testcontainers framework
+    @Container
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(REDIS_PORT);
+
+    @DynamicPropertySource
+    static void redisProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (redis != null && redis.isRunning()) {
+            redis.stop();
+            redis.close();
+        }
+    }
+
     // Helper method to create PublicKeyMetrics with refactored components
     private PublicKeyMetrics createPublicKeyMetrics(PublicKeyCache cache, List<PublicKeySourceProvider> providers) {
         PublicKeyCacheMetricsRegistrar cacheRegistrar = new PublicKeyCacheMetricsRegistrar(
@@ -102,6 +131,8 @@ class PublicKeyCacheMetricsIntegrationTest {
                 meterRegistry, gatewayMetricsProperties);
         return new PublicKeyMetrics(cacheRegistrar, refreshRecorder);
     }
+
+
 
     @BeforeAll
     static void setup() {

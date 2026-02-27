@@ -15,7 +15,7 @@ jobs:
     with:
       java_version: '21'
       java_distribution: 'temurin'
-      maven_args: 'clean package deploy --file pom.xml'
+      maven_args: 'clean deploy --file pom.xml'
       test-report: true
       summaries-test-report: true
     secrets:

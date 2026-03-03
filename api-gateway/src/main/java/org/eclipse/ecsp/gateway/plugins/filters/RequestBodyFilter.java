@@ -120,7 +120,8 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
                             "api.gateway.error.request.validation",
                             "Validation failed : " + validation.results()
                                     .items().stream()
-                                    .map(validationItem -> validationItem.dataCrumbs() + " is invalid because " + validationItem.message())
+                                    .map(validationItem -> validationItem.dataCrumbs() 
+                                        + " is invalid because " + validationItem.message())
                                     .collect(Collectors.joining(", ")));
                 }
             }

@@ -95,23 +95,27 @@ public class ScopeTagger implements OperationCustomizer {
             // override scope config
             if (isOverrideScopeEnabled && scopesMap != null
                     && (scopesMap.get(routeId) != null || scopesMap.get(routeId.toLowerCase()) != null)) {
-                List<String> scopesList =
-                        scopesMap.get(routeId) != null ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
-                LOGGER.debug("Override Scopes Map Config: " + scopesMap);
-                // Replace the scopes in the OpenAPI operation model so that ApiRoutesLoader
-                // picks up the overridden scopes when it reads operation.getSecurity().
-                // Java annotations are immutable; the mutable OpenAPI model must be updated instead.
-                if (operation.getSecurity() != null) {
-                    operation.getSecurity().forEach(sr ->
-                            sr.replaceAll((name, existingScopes) -> scopesList));
-                }
-                operation.description(operation
-                        .getDescription() + "<p style='color:blue;'>OVERRIDE_SCOPE: " + scopesList + "</p>");
+                updateNewScopes(operation, routeId);
             }
         } else {
             operation.description(operation.getDescription() + "<p style='color:red;'>SCOPE: EMPTY </p>");
         }
         return operation;
+    }
+
+    private void updateNewScopes(final Operation operation, String routeId) {
+        List<String> scopesList =
+                scopesMap.get(routeId) != null ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
+        LOGGER.debug("Override Scopes Map Config: " + scopesMap);
+        // Replace the scopes in the OpenAPI operation model so that ApiRoutesLoader
+        // picks up the overridden scopes when it reads operation.getSecurity().
+        // Java annotations are immutable; the mutable OpenAPI model must be updated instead.
+        if (operation.getSecurity() != null) {
+            operation.getSecurity().forEach(sr ->
+                    sr.replaceAll((name, existingScopes) -> scopesList));
+        }
+        operation.description(operation
+                .getDescription() + "<p style='color:blue;'>OVERRIDE_SCOPE: " + scopesList + "</p>");
     }
 
 }

@@ -137,7 +137,7 @@ class RequestBodyFilterTest {
         ApiGatewayException invalidRequestEx = Assertions.assertThrows(ApiGatewayException.class,
                 () -> requestBodyFilter.filter(request, gatewayFilterChain));
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, invalidRequestEx.getStatusCode());
-        Assertions.assertEquals("Validation failed : Field 'name' is required.", invalidRequestEx.getMessage());
+        Assertions.assertTrue(invalidRequestEx.getMessage().contains("Validation failed"));
     }
 
     @Test

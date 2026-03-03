@@ -133,8 +133,7 @@ class JwtAuthValidatorTest {
     @InjectMocks
     private RequestBodyValidator requestBodyValidator;
 
-    @InjectMocks
-    private RequestBodyFilter requestBodyFilter;
+    private RequestBodyFilter requestBodyFilter = new RequestBodyFilter(new RequestBodyFilter.Config(), true);
 
     @BeforeEach
     void setupJwtAuthValidator() {

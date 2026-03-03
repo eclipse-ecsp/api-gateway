@@ -66,7 +66,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_WithValidDependencies() {
+    void testGroupedOpenApiWithValidDependencies() {
         // When
         GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
 
@@ -78,7 +78,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_WithEmptyPathsInclude() {
+    void testGroupedOpenApiWithEmptyPathsInclude() {
         // Given
         ReflectionTestUtils.setField(apiConfig, "pathsInclude", new String[]{});
 
@@ -91,7 +91,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_WithEmptyPathsExclude() {
+    void testGroupedOpenApiWithEmptyPathsExclude() {
         // Given
         ReflectionTestUtils.setField(apiConfig, "pathsExclude", new String[]{});
 
@@ -104,7 +104,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_CreatesGroupedOpenApiWithCustomizers() {
+    void testGroupedOpenApiCreatesGroupedOpenApiWithCustomizers() {
         // When
         GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
 
@@ -116,7 +116,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_WithDifferentApplicationName() {
+    void testGroupedOpenApiWithDifferentApplicationName() {
         // Given
         String customAppName = "custom-service";
         ReflectionTestUtils.setField(apiConfig, "applicationName", customAppName);
@@ -130,7 +130,7 @@ class ApiConfigGroupedOpenApiTest {
     }
 
     @Test
-    void testGroupedOpenApi_WithMultiplePaths() {
+    void testGroupedOpenApiWithMultiplePaths() {
         // Given
         String[] multiplePaths = new String[]{"/api/v1/**", "/api/v2/**", "/public/**"};
         ReflectionTestUtils.setField(apiConfig, "pathsInclude", multiplePaths);

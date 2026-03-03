@@ -21,6 +21,7 @@ package org.eclipse.ecsp.register;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,11 +42,14 @@ import java.util.List;
 @Validated
 @Setter
 @Getter
+@NoArgsConstructor
 public class ApiRoutesConfig {
+
     /**
      * Prefix for the configuration properties.
      */
     public static final String PREFIX = "api.gateway";
+
     @NotNull
     @Valid
     private List<RouteDefinition> routes = new ArrayList<>();

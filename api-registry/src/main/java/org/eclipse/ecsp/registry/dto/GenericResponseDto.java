@@ -27,5 +27,15 @@ import lombok.Setter;
 @Getter
 @Setter
 public class GenericResponseDto {
+    /**
+     * Default constructor.
+     */
+    public GenericResponseDto() {
+        // Default constructor
+    }
+
+    /**
+     * Response message.
+     */
     private String message;
 }

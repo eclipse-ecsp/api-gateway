@@ -48,12 +48,12 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void constructor_WithValidMeterRegistry_CreatesInstance() {
+    void constructorWithValidMeterRegistryCreatesInstance() {
         assertNotNull(servicesMetrics);
     }
 
     @Test
-    void listenHealthStatus_WithValidEvent_RecordsHealthyMetric() {
+    void listenHealthStatusWithValidEventRecordsHealthyMetric() {
         ServiceMetricsEvent event = new ServiceMetricsEvent(this, "test-service", true, 5);
 
         servicesMetrics.listenHealthStatus(event);
@@ -68,7 +68,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithUnhealthyService_RecordsUnhealthyMetric() {
+    void listenHealthStatusWithUnhealthyServiceRecordsUnhealthyMetric() {
         ServiceMetricsEvent event = new ServiceMetricsEvent(this, "unhealthy-service", false, 3);
 
         servicesMetrics.listenHealthStatus(event);
@@ -83,7 +83,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithValidEvent_RecordsRouteCount() {
+    void listenHealthStatusWithValidEventRecordsRouteCount() {
         ServiceMetricsEvent event = new ServiceMetricsEvent(this, "test-service", true, 10);
 
         servicesMetrics.listenHealthStatus(event);
@@ -98,7 +98,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithZeroRoutes_RecordsZero() {
+    void listenHealthStatusWithZeroRoutesRecordsZero() {
         ServiceMetricsEvent event = new ServiceMetricsEvent(this, "empty-service", true, 0);
 
         servicesMetrics.listenHealthStatus(event);
@@ -113,7 +113,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithNullEvent_DoesNotThrowException() {
+    void listenHealthStatusWithNullEventDoesNotThrowException() {
         try {
             servicesMetrics.listenHealthStatus(null);
         } catch (Exception e) {
@@ -122,7 +122,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithNullServiceName_DoesNotRecordMetrics() {
+    void listenHealthStatusWithNullServiceNameDoesNotRecordMetrics() {
         ServiceMetricsEvent event = new ServiceMetricsEvent(this, null, true, 5);
 
         servicesMetrics.listenHealthStatus(event);
@@ -132,7 +132,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithMultipleServices_RecordsAllMetrics() {
+    void listenHealthStatusWithMultipleServicesRecordsAllMetrics() {
         ServiceMetricsEvent event1 = new ServiceMetricsEvent(this, "service-1", true, 5);
         ServiceMetricsEvent event2 = new ServiceMetricsEvent(this, "service-2", false, 3);
 
@@ -149,7 +149,7 @@ class ServicesMetricsTest {
     }
 
     @Test
-    void listenHealthStatus_WithSameServiceTwice_UpdatesMetrics() {
+    void listenHealthStatusWithSameServiceTwiceUpdatesMetrics() {
         ServiceMetricsEvent event1 = new ServiceMetricsEvent(this, "test-service", true, 5);
         ServiceMetricsEvent event2 = new ServiceMetricsEvent(this, "test-service", false, 10);
 

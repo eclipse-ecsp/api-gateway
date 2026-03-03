@@ -166,6 +166,11 @@ public class GatewayConstants {
      * constant value is 0.
      */
     public static final int JWT_AUTH_FILTER_ORDER = NettyWriteResponseFilter.WRITE_RESPONSE_FILTER_ORDER - 2;
+
+    /**
+     * constant value is 0.
+     */
+    public static final int CLIENT_ACCESS_CTRL_FILTER_ORDER = JWT_AUTH_FILTER_ORDER - 2;
     /**
      * constant value is 1.
      */
@@ -347,4 +352,9 @@ public class GatewayConstants {
      * Value for polling route refresh strategy.
      */
     public static final String POLLING = "POLLING";
+
+    /**
+     * Prefix for client access control properties.
+     */
+    public static final String CLIENT_ACCESS_CONTROL_PREFIX = "api.gateway.client-access-control";
 }

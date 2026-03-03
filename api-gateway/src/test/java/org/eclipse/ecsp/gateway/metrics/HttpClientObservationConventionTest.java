@@ -42,32 +42,32 @@ import static org.mockito.Mockito.when;
 class HttpClientObservationConventionTest {
 
     @Test
-    void constructor_WithNullMetricsName_UsesDefaultName() {
+    void constructorWithNullMetricsNameUsesDefaultName() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         assertEquals("http.client.requests", convention.getName());
     }
 
     @Test
-    void constructor_WithEmptyMetricsName_UsesDefaultName() {
+    void constructorWithEmptyMetricsNameUsesDefaultName() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention("");
         assertEquals("http.client.requests", convention.getName());
     }
 
     @Test
-    void constructor_WithWhitespaceMetricsName_UsesProvidedName() {
+    void constructorWithWhitespaceMetricsNameUsesProvidedName() {
         // StringUtils.isNotEmpty() doesn't trim, so whitespace is considered non-empty
         HttpClientObservationConvention convention = new HttpClientObservationConvention("   ");
         assertEquals("   ", convention.getName());
     }
 
     @Test
-    void constructor_WithCustomMetricsName_UsesCustomName() {
+    void constructorWithCustomMetricsNameUsesCustomName() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention("custom.client.metrics");
         assertEquals("custom.client.metrics", convention.getName());
     }
 
     @Test
-    void getLowCardinalityKeyValues_WithValidContext_ReturnsKeyValues() {
+    void getLowCardinalityKeyValuesWithValidContextReturnsKeyValues() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientRequest request = ClientRequest.create(
@@ -83,7 +83,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithValidRequestAndPath_ReturnsPath() {
+    void urlWithValidRequestAndPathReturnsPath() {
         assertTrue(testValidRequestPath("http://example.com/api/v1/users"));
     }
 
@@ -104,7 +104,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithNullRequest_ReturnsUnknownValue() {
+    void urlWithNullRequestReturnsUnknownValue() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
 
@@ -118,7 +118,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithSuccessResponse_ReturnsSuccessOutcome() {
+    void outcomeStatusWithSuccessResponseReturnsSuccessOutcome() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientResponse response = mock(ClientResponse.class);
@@ -134,7 +134,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithError_ReturnsErrorOutcome() {
+    void outcomeStatusWithErrorReturnsErrorOutcome() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
 
@@ -149,7 +149,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithNullResponse_ReturnsUnknown() {
+    void outcomeStatusWithNullResponseReturnsUnknown() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
 
@@ -163,7 +163,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithComplexPath_ReturnsPath() {
+    void urlWithComplexPathReturnsPath() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientRequest request = mock(ClientRequest.class);
@@ -179,7 +179,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void url_WithQueryParameters_ReturnsPath() {
+    void urlWithQueryParametersReturnsPath() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientRequest request = mock(ClientRequest.class);
@@ -195,7 +195,7 @@ class HttpClientObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithClientError_ReturnsClientError() {
+    void outcomeStatusWithClientErrorReturnsClientError() {
         HttpClientObservationConvention convention = new HttpClientObservationConvention(null);
         ClientRequestObservationContext context = mock(ClientRequestObservationContext.class);
         ClientResponse response = mock(ClientResponse.class);

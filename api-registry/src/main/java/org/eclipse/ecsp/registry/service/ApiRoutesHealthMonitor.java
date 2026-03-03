@@ -19,7 +19,8 @@
 package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
+import org.eclipse.ecsp.registry.events.data.ServiceHealthEventData;
 import org.eclipse.ecsp.registry.metrics.ServiceMetricsEvent;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
@@ -54,7 +55,7 @@ public class ApiRoutesHealthMonitor {
     private final ApiRouteRepo apiRouteRepo;
     private final RestTemplate restTemplate;
     private final ApplicationEventPublisher eventPublisher;
-    private final RouteEventPublisher routeEventPublisher;
+    private final EventPublisherContext routeEventPublisher;
 
     /**
      * Constructor to initialize the ApiRoutesHealthMonitor.
@@ -62,12 +63,12 @@ public class ApiRoutesHealthMonitor {
      * @param apiRouteRepo   the ApiRouteRepo
      * @param restTemplate   the RestTemplate
      * @param eventPublisher the ApplicationEventPublisher
-     * @param routeEventPublisher the RouteEventPublisher
+     * @param routeEventPublisher the EventPublisherContext
      */
     public ApiRoutesHealthMonitor(ApiRouteRepo apiRouteRepo,
                                   RestTemplate restTemplate,
                                   ApplicationEventPublisher eventPublisher,
-                                  Optional<RouteEventPublisher> routeEventPublisher) {
+                                  Optional<EventPublisherContext> routeEventPublisher) {
         this.apiRouteRepo = apiRouteRepo;
         this.restTemplate = restTemplate;
         this.eventPublisher = eventPublisher;
@@ -80,7 +81,7 @@ public class ApiRoutesHealthMonitor {
     @Scheduled(cron = "${api.health.monitor}")
     @Async()
     public void healthCheck() {
-        LOGGER.info("Route Header Checker starts...");
+        LOGGER.info("Service Health Check started...");
         services.clear();
         serviceApiRoutes.clear();
         Iterable<ApiRouteEntity> entities = apiRouteRepo.findAll();
@@ -122,9 +123,11 @@ public class ApiRoutesHealthMonitor {
         // Send event for all changed services at once
         if (!changedServices.isEmpty() && routeEventPublisher != null) {
             LOGGER.info("Services with health status changes: {}", changedServices);
-            routeEventPublisher.publishServiceHealthChangeEvent(new ArrayList<>(changedServices));
+            ServiceHealthEventData eventData = 
+                new ServiceHealthEventData(new ArrayList<>(changedServices), java.util.Collections.emptyMap());
+            routeEventPublisher.publishEvent(eventData);
         }
-        LOGGER.info("Route Header Checker ends...");
+        LOGGER.info("Service Health Check completed.");
     }
 
     private boolean getHealth(String name, String url, String uri) {

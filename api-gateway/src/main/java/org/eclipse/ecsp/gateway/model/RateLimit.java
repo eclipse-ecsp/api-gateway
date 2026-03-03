@@ -34,6 +34,13 @@ import java.util.Map;
 @ToString
 public class RateLimit {
     /**
+     * Default constructor.
+     */
+    public RateLimit() {
+        // Default constructor
+    }
+
+    /**
      * Route identifier for the rate limit.
      */
     private String routeId;

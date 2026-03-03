@@ -40,3 +40,10 @@ replay_pid*
 
 docs/*
 *.http
+
+sdd
+lld
+hld
+
+!README.md
+*.md

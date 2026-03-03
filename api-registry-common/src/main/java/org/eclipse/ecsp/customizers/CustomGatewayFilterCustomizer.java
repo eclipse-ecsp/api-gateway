@@ -41,6 +41,13 @@ import java.util.stream.Collectors;
 @Component
 public class CustomGatewayFilterCustomizer implements OperationCustomizer {
     /**
+     * Default constructor.
+     */
+    public CustomGatewayFilterCustomizer() {
+        // Default constructor
+    }
+
+    /**
      * The extension key used to store custom gateway filters in the OpenAPI operation.
      */
     public static final String FILTERS_EXTENSION = "x-filter";

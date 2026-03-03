@@ -32,6 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1")
 public class ServiceHealthCheck {
+    
+    /**
+     * Default constructor.
+     */
+    public ServiceHealthCheck() {
+        // Default constructor
+    }
 
     /**
      * Get the health status of the API.

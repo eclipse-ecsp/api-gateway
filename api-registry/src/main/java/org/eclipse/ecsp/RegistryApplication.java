@@ -52,6 +52,12 @@ import org.springframework.scheduling.annotation.EnableAsync;
 })
 @EnableAsync
 public class RegistryApplication {
+    /**
+     * Default constructor.
+     */
+    public RegistryApplication() {
+        // Default constructor
+    }
 
     /**
      * Main method to run the application.

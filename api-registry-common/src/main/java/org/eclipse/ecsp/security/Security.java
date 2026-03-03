@@ -18,16 +18,19 @@
 
 package org.eclipse.ecsp.security;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-
 /**
  * Security class.
  *
  * @author Abhishek Kumar
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Security {
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private Security() {
+        // Utility class
+    }
+
     /**
      * JwtAuthValidator.
      */

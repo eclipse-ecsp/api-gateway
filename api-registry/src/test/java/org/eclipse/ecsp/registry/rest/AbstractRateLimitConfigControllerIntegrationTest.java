@@ -19,10 +19,12 @@
 package org.eclipse.ecsp.registry.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.prometheus.client.CollectorRegistry;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +88,11 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @BeforeAll
+    static void beforeAll() {
+        CollectorRegistry.defaultRegistry.clear(); // Clear Prometheus metrics registry before all tests
+    }
+
     @BeforeEach
     void setUp() {
         // Clean up database before each test
@@ -112,7 +119,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     // ==================== GET /v1/config/rate-limits Tests ====================
 
     @Test
-    void testGetRateLimitConfigs_EmptyDatabase_ReturnsEmptyList() throws Exception {
+    void testGetRateLimitConfigsEmptyDatabaseReturnsEmptyList() throws Exception {
         mockMvc.perform(get("/v1/config/rate-limits")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -121,7 +128,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testGetRateLimitConfigs_WithData_ReturnsConfigs() throws Exception {
+    void testGetRateLimitConfigsWithDataReturnsConfigs() throws Exception {
         // Arrange - Insert test data
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         createAndSaveServiceEntity("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -139,7 +146,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     // ==================== POST /v1/config/rate-limits Tests ====================
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_SingleRouteConfig_Success() throws Exception {
+    void testAddOrUpdateRateLimitConfigsSingleRouteConfigSuccess() throws Exception {
         // Arrange
         RateLimitConfigDto dto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         List<RateLimitConfigDto> configs = Arrays.asList(dto);
@@ -164,7 +171,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_SingleServiceConfig_Success() throws Exception {
+    void testAddOrUpdateRateLimitConfigsSingleServiceConfigSuccess() throws Exception {
         // Arrange
         RateLimitConfigDto dto = createServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
         List<RateLimitConfigDto> configs = Arrays.asList(dto);
@@ -186,7 +193,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_MultipleConfigs_Success() throws Exception {
+    void testAddOrUpdateRateLimitConfigsMultipleConfigsSuccess() throws Exception {
         // Arrange
         RateLimitConfigDto dto1 = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -207,7 +214,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_BothRouteIdAndService_Returns400() throws Exception {
+    void testAddOrUpdateRateLimitConfigsBothRouteIdAndServiceReturns400() throws Exception {
         // Arrange
         RateLimitConfigDto dto = new RateLimitConfigDto();
         dto.setRouteId("route1");
@@ -231,7 +238,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_NegativeReplenishRate_Returns400() throws Exception {
+    void testAddOrUpdateRateLimitConfigsNegativeReplenishRateReturns400() throws Exception {
         // Arrange
         RateLimitConfigDto dto = createRouteDto("route1", NEGATIVE_REPLENISH_RATE, BURST_CAPACITY_200);
         List<RateLimitConfigDto> configs = Arrays.asList(dto);
@@ -245,7 +252,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_BurstLessThanReplenish_Returns400() throws Exception {
+    void testAddOrUpdateRateLimitConfigsBurstLessThanReplenishReturns400() throws Exception {
         // Arrange
         RateLimitConfigDto dto = createRouteDto("route1", BURST_CAPACITY_200, REPLENISH_RATE_100);
         List<RateLimitConfigDto> configs = Arrays.asList(dto);
@@ -259,7 +266,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_DuplicateRouteIds_Returns400() throws Exception {
+    void testAddOrUpdateRateLimitConfigsDuplicateRouteIdsReturns400() throws Exception {
         // Arrange
         RateLimitConfigDto dto1 = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -274,7 +281,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_UpdateExisting_Success() throws Exception {
+    void testAddOrUpdateRateLimitConfigsUpdateExistingSuccess() throws Exception {
         // Arrange - Create initial config
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
@@ -300,7 +307,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     // ==================== PUT /v1/config/rate-limits/{id} Tests ====================
 
     @Test
-    void testUpdateRateLimitConfig_ExistingRoute_Success() throws Exception {
+    void testUpdateRateLimitConfigExistingRouteSuccess() throws Exception {
         // Arrange
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
@@ -323,7 +330,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_ExistingService_Success() throws Exception {
+    void testUpdateRateLimitConfigExistingServiceSuccess() throws Exception {
         // Arrange
         createAndSaveServiceEntity("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
 
@@ -340,7 +347,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_NonExistent_Returns404() throws Exception {
+    void testUpdateRateLimitConfigNonExistentReturns404() throws Exception {
         // Arrange
         RateLimitConfigDto updateDto = createRouteDto("nonexistent", REPLENISH_RATE_100, BURST_CAPACITY_200);
         String requestBody = objectMapper.writeValueAsString(updateDto);
@@ -353,7 +360,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_InvalidData_Returns400() throws Exception {
+    void testUpdateRateLimitConfigInvalidDataReturns400() throws Exception {
         // Arrange
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
@@ -368,7 +375,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_WithHeaderType_Success() throws Exception {
+    void testUpdateRateLimitConfigWithHeaderTypeSuccess() throws Exception {
         // Arrange
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
@@ -397,7 +404,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     // ==================== DELETE /v1/config/rate-limits/{id} Tests ====================
 
     @Test
-    void testDeleteRateLimitConfig_ExistingRoute_Success() throws Exception {
+    void testDeleteRateLimitConfigExistingRouteSuccess() throws Exception {
         // Arrange
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
 
@@ -413,7 +420,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_ExistingService_Success() throws Exception {
+    void testDeleteRateLimitConfigExistingServiceSuccess() throws Exception {
         // Arrange
         createAndSaveServiceEntity("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
 
@@ -428,7 +435,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_NonExistent_Returns404() throws Exception {
+    void testDeleteRateLimitConfigNonExistentReturns404() throws Exception {
         // Act & Assert
         mockMvc.perform(delete("/v1/config/rate-limits/nonexistent")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -436,7 +443,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_VerifyOthersNotAffected() throws Exception {
+    void testDeleteRateLimitConfigVerifyOthersNotAffected() throws Exception {
         // Arrange
         createAndSaveRouteEntity("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         createAndSaveRouteEntity("route2", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -460,7 +467,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     // ==================== End-to-End Workflow Tests ====================
 
     @Test
-    void testCompleteWorkflow_CreateUpdateDelete() throws Exception {
+    void testCompleteWorkflowCreateUpdateDelete() throws Exception {
         // 1. Create config
         RateLimitConfigDto createDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         String createBody = objectMapper.writeValueAsString(Arrays.asList(createDto));
@@ -502,7 +509,7 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
     }
 
     @Test
-    void testWorkflow_MultipleRateLimitTypes() throws Exception {
+    void testWorkflowMultipleRateLimitTypes() throws Exception {
         // Create configs with different rate limit types
         RateLimitConfigDto clientIpDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         clientIpDto.setKeyResolver("CLIENT_IP");

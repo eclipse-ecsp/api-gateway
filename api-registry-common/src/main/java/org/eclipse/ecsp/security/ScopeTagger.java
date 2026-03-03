@@ -98,6 +98,13 @@ public class ScopeTagger implements OperationCustomizer {
                 List<String> scopesList =
                         scopesMap.get(routeId) != null ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
                 LOGGER.debug("Override Scopes Map Config: " + scopesMap);
+                // Replace the scopes in the OpenAPI operation model so that ApiRoutesLoader
+                // picks up the overridden scopes when it reads operation.getSecurity().
+                // Java annotations are immutable; the mutable OpenAPI model must be updated instead.
+                if (operation.getSecurity() != null) {
+                    operation.getSecurity().forEach(sr ->
+                            sr.replaceAll((name, existingScopes) -> scopesList));
+                }
                 operation.description(operation
                         .getDescription() + "<p style='color:blue;'>OVERRIDE_SCOPE: " + scopesList + "</p>");
             }

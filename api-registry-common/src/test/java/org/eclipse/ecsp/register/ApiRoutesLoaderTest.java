@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.register;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -31,6 +32,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -320,6 +322,75 @@ class ApiRoutesLoaderTest {
                 .findFirst();
         Assertions.assertTrue(route.isPresent());
         Assertions.assertFalse(route.get().getMetadata().containsKey("headers"));
+    }
+
+    @Test
+    void testSchemaStoredWithRefsAndComponents() throws Exception {
+        // Simulate a schema where the body $ref points to a schema that itself
+        // has nested $ref nodes — the exact scenario that caused ResolutionException.
+        // After the fix the stored schema must be a full document containing
+        // both $ref and components.schemas so openapi4j can resolve all refs.
+        Schema innerSchema = new Schema();
+        innerSchema.set$ref("#/components/schemas/AddressInfo");
+
+        Schema addressSchema = new Schema();
+        addressSchema.addProperties("street", new Schema().type("string"));
+
+        Schema vehicleSchema = new Schema();
+        vehicleSchema.addProperties("model", new Schema().type("string"));
+        vehicleSchema.addProperties("address", innerSchema); // nested $ref
+
+        Components components = new Components();
+        components.addSchemas("VehicleAttributes", vehicleSchema);
+        components.addSchemas("AddressInfo", addressSchema);
+        ReflectionTestUtils.setField(apiRoutesLoader, "components", components);
+
+        // Build an operation with a body $ref pointing to VehicleAttributes
+        Operation operation = new Operation();
+        operation.setTags(List.of("vehicles-controller"));
+        operation.setOperationId("update");
+        operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
+
+        MediaType mediaType = new MediaType();
+        Schema bodyRef = new Schema();
+        bodyRef.set$ref("#/components/schemas/VehicleAttributes");
+        mediaType.setSchema(bodyRef);
+        Content content = new Content();
+        content.put("application/json", mediaType);
+        RequestBody requestBody = new RequestBody();
+        requestBody.setContent(content);
+        operation.setRequestBody(requestBody);
+
+        ReflectionTestUtils.invokeMethod(
+                apiRoutesLoader, "setOperation", HttpMethod.POST, "/v2/vehicles", operation);
+
+        List<RouteDefinition> routes = (List<RouteDefinition>)
+                ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
+
+        Optional<RouteDefinition> route = routes.stream()
+                .filter(r -> r.getId().equals("vehicles-controller-update"))
+                .findFirst();
+        Assertions.assertTrue(route.isPresent(), "Route should have been registered");
+
+        // The Schema metadata must now be a full document, not a bare schema fragment
+        Object schemaObj = route.get().getMetadata().get(RegistryCommonConstants.SCHEMA);
+        Assertions.assertNotNull(schemaObj, "Schema metadata must be present");
+        JsonNode schemaDoc = new ObjectMapper().readTree((String) schemaObj);
+
+        // Must have $ref at the top level pointing to the body schema
+        Assertions.assertTrue(schemaDoc.has("$ref"),
+                "Stored schema must have a top-level $ref");
+        Assertions.assertEquals("#/components/schemas/VehicleAttributes", schemaDoc.get("$ref").asText());
+
+        // Must embed all component schemas so nested $refs can be resolved
+        Assertions.assertTrue(schemaDoc.has("components"),
+                "Stored schema must contain components");
+        Assertions.assertTrue(schemaDoc.path("components").has("schemas"),
+                "components must contain schemas");
+        Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("VehicleAttributes"),
+                "components.schemas must include VehicleAttributes");
+        Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("AddressInfo"),
+                "components.schemas must include AddressInfo (needed for nested $ref resolution)");
     }
 
     @Test

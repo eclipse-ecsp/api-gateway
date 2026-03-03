@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.register;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -367,8 +368,17 @@ public class ApiRoutesLoader extends OpenApiResource {
                 if (!schemaName.isBlank() && components != null
                         && components.getSchemas() != null
                         && components.getSchemas().get(schemaName) != null) {
-                    String schemaStr = ObjectMapperUtil.getObjectMapper()
-                            .writeValueAsString(components.getSchemas().get(schemaName));
+                    // Build a full schema document containing the components so that nested
+                    // $ref nodes (e.g. #/components/schemas/SubType) can be resolved by
+                    // openapi4j SchemaValidator at the api-gateway side.
+                    ObjectNode fullSchemaDoc = ObjectMapperUtil.getObjectMapper().createObjectNode();
+                    fullSchemaDoc.put("$ref", "#/components/schemas/" + schemaName);
+                    ObjectNode schemasNode = ObjectMapperUtil.getObjectMapper()
+                            .valueToTree(components.getSchemas());
+                    ObjectNode componentsNode = ObjectMapperUtil.getObjectMapper().createObjectNode();
+                    componentsNode.set("schemas", schemasNode);
+                    fullSchemaDoc.set("components", componentsNode);
+                    String schemaStr = ObjectMapperUtil.getObjectMapper().writeValueAsString(fullSchemaDoc);
                     LOGGER.info(REQUEST_BODY_SCHEMA, schemaStr);
                     route.getMetadata().put(RegistryCommonConstants.SCHEMA, schemaStr);
                     addRequestBodyFilters(route);

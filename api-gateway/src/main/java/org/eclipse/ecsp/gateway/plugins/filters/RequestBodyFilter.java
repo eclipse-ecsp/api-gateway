@@ -32,7 +32,6 @@ import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.openapi4j.core.validation.ValidationResults.ValidationItem;
 import org.openapi4j.schema.validator.ValidationData;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.route.Route;
@@ -52,15 +51,16 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
     /**
      * Request body validation flag.
      */
-    @Value("${requestBody.validation}")
-    public boolean requestBodyValidation;
+    private final boolean requestBodyValidation;
 
     /**
      * Constructor to initialize RequestBodyValidator.
      *
-     * @param config RequestBodyValidator.Config
+     * @param config               RequestBodyValidator.Config
+     * @param requestBodyValidation flag to enable/disable request body validation
      */
-    public RequestBodyFilter(Config config) {
+    public RequestBodyFilter(Config config, boolean requestBodyValidation) {
+        this.requestBodyValidation = requestBodyValidation;
     }
 
     /**
@@ -121,7 +121,7 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
                             "api.gateway.error.request.validation",
                             "Validation failed : " + validation.results()
                                     .items().stream()
-                                    .map(ValidationItem::message)
+                                    .map(validationItem -> validationItem.dataCrumbs() + " is invalid because " + validationItem.message())
                                     .collect(Collectors.joining(", ")));
                 }
             }
@@ -134,7 +134,7 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
     }
 
     /**
-     * Confing class to pass configurations to filter.
+     * Config class to pass configurations to filter.
      */
     @Setter
     @Getter

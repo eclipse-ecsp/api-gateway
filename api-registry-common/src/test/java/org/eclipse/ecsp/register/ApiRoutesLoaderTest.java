@@ -339,11 +339,11 @@ class ApiRoutesLoaderTest {
         innerSchema.set$ref("#/components/schemas/AddressInfo");
 
         Schema addressSchema = new Schema();
-        addressSchema.addProperties("street", new Schema().type("string"));
+        addressSchema.addProperty("street", new Schema().type("string"));
 
         Schema vehicleSchema = new Schema();
-        vehicleSchema.addProperties("model", new Schema().type("string"));
-        vehicleSchema.addProperties("address", innerSchema); // nested $ref
+        vehicleSchema.addProperty("model", new Schema().type("string"));
+        vehicleSchema.addProperty("address", innerSchema); // nested $ref
 
         Components components = new Components();
         components.addSchemas("VehicleAttributes", vehicleSchema);

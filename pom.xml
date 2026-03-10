@@ -4,7 +4,7 @@
 
     <groupId>org.eclipse.ecsp</groupId>
     <artifactId>api-gateway-parent</artifactId>
-    <version>1.4.0.SPRING-SNAPSHOT</version>
+    <version>1.4.1.SPRING-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -51,13 +51,13 @@
 
     <properties>
         <!-- general properties ordered by name -->
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <!--  ignite-properties -->
-        <ecsp.utils.version>1.2.SPRING-SNAPSHOT</ecsp.utils.version>
+        <ecsp.utils.version>1.2-java-25-1-SNAPSHOT</ecsp.utils.version>
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.21.0</jackson-bom.version>

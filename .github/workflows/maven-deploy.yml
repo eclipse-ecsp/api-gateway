@@ -4,7 +4,7 @@ name: Maven Deploy
 
 on:
   push:
-    branches: [ "springupgradelatest,javaandspringupgrade" ]
+    branches: [ "javaandspringupgrade" ]
   workflow_dispatch:
   
 env:

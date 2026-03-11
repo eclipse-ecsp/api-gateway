@@ -635,7 +635,7 @@
                     <includeScope>test</includeScope>
                     <skip>${skipDash}</skip>
                     <failWhenReviewNeeded>${failWhenReviewNeeded}</failWhenReviewNeeded>
-                    <timeout>120</timeout>
+                    <timeout>300</timeout>
                     <batch>50</batch>
                 </configuration>
                 <executions>

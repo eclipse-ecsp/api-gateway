@@ -123,6 +123,7 @@ public class IgniteRouteLocator implements RouteLocator {
      * @param routeLocatorBuilder    the route locator builder
      * @param applicationEventPublisher the application event publisher
      * @param springCloudGatewayConfig  the Spring Cloud Gateway configuration
+     * @param routeCustomizers       the list of route customizers
      */
     public IgniteRouteLocator(ConfigurationService configurationService,
                               List<GatewayFilterFactory> gatewayFilterFactories,

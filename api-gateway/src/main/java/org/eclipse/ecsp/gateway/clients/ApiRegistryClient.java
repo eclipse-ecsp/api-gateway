@@ -24,9 +24,11 @@ import org.eclipse.ecsp.gateway.service.RouteUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.http.MediaType;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -58,6 +60,7 @@ public class ApiRegistryClient {
     private String rateLimitsEndpoint;
     private final WebClient webClient;
     private final RouteUtils routeUtils;
+    private final RetryTemplate retryTemplate;
     
     // Thread-safe cache to store last successfully fetched routes
     private final List<IgniteRouteDefinition> cachedRoutes = new CopyOnWriteArrayList<>();
@@ -71,12 +74,15 @@ public class ApiRegistryClient {
      * @param baseUrl the base URL of the API registry
      * @param webClientBuilder the WebClient builder to create the WebClient instance
      * @param routeUtils routeUtils for handling routes
+     * @param retryTemplate retry template for handling retries when fetching routes from the registry
      */
     public ApiRegistryClient(@Value("${api.registry.base-url:http://localhost:7000}") String baseUrl,
                              WebClient.Builder webClientBuilder,
-                             RouteUtils routeUtils) {
+                             RouteUtils routeUtils,
+                             @Qualifier("routesRefreshRetryTemplate") RetryTemplate retryTemplate) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
         this.routeUtils = routeUtils;
+        this.retryTemplate = retryTemplate;
         LOGGER.info("ApiRegistryClient initialized with base URL: {}", baseUrl);
     }
 
@@ -89,14 +95,10 @@ public class ApiRegistryClient {
      */
     public Flux<IgniteRouteDefinition> getRoutes() {
         LOGGER.debug("Loading API Routes");
-        // @formatter:off
-        return this.webClient.get().uri(routesEndpoint)
-                .accept(MediaType.APPLICATION_JSON)
-                .header(GatewayConstants.USER_ID, routeUserId)
-                .header(GatewayConstants.SCOPE, routeScopes)
-                .retrieve()
-                .bodyToFlux(IgniteRouteDefinition.class)
-                .collectList()
+        return Mono.fromCallable(() -> retryTemplate.execute(context -> {
+            LOGGER.info("Attempt {} to fetch routes from api-registry", context.getRetryCount() + 1);
+            return fetchRoutesOnce();
+        }))
                 .flatMapMany(routes -> {
                     if (routes != null && !routes.isEmpty()) {
                         LOGGER.info("Successfully fetched {} routes from api-registry", routes.size());
@@ -112,6 +114,18 @@ public class ApiRegistryClient {
                 .doOnError(throwable -> LOGGER.error("Error while fetching routes from api-registry: {}",
                         throwable.getMessage()))
                 .onErrorResume(e -> handleEmptyOrErrorResponse());
+    }
+
+    private List<IgniteRouteDefinition> fetchRoutesOnce() {
+        // @formatter:off
+        return this.webClient.get().uri(routesEndpoint)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(GatewayConstants.USER_ID, routeUserId)
+                .header(GatewayConstants.SCOPE, routeScopes)
+                .retrieve()
+                .bodyToFlux(IgniteRouteDefinition.class)
+                .collectList()
+                .block();
         // @formatter:on
     }
 
@@ -169,6 +183,18 @@ public class ApiRegistryClient {
      */
     public List<RateLimit> getRateLimits() {
         LOGGER.debug("Loading API Rate Limits");
+        try {
+            return retryTemplate.execute(context -> {
+                LOGGER.info("Attempt {} to fetch rate limits from api-registry", context.getRetryCount() + 1);
+                return fetchRateLimitsOnce();
+            });
+        } catch (Exception exception) {
+            LOGGER.error("Error while fetching rate limits from api-registry: {}", exception.getMessage());
+            return handleEmptyOrErrorRateLimitResponse().block();
+        }
+    }
+
+    private List<RateLimit> fetchRateLimitsOnce() {
         // @formatter:off
         return this.webClient.get().uri(rateLimitsEndpoint)
                 .accept(MediaType.APPLICATION_JSON)
@@ -177,13 +203,13 @@ public class ApiRegistryClient {
                 .retrieve()
                 .bodyToFlux(RateLimit.class)
                 .collectList()
-                .flatMap(rateLimits -> {
-                    if (rateLimits != null && !rateLimits.isEmpty()) {
-                        LOGGER.info("Successfully fetched {} rate limits from api-registry", rateLimits.size());
+                .flatMap(rateLimitsResponse -> {
+                    if (rateLimitsResponse != null && !rateLimitsResponse.isEmpty()) {
+                        LOGGER.info("Successfully fetched {} rate limits from api-registry", rateLimitsResponse.size());
                         // Update cache with successfully fetched rate limits
                         clearRateLimitCache();
-                        cachedRateLimits.addAll(rateLimits);
-                        return Mono.just(rateLimits);
+                        cachedRateLimits.addAll(rateLimitsResponse);
+                        return Mono.just(rateLimitsResponse);
                     } else {
                         LOGGER.warn("API registry returned empty rate limits list");
                         return handleEmptyOrErrorRateLimitResponse();
@@ -191,7 +217,6 @@ public class ApiRegistryClient {
                 })
                 .doOnError(throwable -> LOGGER.error("Error while fetching rate limits from api-registry: {}",
                         throwable.getMessage()))
-                .onErrorResume(e -> handleEmptyOrErrorRateLimitResponse())
                 .block();
         // @formatter:on
     }

@@ -18,26 +18,18 @@
 
 package org.eclipse.ecsp.gateway.config;
 
-import org.eclipse.ecsp.gateway.conditions.RedisCacheEnabledCondition;
-import org.eclipse.ecsp.gateway.utils.GatewayConstants;
-import org.eclipse.ecsp.utils.logger.IgniteLogger;
-import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
+import lombok.NoArgsConstructor;
+import org.eclipse.ecsp.gateway.annotations.ConditionOnRedisEnabled;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration;
-import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import org.springframework.data.redis.serializer.RedisSerializer;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Configuration class for Redis caching.
@@ -45,87 +37,33 @@ import java.util.Map;
  * @author Abhishek Kumar
  */
 @Configuration
-@EnableCaching
-@Conditional(RedisCacheEnabledCondition.class)
+@ConditionOnRedisEnabled
+@NoArgsConstructor
 @Import({DataRedisAutoConfiguration.class, DataRedisReactiveAutoConfiguration.class})
 public class RedisConfig {
 
-    /**
-     * Create a Logger instance.
-     */
-    private static final IgniteLogger LOG = IgniteLoggerFactory.getLogger(RedisConfig.class);
-    /**
-     * Property holds cacheName.
-     */
-    @Value("${" + GatewayConstants.CACHING_PREFIX + ".cacheName}")
-    private String cacheName;
-    /**
-     * property holds cache ttl.
-     */
-    @Value("${" + GatewayConstants.CACHING_PREFIX + ".ttl}")
-    private long ttl;
+    @Value("${redis.cluster.topology-refresh.duration.ms:30000}")
+    private String redisTopologyRefreshDurationMs = "30000";
 
     /**
-     * Constructor to initialize RedisConfig.
-     */
-    public RedisConfig() {
-        LOG.debug("RedisConfig is enabled..");
-    }
-
-    /**
-     * Creates RedisSerializer bean.
+     * Customizes the Lettuce client configuration for Redis cluster.
      *
-     * @return RedisSerializer
+     * @return a LettuceClientConfigurationBuilderCustomizer that configures cluster topology refresh options
      */
     @Bean
-    public RedisSerializer<Object> jsonRedisSerializer() {
-        return new JacksonRedisSerializer<>();
-    }
+    public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
+        return clientConfigurationBuilder -> {
+            ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
+                    .enablePeriodicRefresh(Duration.ofMillis(Long.parseLong(redisTopologyRefreshDurationMs)))
+                    .enableAllAdaptiveRefreshTriggers()
+                    .build();
 
-    /**
-     * Creates RedisCacheManager bean.
-     *
-     * @param redisConnectionFactory RedisConnectionFactory
-     * @param jsonRedisSerializer    RedisSerializer
-     * @return RedisCacheManager
-     */
-    @Bean(value = "redisCacheManager")
-    public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory,
-                                          RedisSerializer<Object> jsonRedisSerializer) {
-        RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(ttl))
-                .disableCachingNullValues()
-                .serializeValuesWith(RedisSerializationContext
-                        .SerializationPair
-                        .fromSerializer(jsonRedisSerializer));
+            ClusterClientOptions clientOptions = ClusterClientOptions.builder()
+                    .topologyRefreshOptions(topologyRefreshOptions)
+                    .validateClusterNodeMembership(false)
+                    .build();
 
-        RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
-                .cacheDefaults(cacheConfig)
-                .withInitialCacheConfigurations(
-                        getCacheConfigurations(jsonRedisSerializer))
-                .build();
-
-        LOG.debug("RedisCacheManager : {}", redisCacheManager);
-
-        return redisCacheManager;
-
-    }
-
-    /**
-     * Creates cache configurations.
-     *
-     * @return cache Configuration
-     */
-    private Map<String, RedisCacheConfiguration> getCacheConfigurations(
-            RedisSerializer<Object> jacksonRedisSerializer) {
-        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
-
-        cacheConfigurations.put(cacheName,
-                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(ttl))
-                        .disableCachingNullValues().serializeValuesWith(
-                                RedisSerializationContext.SerializationPair.fromSerializer(jacksonRedisSerializer)));
-        LOG.debug("RedisCacheConfiguration : {}", cacheConfigurations.toString());
-
-        return cacheConfigurations;
+            clientConfigurationBuilder.clientOptions(clientOptions);
+        };
     }
 }

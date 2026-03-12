@@ -39,7 +39,13 @@ public class PublicKeyRefreshEvent {
      * ALL_KEYS indicates a refresh of all public keys.
      */
     public enum RefreshType {
+        /**
+         * Refresh a single public key.
+         */
         PUBLIC_KEY,
+        /**
+         * Refresh all public keys.
+         */
         ALL_KEYS,
     }
 

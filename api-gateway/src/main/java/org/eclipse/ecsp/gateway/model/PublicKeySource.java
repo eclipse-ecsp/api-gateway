@@ -1,6 +1,7 @@
 package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.Duration;
 
@@ -11,6 +12,7 @@ import java.time.Duration;
  */
 @Setter
 @Getter
+@NoArgsConstructor
 public class PublicKeySource {
     private String id;
     private boolean isDefault = false;

@@ -49,7 +49,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Integration test for PublicKeyMetrics to verify metrics are exposed correctly
+ * Integration test for PublicKeyMetrics to verify metrics are exposed correctly.
  * in a real Spring Boot context with actuator endpoints.
  *
  * @author Abhishek Kumar

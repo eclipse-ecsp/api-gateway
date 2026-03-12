@@ -42,7 +42,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link GatewayRateLimiter} covering namespace key generation,
+ * Unit tests for {@link GatewayRateLimiter} covering namespace key generation,.
  * default filter fallbacks, and redis error handling behaviour.
  */
 @ExtendWith(MockitoExtension.class)

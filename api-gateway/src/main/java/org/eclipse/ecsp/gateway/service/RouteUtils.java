@@ -118,7 +118,7 @@ public class RouteUtils {
         }
         return route.getMetadata().entrySet()
                 .stream()
-                .filter((entry) -> entry.getKey().startsWith(GatewayConstants.RATE_LIMITING_METADATA_PREFIX))
+                .filter(entry -> entry.getKey().startsWith(GatewayConstants.RATE_LIMITING_METADATA_PREFIX))
                 .map(entry -> Map.entry(
                         entry.getKey().substring(GatewayConstants.RATE_LIMITING_METADATA_PREFIX.length()),
                         entry.getValue()))

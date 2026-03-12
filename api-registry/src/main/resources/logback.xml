@@ -77,7 +77,7 @@
     <logger name="org.springframework" level="${SPRING_LOG_LEVEL:-ERROR}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
-    <logger name="org.eclipse.ecsp.registry" level="${SVC_CONSOLE_LOG_LEVEL:-INFO}" additivity="false">
+    <logger name="org.eclipse.ecsp.registry" level="${SVC_LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
     <logger name="org.eclipse.ecsp.cache" level="${CACHE_LOG_LEVEL:-ERROR}" additivity="false">

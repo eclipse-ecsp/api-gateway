@@ -31,6 +31,15 @@ spring:
         format_sql: ${spring_jpa_hibernate_show_sql:false}
   main:
     allow-bean-definition-overriding: false
+  data:
+    redis:
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
 api:
   security:
@@ -42,6 +51,11 @@ api-registry:
   database:
     type: ${api_registry_database_type:nosql}
     provider: ${api_registry_database_provider:mongoDB}
+  events: ## Event publishing settings
+    enabled: ${API_REGISTRY_EVENTS_ENABLED:true}
+    redis:
+      channel: ${API_REGISTRY_REDIS_CHANNEL:route-updates}
+      debounce-delay-ms: ${API_REGISTRY_DEBOUNCE_DELAY:2000}
   metrics:
     enabled: true
     base-path: /registry

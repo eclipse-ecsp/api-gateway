@@ -109,6 +109,20 @@ api:
   userId:
     field: "sub"
   gateway:
+    routes: ## Event-driven route refresh configuration
+      refresh:
+        strategy: ${ROUTE_REFRESH_STRATEGY:POLLING}
+        redis:
+          channel: ${ROUTE_REFRESH_REDIS_CHANNEL:route-updates}
+          connection-timeout-ms: ${REDIS_CONNECTION_TIMEOUT:5000}
+        retry:
+          max-attempts: ${RETRY_MAX_ATTEMPTS:5}
+          initial-interval-ms: ${RETRY_INITIAL_INTERVAL:1000}
+          multiplier: ${RETRY_MULTIPLIER:2.0}
+          max-interval-ms: ${RETRY_MAX_INTERVAL:16000}
+        polling:
+          cron-expression: ${ROUTE_REFRESH_POLLING_CRON:*/30 * * * * *}
+## Rate Limiting Configuration
     rate-limit:
       enabled: true 
       max-burst-capacity: 10000
@@ -123,6 +137,7 @@ api:
         empty-key-status: 400
         key-resolver: clientIpKeyResolver
         include-headers: true
+## Metrics Configuration
     metrics:
       enabled: true
       port: 9101
@@ -199,6 +214,7 @@ logging:
     org.springframework.cloud.gateway: ERROR
     org.springframework.boot.context.config: ERROR
     org.springframework.boot.loader: ERROR
+## Plugin configurations
 plugin:
   enabled: ${plugin_enabled:false}
   path: ${plugin_path:/external-libs}

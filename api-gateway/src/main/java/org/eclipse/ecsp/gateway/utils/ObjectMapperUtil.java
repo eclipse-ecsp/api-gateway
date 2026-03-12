@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 
@@ -39,6 +40,7 @@ public class ObjectMapperUtil {
 
     static {
         INSTANCE = JsonMapper.builder().enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS).build();
+        INSTANCE.registerModule(new JavaTimeModule());
         INSTANCE.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         INSTANCE.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         INSTANCE.configure(Feature.INCLUDE_SOURCE_IN_LOCATION, true);

@@ -1,6 +1,7 @@
 package org.eclipse.ecsp.gateway.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class PublicKeyCredentials {
     private String username;
     private String password;

@@ -47,7 +47,8 @@ import java.util.Optional;
     "spring.application.name=registry-test-service",
     "spring.application.version=1.0",
     "spring.application.servicename=registry-test-service",
-    "server.port=8080"
+    "server.port=8080",
+    "test.property=value1"
 })
 class CustomGatewayFilterCustomizerIntegrationTest {
 

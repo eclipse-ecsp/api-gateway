@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.util.StringValueResolver;
 import org.springframework.web.method.HandlerMethod;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -139,5 +140,26 @@ class CustomGatewayFilterCustomizerTest {
         Map<String, Object> filter2Args = (Map<String, Object>) operation.getExtensions()
                 .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-testWithFiltersNoArgs");
         Assertions.assertEquals(0, filter2Args.size(), "Expected no arguments for testWithFiltersNoArgs filter");
+    }
+
+    @Test
+    void testSpelArgsResolution() throws NoSuchMethodException {
+        Method method = CustomGatewayFiltersTestController.class.getMethod("testWithSpelArgs");
+        HandlerMethod handlerMethod = new HandlerMethod(new CustomGatewayFiltersTestController(), method);
+
+        CustomGatewayFilterCustomizer customizer = new CustomGatewayFilterCustomizer();
+        // Simulate Spring's embedded value resolver: resolves ${test.property} -> "resolvedValue"
+        StringValueResolver resolver = value -> value.replace("${test.property}", "resolvedValue");
+        customizer.setEmbeddedValueResolver(resolver);
+
+        Operation operation = new Operation();
+        operation = customizer.customize(operation, handlerMethod);
+
+        Assertions.assertNotNull(operation.getExtensions());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> filterArgs = (Map<String, Object>) operation.getExtensions()
+                .get(CustomGatewayFilterCustomizer.FILTERS_EXTENSION + "-TestSpelFilter");
+        Assertions.assertEquals("resolvedValue", filterArgs.get("key1"),
+                "Expected ${test.property} to be resolved to 'resolvedValue'");
     }
 }

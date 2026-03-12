@@ -25,7 +25,9 @@ import org.eclipse.ecsp.utils.NumericConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringValueResolver;
 import org.springframework.web.method.HandlerMethod;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,14 +39,27 @@ import java.util.stream.Collectors;
 /**
  * CustomGatewayFilterCustomizer is a Spring component that customizes OpenAPI operations.
  * by adding request filters defined in the @CustomGatewayFilter and @CustomGatewayFilters annotations.
+ *
+ * <p>Implements {@link EmbeddedValueResolverAware} so that {@code args} values in
+ * {@link org.eclipse.ecsp.annotations.CustomGatewayFilter} can contain Spring property
+ * placeholders ({@code ${...}}) and Spring Expression Language expressions
+ * ({@code #{...}}), which are resolved at application context startup time.
  */
 @Component
-public class CustomGatewayFilterCustomizer implements OperationCustomizer {
+public class CustomGatewayFilterCustomizer implements OperationCustomizer, EmbeddedValueResolverAware {
+
+    private StringValueResolver embeddedValueResolver;
+
     /**
      * Default constructor.
      */
     public CustomGatewayFilterCustomizer() {
         // Default constructor
+    }
+
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver resolver) {
+        this.embeddedValueResolver = resolver;
     }
 
     /**
@@ -125,9 +140,12 @@ public class CustomGatewayFilterCustomizer implements OperationCustomizer {
         for (var singleArg : filter.args()) {
             String[] parts = singleArg.split(EQUALS_SIGN, NumericConstants.TWO);
             if (parts.length == NumericConstants.TWO) {
-                args.put(parts[0].trim(), parts[1].trim());
+                String resolvedValue = embeddedValueResolver != null
+                        ? embeddedValueResolver.resolveStringValue(parts[1].trim())
+                        : parts[1].trim();
+                args.put(parts[0].trim(), resolvedValue);
                 LOGGER.debug("Added filter argument: {}={} for filter: {}",
-                        parts[0].trim(), parts[1].trim(), filterName);
+                        parts[0].trim(), resolvedValue, filterName);
             } else {
                 LOGGER.error("Invalid filter argument format: {}", singleArg);
                 throw new IllegalArgumentException("Invalid filter argument: "

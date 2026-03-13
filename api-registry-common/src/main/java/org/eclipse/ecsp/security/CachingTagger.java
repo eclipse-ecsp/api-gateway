@@ -33,6 +33,14 @@ import java.util.Map;
  */
 @Component
 public class CachingTagger implements OperationCustomizer {
+    /**
+     * Default constructor.
+     */
+    public CachingTagger() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(CachingTagger.class);
     /**
      * The extension key used to store caching metadata in the OpenAPI operation.

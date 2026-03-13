@@ -32,8 +32,27 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "api-registry.events")
 public class EventProperties {
 
+    /**
+     * Default constructor.
+     */
+    public EventProperties() {
+        // Default constructor
+    }
+
+    /**
+     * Flag to enable/disable event publishing.
+     */
     private boolean enabled = true;
+    
+    /**
+     * Redis-specific configuration.
+     */
     private RedisConfig redis = new RedisConfig();
+    
+    /**
+     * Retry configuration.
+     */
+    private RetryConfig retry = new RetryConfig();
 
     /**
      * Redis-specific configuration.
@@ -41,7 +60,60 @@ public class EventProperties {
     @Getter
     @Setter
     public static class RedisConfig {
+        /**
+         * Default constructor.
+         */
+        public RedisConfig() {
+            // Default constructor
+        }
+        
+        /**
+         * Redis channel name for publishing events.
+         */
         private String channel = "route-updates";
+        
+        /**
+         * Debounce delay in milliseconds.
+         */
         private long debounceDelayMs = 5000;
+        
+        /**
+         * Connection timeout in milliseconds.
+         */
+        private int connectionTimeout = 5000;
+        
+        /**
+         * Read timeout in milliseconds.
+         */
+        private int readTimeout = 3000;
+    }
+
+    /**
+     * Retry configuration.
+     */
+    @Getter
+    @Setter
+    public static class RetryConfig {
+        /**
+         * Default constructor.
+         */
+        public RetryConfig() {
+            // Default constructor
+        }
+        
+        /**
+         * Maximum number of retry attempts.
+         */
+        private int maxAttempts = 3;
+        
+        /**
+         * Backoff delay between retries in milliseconds.
+         */
+        private long backoffMs = 1000L;
+        
+        /**
+         * Flag to enable/disable retry mechanism.
+         */
+        private boolean enabled = true;
     }
 }

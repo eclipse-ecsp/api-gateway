@@ -79,7 +79,7 @@ class GatewayRateLimiterTest {
     }
 
     @Test
-    void isAllowed_WithSharedNamespace_UsesNamespaceBackedKeys() {
+    void isAllowedWithSharedNamespaceUsesNamespaceBackedKeys() {
         registerRouteConfig(ROUTE_ID, REPLENISH_RATE, BURST_CAPACITY, REQUESTED_TOKENS);
         when(redisTemplate.execute(eq(redisScript), anyList(), anyList()))
             .thenReturn(Flux.just(List.of(1L, TOKENS_LEFT)));
@@ -107,7 +107,7 @@ class GatewayRateLimiterTest {
     }
 
     @Test
-    void isAllowed_WhenRouteConfigMissing_UsesDefaultFiltersConfiguration() {
+    void isAllowedWhenRouteConfigMissingUsesDefaultFiltersConfiguration() {
         registerRouteConfig(RouteDefinitionRouteLocator.DEFAULT_FILTERS, DEFAULT_REPLENISH_RATE,
             DEFAULT_BURST_CAPACITY, DEFAULT_REQUESTED_TOKENS);
         when(redisTemplate.execute(eq(redisScript), anyList(), anyList()))
@@ -141,7 +141,7 @@ class GatewayRateLimiterTest {
     }
 
     @Test
-    void isAllowed_WhenRedisScriptFails_AllowsRequestWithDefaultTokens() {
+    void isAllowedWhenRedisScriptFailsAllowsRequestWithDefaultTokens() {
         registerRouteConfig(ROUTE_ID, REPLENISH_RATE, BURST_CAPACITY, REQUESTED_TOKENS);
         when(redisTemplate.execute(eq(redisScript), anyList(), anyList()))
             .thenReturn(Flux.error(new IllegalStateException("boom")));
@@ -157,7 +157,7 @@ class GatewayRateLimiterTest {
     }
 
     @Test
-    void isAllowed_WhenRedisDeniesRequest_PropagatesDeniedResponseAndHeaders() {
+    void isAllowedWhenRedisDeniesRequestPropagatesDeniedResponseAndHeaders() {
         registerRouteConfig(ROUTE_ID, REPLENISH_RATE, BURST_CAPACITY, REQUESTED_TOKENS);
         when(redisTemplate.execute(eq(redisScript), anyList(), anyList()))
             .thenReturn(Flux.just(List.of(0L, DENIED_TOKENS_LEFT)));

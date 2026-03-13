@@ -20,7 +20,8 @@ package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
+import org.eclipse.ecsp.registry.events.data.RouteChangeEventData;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -37,15 +38,15 @@ public class ApiRouteService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteService.class);
 
     private final ApiRouteRepo apiRouteRepo;
-    private final RouteEventPublisher eventPublisher;
+    private final EventPublisherContext eventPublisher;
 
     /**
      * Constructor to initialize the ApiRouteService.
      *
      * @param apiRouteRepo   the ApiRouteRepo
-     * @param eventPublisher the RouteEventPublisher (optional)
+     * @param eventPublisher the EventPublisherContext (optional)
      */
-    public ApiRouteService(ApiRouteRepo apiRouteRepo, Optional<RouteEventPublisher> eventPublisher) {
+    public ApiRouteService(ApiRouteRepo apiRouteRepo, Optional<EventPublisherContext> eventPublisher) {
         this.apiRouteRepo = apiRouteRepo;
         this.eventPublisher = eventPublisher.orElse(null);
     }
@@ -82,7 +83,9 @@ public class ApiRouteService {
         
         // Publish event if event publisher is available
         if (eventPublisher != null && model.getService() != null) {
-            eventPublisher.publishRouteChangeEvent(model.getService());
+            RouteChangeEventData eventData = 
+                new RouteChangeEventData(java.util.List.of(model.getService()), java.util.List.of());
+            eventPublisher.publishEvent(eventData);
         }
         
         return ApiRouteUtil.convert(entity);
@@ -135,7 +138,9 @@ public class ApiRouteService {
         
         // Publish event if event publisher is available
         if (eventPublisher != null && serviceName != null) {
-            eventPublisher.publishRouteChangeEvent(serviceName);
+            RouteChangeEventData eventData = 
+                new RouteChangeEventData(java.util.List.of(serviceName), java.util.List.of());
+            eventPublisher.publishEvent(eventData);
         }
     }
 }

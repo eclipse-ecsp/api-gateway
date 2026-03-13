@@ -47,7 +47,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void getLowCardinalityKeyValues_WithValidContext_ReturnsKeyValues() {
+    void getLowCardinalityKeyValuesWithValidContextReturnsKeyValues() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -66,7 +66,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void url_WithValidRequest_ReturnsRequestUri() {
+    void urlWithValidRequestReturnsRequestUri() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletRequest request = mock(HttpServletRequest.class);
 
@@ -80,7 +80,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithSuccessResponse_ReturnsSuccess() {
+    void outcomeStatusWithSuccessResponseReturnsSuccess() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
@@ -95,7 +95,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithClientError_ReturnsClientError() {
+    void outcomeStatusWithClientErrorReturnsClientError() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
@@ -110,7 +110,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithServerError_ReturnsServerError() {
+    void outcomeStatusWithServerErrorReturnsServerError() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
@@ -125,7 +125,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithError_ReturnsError() {
+    void outcomeStatusWithErrorReturnsError() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         RuntimeException exception = new RuntimeException("Test error");
 
@@ -139,7 +139,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithNullResponse_ReturnsUnknown() {
+    void outcomeStatusWithNullResponseReturnsUnknown() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
 
         when(context.getResponse()).thenReturn(null);
@@ -152,7 +152,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithRedirection_ReturnsRedirection() {
+    void outcomeStatusWithRedirectionReturnsRedirection() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
@@ -167,7 +167,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithNotFound_ReturnsClientError() {
+    void outcomeStatusWithNotFoundReturnsClientError() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
@@ -182,7 +182,7 @@ class HttpServerObservationConventionTest {
     }
 
     @Test
-    void outcomeStatus_WithUnauthorized_ReturnsClientError() {
+    void outcomeStatusWithUnauthorizedReturnsClientError() {
         ServerRequestObservationContext context = mock(ServerRequestObservationContext.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 

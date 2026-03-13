@@ -14,8 +14,8 @@ spring:
     name: api-gateway
   data:
     redis:
-      cluster:
-        nodes: ${spring_data_redis_cluster_nodes:redis-cluster-svc.default.svc.cluster.local:6379}
+      host: localhost
+      port: 6379
   cloud:
     discovery:
       client:

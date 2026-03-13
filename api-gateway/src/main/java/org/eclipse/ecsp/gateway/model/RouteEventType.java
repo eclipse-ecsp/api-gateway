@@ -35,5 +35,10 @@ public enum RouteEventType {
     /**
      * Indicates service health status changed (up/down).
      */
-    SERVICE_HEALTH_CHANGE
+    SERVICE_HEALTH_CHANGE,
+
+    /**
+     * Indicates client access control configuration changed.
+     */
+    CLIENT_ACCESS_CONTROL_UPDATED,
 }

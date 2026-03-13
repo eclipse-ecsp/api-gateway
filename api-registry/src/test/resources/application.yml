@@ -33,8 +33,8 @@ spring:
     allow-bean-definition-overriding: false
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
       lettuce:
         pool:
           max-active: 8

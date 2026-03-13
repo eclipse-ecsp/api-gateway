@@ -31,6 +31,12 @@ import java.nio.charset.StandardCharsets;
  * RestTemplateLogInterceptor.
  */
 public class RestTemplateLogInterceptor implements ClientHttpRequestInterceptor {
+    /**
+     * Default constructor.
+     */
+    public RestTemplateLogInterceptor() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateLogInterceptor.class);
 

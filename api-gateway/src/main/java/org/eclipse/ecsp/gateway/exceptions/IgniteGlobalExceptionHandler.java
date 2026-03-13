@@ -55,7 +55,7 @@ import static org.eclipse.ecsp.gateway.utils.GatewayConstants.REQUEST_NOT_FOUND;
  * @author Abhishek Kumar
  */
 @Component
-@Order(Integer.MIN_VALUE)
+@Order(-2)
 public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IgniteGlobalExceptionHandler.class);

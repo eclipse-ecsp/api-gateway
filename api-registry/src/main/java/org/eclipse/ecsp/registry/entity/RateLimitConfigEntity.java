@@ -22,7 +22,6 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.eclipse.ecsp.domain.Version;
@@ -37,10 +36,15 @@ import java.util.Map;
 @Setter
 @Getter
 @ToString
-@NoArgsConstructor
 @Entity(name = "rate_limit_configs")
 @dev.morphia.annotations.Entity("rate_limit_configs")
 public class RateLimitConfigEntity implements AuditableIgniteEntity, IgniteEntity {
+    /**
+     * Default constructor.
+     */
+    public RateLimitConfigEntity() {
+        // Default constructor
+    }
     
     @Id
     @dev.morphia.annotations.Id

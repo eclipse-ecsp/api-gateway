@@ -136,7 +136,7 @@ class ApiRegistryClientTest {
      * Verifies that routes are correctly fetched and returned.
      */
     @Test
-    void getRoutes_whenSuccessful_thenReturnsRoutes() {
+    void getRoutesWhenSuccessfulThenReturnsRoutes() {
         // Given
         String responseBody = """
             [
@@ -197,7 +197,7 @@ class ApiRegistryClientTest {
      * Verifies that a subsequent successful attempt returns routes.
      */
     @Test
-    void getRoutes_whenFirstAttemptFails_thenRetriesAndReturnsRoutes() {
+    void getRoutesWhenFirstAttemptFailsThenRetriesAndReturnsRoutes() {
         // Given
         String responseBody = createSingleRouteResponse("route-retry", "http://example.com/api/v1/retry", "/api/v1/retry/**");
 
@@ -231,7 +231,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned when an error occurs.
      */
     @Test
-    void getRoutes_whenApiRegistryUnavailable_thenReturnsDummyRoute() {
+    void getRoutesWhenApiRegistryUnavailableThenReturnsDummyRoute() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -254,7 +254,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned for network-related errors.
      */
     @Test
-    void getRoutes_whenNetworkError_thenReturnsDummyRoute() {
+    void getRoutesWhenNetworkErrorThenReturnsDummyRoute() {
         // Given - simulate network error by not stubbing the endpoint (connection refused)
         
         // When
@@ -273,7 +273,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned when the api-registry host cannot be resolved.
      */
     @Test
-    void getRoutes_whenDnsNotResolved_thenReturnsDummyRoute() throws Exception {
+    void getRoutesWhenDnsNotResolvedThenReturnsDummyRoute() throws Exception {
         // Given
         ApiRegistryClient dnsFailureClient = new ApiRegistryClient(
                 "http://nonexistent.invalid",
@@ -300,7 +300,7 @@ class ApiRegistryClientTest {
      * Verifies that empty response is handled correctly.
      */
     @Test
-    void getRoutes_whenEmptyResponse_thenReturnsDummyRoute() {
+    void getRoutesWhenEmptyResponseThenReturnsDummyRoute() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
             .willReturn(aResponse()
@@ -323,7 +323,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned when routes endpoint is not found.
      */
     @Test
-    void getRoutes_when404Error_thenReturnsDummyRoute() {
+    void getRoutesWhen404ErrorThenReturnsDummyRoute() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -346,7 +346,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned when authentication fails.
      */
     @Test
-    void getRoutes_whenUnauthorized_thenReturnsDummyRoute() {
+    void getRoutesWhenUnauthorizedThenReturnsDummyRoute() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -369,7 +369,7 @@ class ApiRegistryClientTest {
      * Verifies that all required headers are set correctly.
      */
     @Test
-    void getRoutes_whenCalled_thenSetsCorrectHeaders() {
+    void getRoutesWhenCalledThenSetsCorrectHeaders() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -392,7 +392,7 @@ class ApiRegistryClientTest {
      * Verifies that the correct endpoint URI is used.
      */
     @Test
-    void getRoutes_whenCalled_thenUsesCorrectEndpoint() {
+    void getRoutesWhenCalledThenUsesCorrectEndpoint() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -412,7 +412,7 @@ class ApiRegistryClientTest {
      * Verifies that dummy route is returned when response cannot be parsed.
      */
     @Test
-    void getRoutes_whenMalformedJson_thenReturnsDummyRoute() {
+    void getRoutesWhenMalformedJsonThenReturnsDummyRoute() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
                 .willReturn(aResponse()
@@ -436,7 +436,7 @@ class ApiRegistryClientTest {
      * Verifies that routes are cached after successful retrieval.
      */
     @Test
-    void getRoutes_whenSuccessful_thenCachesRoutes() {
+    void getRoutesWhenSuccessfulThenCachesRoutes() {
         // Given
         String responseBody = """
             [
@@ -479,7 +479,7 @@ class ApiRegistryClientTest {
      * Verifies the fallback mechanism to use cached routes.
      */
     @Test
-    void getRoutes_whenApiRegistryDownAfterSuccessfulFetch_thenReturnsCachedRoutes() {
+    void getRoutesWhenApiRegistryDownAfterSuccessfulFetchThenReturnsCachedRoutes() {
         // Given - First, load routes successfully
         String responseBody = """
             [
@@ -547,7 +547,7 @@ class ApiRegistryClientTest {
      * Verifies the fallback mechanism for empty responses.
      */
     @Test
-    void getRoutes_whenEmptyResponseAfterSuccessfulFetch_thenReturnsCachedRoutes() {
+    void getRoutesWhenEmptyResponseAfterSuccessfulFetchThenReturnsCachedRoutes() {
         // Given - First, load routes successfully
         String responseBody = """
             [
@@ -601,7 +601,7 @@ class ApiRegistryClientTest {
      * Verifies that cache is properly updated with new routes.
      */
     @Test
-    void getRoutes_whenNewRoutesFetched_thenUpdatesCache() {
+    void getRoutesWhenNewRoutesFetchedThenUpdatesCache() {
         // Given - First fetch with initial routes
         String initialResponse = createSingleRouteResponse("route-v1", "http://example.com/api/v1", "/api/v1/**");
 
@@ -700,7 +700,7 @@ class ApiRegistryClientTest {
      * Verifies that cache can be manually cleared.
      */
     @Test
-    void clearCache_whenCalled_thenRemovesCachedRoutes() {
+    void clearCacheWhenCalledThenRemovesCachedRoutes() {
         // Given - Load routes successfully
         String responseBody = """
             [
@@ -746,7 +746,7 @@ class ApiRegistryClientTest {
      * Verifies that rate limits are correctly fetched and returned.
      */
     @Test
-    void getRateLimits_whenSuccessful_thenReturnsRateLimits() {
+    void getRateLimitsWhenSuccessfulThenReturnsRateLimits() {
         // Given
         String responseBody = """
             [
@@ -799,7 +799,7 @@ class ApiRegistryClientTest {
      * Verifies that a subsequent successful attempt returns rate limits.
      */
     @Test
-    void getRateLimits_whenFirstAttemptFails_thenRetriesAndReturnsRateLimits() {
+    void getRateLimitsWhenFirstAttemptFailsThenRetriesAndReturnsRateLimits() {
         // Given
         String responseBody = """
             [
@@ -844,7 +844,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned when an error occurs and no cache exists.
      */
     @Test
-    void getRateLimits_whenApiRegistryUnavailable_thenReturnsEmptyList() {
+    void getRateLimitsWhenApiRegistryUnavailableThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -864,7 +864,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned after all retries fail.
      */
     @Test
-    void getRateLimits_whenRetriesExhausted_thenReturnsEmptyList() {
+    void getRateLimitsWhenRetriesExhaustedThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -885,7 +885,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned for network-related errors.
      */
     @Test
-    void getRateLimits_whenNetworkError_thenReturnsEmptyList() {
+    void getRateLimitsWhenNetworkErrorThenReturnsEmptyList() {
         // Given - simulate network error by stopping the server
         wireMockServer.stop();
 
@@ -906,7 +906,7 @@ class ApiRegistryClientTest {
      * Verifies that empty response is handled correctly.
      */
     @Test
-    void getRateLimits_whenEmptyResponse_thenReturnsEmptyList() {
+    void getRateLimitsWhenEmptyResponseThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -927,7 +927,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned when rate limits endpoint is not found.
      */
     @Test
-    void getRateLimits_when404Error_thenReturnsEmptyList() {
+    void getRateLimitsWhen404ErrorThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -947,7 +947,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned when authentication fails.
      */
     @Test
-    void getRateLimits_whenUnauthorized_thenReturnsEmptyList() {
+    void getRateLimitsWhenUnauthorizedThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -967,7 +967,7 @@ class ApiRegistryClientTest {
      * Verifies that all required headers are set correctly.
      */
     @Test
-    void getRateLimits_whenCalled_thenSetsCorrectHeaders() {
+    void getRateLimitsWhenCalledThenSetsCorrectHeaders() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -990,7 +990,7 @@ class ApiRegistryClientTest {
      * Verifies that the correct endpoint URI is used.
      */
     @Test
-    void getRateLimits_whenCalled_thenUsesCorrectEndpoint() {
+    void getRateLimitsWhenCalledThenUsesCorrectEndpoint() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -1010,7 +1010,7 @@ class ApiRegistryClientTest {
      * Verifies that empty list is returned when response cannot be parsed.
      */
     @Test
-    void getRateLimits_whenMalformedJson_thenReturnsEmptyList() {
+    void getRateLimitsWhenMalformedJsonThenReturnsEmptyList() {
         // Given
         wireMockServer.stubFor(get(urlEqualTo(RATE_LIMITS_ENDPOINT))
                 .willReturn(aResponse()
@@ -1031,7 +1031,7 @@ class ApiRegistryClientTest {
      * Verifies that rate limits are cached after successful retrieval.
      */
     @Test
-    void getRateLimits_whenSuccessful_thenCachesRateLimits() {
+    void getRateLimitsWhenSuccessfulThenCachesRateLimits() {
         // Given
         String responseBody = """
             [
@@ -1068,7 +1068,7 @@ class ApiRegistryClientTest {
      * Verifies the fallback mechanism to use cached rate limits.
      */
     @Test
-    void getRateLimits_whenApiRegistryDownAfterSuccessfulFetch_thenReturnsCachedRateLimits() {
+    void getRateLimitsWhenApiRegistryDownAfterSuccessfulFetchThenReturnsCachedRateLimits() {
         // Given - First, load rate limits successfully
         String responseBody = """
             [
@@ -1124,7 +1124,7 @@ class ApiRegistryClientTest {
      * Verifies the fallback mechanism for empty responses.
      */
     @Test
-    void getRateLimits_whenEmptyResponseAfterSuccessfulFetch_thenReturnsCachedRateLimits() {
+    void getRateLimitsWhenEmptyResponseAfterSuccessfulFetchThenReturnsCachedRateLimits() {
         // Given - First, load rate limits successfully
         String responseBody = """
             [
@@ -1170,7 +1170,7 @@ class ApiRegistryClientTest {
      * Verifies that cache is properly updated with new rate limits.
      */
     @Test
-    void getRateLimits_whenNewRateLimitsFetched_thenUpdatesCache() {
+    void getRateLimitsWhenNewRateLimitsFetchedThenUpdatesCache() {
         // Given - First fetch with initial rate limits
         String initialResponse = """
             [
@@ -1237,7 +1237,7 @@ class ApiRegistryClientTest {
      * Verifies that rate limit cache can be manually cleared.
      */
     @Test
-    void clearRateLimitCache_whenCalled_thenRemovesCachedRateLimits() {
+    void clearRateLimitCacheWhenCalledThenRemovesCachedRateLimits() {
         // Given - Load rate limits successfully
         String responseBody = """
             [
@@ -1274,7 +1274,7 @@ class ApiRegistryClientTest {
      * Verifies that clearing one cache doesn't affect the other.
      */
     @Test
-    void caches_whenBothPopulated_thenAreIndependent() {
+    void cachesWhenBothPopulatedThenAreIndependent() {
         // Given - Load both routes and rate limits successfully
         String routesResponse = """
             [

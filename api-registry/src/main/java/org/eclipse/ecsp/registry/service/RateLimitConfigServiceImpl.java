@@ -23,7 +23,8 @@ import org.apache.commons.lang3.Strings;
 import org.eclipse.ecsp.registry.config.RateLimitProperties;
 import org.eclipse.ecsp.registry.dto.RateLimitConfigDto;
 import org.eclipse.ecsp.registry.entity.RateLimitConfigEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
+import org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData;
 import org.eclipse.ecsp.registry.repo.RateLimitConfigRepository;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -52,16 +53,18 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
     
     private final RateLimitProperties rateLimitProperties;
 
-    private final RouteEventPublisher eventPublisher;
+    private final EventPublisherContext eventPublisher;
 
     /**
      * Constructor to initialize RateLimitConfigServiceImpl.
      *
      * @param rateLimitConfigRepository the RateLimitConfigRepository
+     * @param rateLimitProperties the RateLimitProperties
+     * @param eventPublisher the EventPublisherContext
      */
     public RateLimitConfigServiceImpl(RateLimitConfigRepository rateLimitConfigRepository,
             RateLimitProperties rateLimitProperties,
-            Optional<RouteEventPublisher> eventPublisher) {
+            Optional<EventPublisherContext> eventPublisher) {
         this.rateLimitConfigRepository = rateLimitConfigRepository;
         this.rateLimitProperties = rateLimitProperties;
         this.eventPublisher = eventPublisher.orElse(null);
@@ -133,7 +136,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
                     routesList.add(dto.getRouteId());
                 }
             });
-            eventPublisher.publishRateLimitConfigChangeEvent(servicesList, routesList);
+            eventPublisher.publishEvent(new RateLimitConfigEventData(servicesList, routesList));
         }
     }
 

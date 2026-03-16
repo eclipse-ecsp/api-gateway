@@ -18,15 +18,18 @@
 
 package org.eclipse.ecsp.registry.utils;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 
 /**
  * RegistryUtils.
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RegistryUtils {
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private RegistryUtils() {
+        // Utility class
+    }
 
     /**
      * Get the outcome from the HTTP status code.

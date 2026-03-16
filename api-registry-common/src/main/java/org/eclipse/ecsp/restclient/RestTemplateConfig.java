@@ -30,6 +30,14 @@ import org.springframework.web.client.RestTemplate;
  */
 @Configuration
 public class RestTemplateConfig {
+    /**
+     * Default constructor.
+     */
+    public RestTemplateConfig() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RestTemplateConfig.class);
 
 

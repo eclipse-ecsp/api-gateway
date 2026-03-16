@@ -134,8 +134,7 @@ class JwtAuthValidatorTest {
     @InjectMocks
     private RequestBodyValidator requestBodyValidator;
 
-    @InjectMocks
-    private RequestBodyFilter requestBodyFilter;
+    private RequestBodyFilter requestBodyFilter = new RequestBodyFilter(new RequestBodyFilter.Config(), true);
 
     @BeforeEach
     void setupJwtAuthValidator() {
@@ -481,6 +480,10 @@ class JwtAuthValidatorTest {
     static class ClaimImpl implements Claims {
 
         private Object scope;
+
+        public void setScope(Object scope) {
+            this.scope = scope;
+        }
 
         @Override
         public String getIssuer() {
@@ -1260,6 +1263,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithNullScope = new JwtAuthFilter(configWithNullScope, publicKeyService, jwtProperties);
 
         // Verify that routeScopes is empty when scope is null
+        @SuppressWarnings("unchecked")
         Set<String> routeScopes = (Set<String>) ReflectionTestUtils.getField(filterWithNullScope, "routeScopes");
         Assertions.assertTrue(routeScopes.isEmpty());
     }
@@ -1277,6 +1281,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithEmptyMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
 
         // Verify that default "sub" -> "user-id" mapping is added
+        @SuppressWarnings("unchecked")
         Map<String, String> tokenClaimMapping = (Map<String, String>) ReflectionTestUtils.getField(filterWithEmptyMapping, "tokenClaimToHeaderMapping");
         Assertions.assertTrue(tokenClaimMapping.containsKey("sub"));
         Assertions.assertEquals("user-id", tokenClaimMapping.get("sub"));
@@ -1294,6 +1299,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter filterWithNullMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
 
         // Verify that default mapping is created
+        @SuppressWarnings("unchecked")
         Map<String, String> tokenClaimMapping = (Map<String, String>) ReflectionTestUtils.getField(filterWithNullMapping, "tokenClaimToHeaderMapping");
         Assertions.assertNotNull(tokenClaimMapping);
         Assertions.assertTrue(tokenClaimMapping.containsKey("sub"));
@@ -1610,7 +1616,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_PrefixRemovedAndMatched() {
+    void testTokenScopeWithPrefixesPositiveCasePrefixRemovedAndMatched() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage,AdminAccess"); // Route requires these scopes
@@ -1635,7 +1641,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_PartialPrefixMatch() {
+    void testTokenScopeWithPrefixesPositiveCasePartialPrefixMatch() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("ReadAccess"); // Route requires this scope
@@ -1660,7 +1666,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_PositiveCase_StringScopeWithPrefix() {
+    void testTokenScopeWithPrefixesPositiveCaseStringScopeWithPrefix() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("UserManage"); // Route requires this scope
@@ -1685,7 +1691,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_NoMatchAfterPrefixRemoval() {
+    void testTokenScopeWithPrefixesNegativeCaseNoMatchAfterPrefixRemoval() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("RequiredScope"); // Route requires this specific scope
@@ -1708,7 +1714,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_EmptyScopeAfterPrefixProcessing() {
+    void testTokenScopeWithPrefixesNegativeCaseEmptyScopeAfterPrefixProcessing() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("NeededScope"); // Route requires this scope
@@ -1731,7 +1737,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_NegativeCase_NonMatchingPrefix() {
+    void testTokenScopeWithPrefixesNegativeCaseNonMatchingPrefix() {
         // Setup configuration with route scope
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("TargetScope"); // Route requires this scope
@@ -1754,7 +1760,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_EdgeCase_NullTokenScopePrefixes() {
+    void testTokenScopeWithPrefixesEdgeCaseNullTokenScopePrefixes() {
         // Setup JWT properties with null scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(null);
         
@@ -1780,7 +1786,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testTokenScopeWithPrefixes_EdgeCase_EmptyTokenScopePrefixes() {
+    void testTokenScopeWithPrefixesEdgeCaseEmptyTokenScopePrefixes() {
         // Setup JWT properties with empty scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(new HashSet<>());
         

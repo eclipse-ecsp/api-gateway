@@ -51,7 +51,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithDuplicateDomainPattern() {
+    void testNormalizeServerUrlWithDuplicateDomainPattern() {
         // Test URL that already has duplication in configuration
         // Note: This should not happen in real configuration, but if it does,
         // we just add the scheme - the duplication will remain
@@ -64,7 +64,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithoutScheme() {
+    void testNormalizeServerUrlWithoutScheme() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "api-gateway.example.com");
         
@@ -72,7 +72,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithHttpScheme() {
+    void testNormalizeServerUrlWithHttpScheme() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "http://api-gateway.example.com");
         
@@ -80,7 +80,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithHttpsScheme() {
+    void testNormalizeServerUrlWithHttpsScheme() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "https://api-gateway.example.com");
         
@@ -88,7 +88,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_ProtocolRelative() {
+    void testNormalizeServerUrlProtocolRelative() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "//api-gateway.example.com");
         
@@ -96,21 +96,21 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_EmptyString() {
+    void testNormalizeServerUrlEmptyString() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl", "");
         
         assertEquals("", result);
     }
 
     @Test
-    void testNormalizeServerUrl_Null() {
+    void testNormalizeServerUrlNull() {
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl", (String) null);
         
         assertNull(result);
     }
 
     @Test
-    void testOpenApi_WithDuplicateDomainUrls() {
+    void testOpenApiWithDuplicateDomainUrls() {
         // Set up server URLs with duplicate domain pattern
         // Note: This should not happen in real configuration, but if it does,
         // we just add the scheme - the duplication will remain
@@ -132,7 +132,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithMixedUrlFormats() {
+    void testOpenApiWithMixedUrlFormats() {
         // Set up server URLs with mixed formats
         ReflectionTestUtils.setField(apiConfig, "serverUrls", 
             "api-gateway.example.com,https://api-gateway.secure.com,//api-gateway.protocol.com");
@@ -155,7 +155,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithEmptyServerUrls() {
+    void testOpenApiWithEmptyServerUrls() {
         // Set up empty server URLs
         ReflectionTestUtils.setField(apiConfig, "serverUrls", "");
         
@@ -169,7 +169,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithWhitespaceUrls() {
+    void testOpenApiWithWhitespaceUrls() {
         // Set up server URLs with whitespace
         ReflectionTestUtils.setField(
                 apiConfig, "serverUrls", "  api-gateway.example.com  ,  https://api-gateway.secure.com  ");
@@ -187,7 +187,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithDifferentDnsFormat() {
+    void testNormalizeServerUrlWithDifferentDnsFormat() {
         // Test URL with different DNS format (api.gateway instead of api-gateway)
         // This simulates the scenario where DNS is configured as api.gateway.example.com
         // and gets concatenated with api-gateway.example.com from OpenAPI spec
@@ -200,7 +200,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithConcatenatedDomainsNoScheme() {
+    void testNormalizeServerUrlWithConcatenatedDomainsNoScheme() {
         // Test URL without scheme that has concatenated domains with different formats
         // Note: This should not happen in real configuration, but if it does,
         // we just add the scheme - the duplication will remain
@@ -212,7 +212,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithHttpSchemeAndConcatenatedDomains() {
+    void testNormalizeServerUrlWithHttpSchemeAndConcatenatedDomains() {
         // Test URL with http scheme that has concatenated domains
         // Note: If URL already has scheme and duplication, we don't fix duplication
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
@@ -223,7 +223,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithDifferentDnsFormatConcatenation() {
+    void testOpenApiWithDifferentDnsFormatConcatenation() {
         // Test the scenario from the PR review: different DNS format
         // Note: If URL already has scheme and duplication, we don't fix duplication
         ReflectionTestUtils.setField(apiConfig, "serverUrls", 
@@ -241,7 +241,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithMixedConcatenationScenarios() {
+    void testOpenApiWithMixedConcatenationScenarios() {
         // Test multiple concatenation scenarios
         // Note: These should not happen in real configuration, but if they do,
         // we just add the scheme where needed - the duplication will remain
@@ -267,7 +267,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithCustomDnsName() {
+    void testNormalizeServerUrlWithCustomDnsName() {
         // Test URL with custom DNS name (not api-gateway.)
         // This demonstrates that the solution works for any DNS name
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
@@ -277,7 +277,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithApiGatewayDnsName() {
+    void testNormalizeServerUrlWithApiGatewayDnsName() {
         // Test URL with api.gateway format (dots instead of dashes)
         // This demonstrates that the solution works for api.gateway format
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
@@ -287,7 +287,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testOpenApi_WithCustomDnsNames() {
+    void testOpenApiWithCustomDnsNames() {
         // Test the scenario from PR review: custom DNS names without api-gateway.
         // This demonstrates that the solution works universally
         ReflectionTestUtils.setField(apiConfig, "serverUrls", 
@@ -308,7 +308,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithIpAddress() {
+    void testNormalizeServerUrlWithIpAddress() {
         // Test URL with IP address instead of domain name
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "192.168.1.100");
@@ -317,7 +317,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithPortNumber() {
+    void testNormalizeServerUrlWithPortNumber() {
         // Test URL with port number
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "gateway.example.com:8080");
@@ -326,7 +326,7 @@ class ApiConfigUrlNormalizationTest {
     }
 
     @Test
-    void testNormalizeServerUrl_WithPath() {
+    void testNormalizeServerUrlWithPath() {
         // Test URL with path
         String result = ReflectionTestUtils.invokeMethod(apiConfig, "normalizeServerUrl",
             "gateway.example.com/api/v1");

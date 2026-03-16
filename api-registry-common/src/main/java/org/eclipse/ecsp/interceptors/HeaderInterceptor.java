@@ -36,6 +36,14 @@ import java.util.Set;
  */
 @Component
 public class HeaderInterceptor implements HandlerInterceptor {
+    /**
+     * Default constructor.
+     */
+    public HeaderInterceptor() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(HeaderInterceptor.class);
 
     @Override

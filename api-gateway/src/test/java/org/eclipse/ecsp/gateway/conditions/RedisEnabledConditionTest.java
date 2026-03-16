@@ -64,7 +64,7 @@ class RedisEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenRateLimitEnabled_ReturnsTrue() {
+    void matchesWhenRateLimitEnabledReturnsTrue() {
         // Arrange - stub all properties with lenient for unused ones
         when(environment.getProperty(GatewayConstants.RATE_LIMITING_ENABLED, VALUE_TRUE))
             .thenReturn(VALUE_TRUE);
@@ -81,7 +81,7 @@ class RedisEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenRedisCacheEnabled_ReturnsTrue() {
+    void matchesWhenRedisCacheEnabledReturnsTrue() {
         // Arrange - stub all properties
         when(environment.getProperty(GatewayConstants.RATE_LIMITING_ENABLED, VALUE_TRUE))
             .thenReturn(VALUE_FALSE);
@@ -98,7 +98,7 @@ class RedisEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenBothEnabled_ReturnsTrue() {
+    void matchesWhenBothEnabledReturnsTrue() {
         // Arrange - stub all properties with lenient for short-circuit
         when(environment.getProperty(GatewayConstants.RATE_LIMITING_ENABLED, VALUE_TRUE))
             .thenReturn(VALUE_TRUE);
@@ -115,7 +115,7 @@ class RedisEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenNeitherEnabled_ReturnsFalse() {
+    void matchesWhenNeitherEnabledReturnsFalse() {
         // Arrange - stub all properties
         when(environment.getProperty(GatewayConstants.RATE_LIMITING_ENABLED, VALUE_TRUE))
             .thenReturn(VALUE_FALSE);
@@ -132,7 +132,7 @@ class RedisEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenCacheEnabledButNotRedisType_ReturnsFalse() {
+    void matchesWhenCacheEnabledButNotRedisTypeReturnsFalse() {
         // Arrange - stub all properties
         when(environment.getProperty(GatewayConstants.RATE_LIMITING_ENABLED, VALUE_TRUE))
             .thenReturn(VALUE_FALSE);

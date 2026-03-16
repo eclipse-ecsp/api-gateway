@@ -63,7 +63,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithNoRateLimitsFromRegistry_UsesDefaultOnly() {
+    void initializeWithNoRateLimitsFromRegistryUsesDefaultOnly() {
         // Arrange
         when(apiRegistryClient.getRateLimits()).thenReturn(Collections.emptyList());
         resolver = new DefaultRateLimitConfigResolver(apiRegistryClient, rateLimitProperties);
@@ -81,7 +81,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithNullRateLimitsFromRegistry_HandlesGracefully() {
+    void initializeWithNullRateLimitsFromRegistryHandlesGracefully() {
         // Arrange
         when(apiRegistryClient.getRateLimits()).thenReturn(null);
         resolver = new DefaultRateLimitConfigResolver(apiRegistryClient, rateLimitProperties);
@@ -99,7 +99,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void resolveRateLimit_WithRouteSpecificConfig_ReturnsRouteConfig() {
+    void resolveRateLimitWithRouteSpecificConfigReturnsRouteConfig() {
         // Arrange
         RateLimit routeRateLimit = new RateLimit();
         routeRateLimit.setRouteId("user-route-123");
@@ -123,7 +123,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void resolveRateLimit_WithServiceLevelConfig_ReturnsServiceConfig() {
+    void resolveRateLimitWithServiceLevelConfigReturnsServiceConfig() {
         // Arrange
         RateLimit serviceRateLimit = new RateLimit();
         serviceRateLimit.setService("payment-service");
@@ -147,7 +147,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void resolveRateLimit_WithBothRouteAndServiceConfig_PrefersRouteConfig() {
+    void resolveRateLimitWithBothRouteAndServiceConfigPrefersRouteConfig() {
         // Arrange
         RateLimit routeRateLimit = new RateLimit();
         routeRateLimit.setRouteId("specific-route");
@@ -174,7 +174,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void resolveRateLimit_WithNoMatchingConfig_ReturnsDefault() {
+    void resolveRateLimitWithNoMatchingConfigReturnsDefault() {
         // Arrange
         RateLimit otherRouteLimit = new RateLimit();
         otherRouteLimit.setRouteId("other-route");
@@ -197,7 +197,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithPropertyOverrides_AppliesOverrides() {
+    void initializeWithPropertyOverridesAppliesOverrides() {
         // Arrange
         RateLimit registryLimit = new RateLimit();
         registryLimit.setRouteId("override-route");
@@ -224,7 +224,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithServiceOverride_OverridesRegistryServiceConfig() {
+    void initializeWithServiceOverrideOverridesRegistryServiceConfig() {
         // Arrange
         RateLimit registryServiceLimit = new RateLimit();
         registryServiceLimit.setService("auth-service");
@@ -252,7 +252,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithMixedRoutesAndServices_LoadsAllCorrectly() {
+    void initializeWithMixedRoutesAndServicesLoadsAllCorrectly() {
         // Arrange
         RateLimit route1 = new RateLimit();
         route1.setRouteId("route-a");
@@ -299,7 +299,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void resolveRateLimit_WithEmptyRouteIdAndService_ReturnsDefault() {
+    void resolveRateLimitWithEmptyRouteIdAndServiceReturnsDefault() {
         // Arrange
         when(apiRegistryClient.getRateLimits()).thenReturn(Collections.emptyList());
         resolver = new DefaultRateLimitConfigResolver(apiRegistryClient, rateLimitProperties);
@@ -317,7 +317,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithNullOverrides_HandlesGracefully() {
+    void initializeWithNullOverridesHandlesGracefully() {
         // Arrange
         when(apiRegistryClient.getRateLimits()).thenReturn(Collections.emptyList());
         when(rateLimitProperties.getOverrides()).thenReturn(null);
@@ -334,7 +334,7 @@ class DefaultRateLimitConfigResolverTest {
     }
 
     @Test
-    void initialize_WithEmptyStringsInRateLimit_IgnoresInvalidEntries() {
+    void initializeWithEmptyStringsInRateLimitIgnoresInvalidEntries() {
         // Arrange
         RateLimit invalidLimit = new RateLimit();
         invalidLimit.setRouteId("");  // Empty route ID

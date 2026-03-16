@@ -18,4 +18,8 @@
     <suppress checks="OneTopLevelClass" files="org.eclipse.ecsp.gateway.plugins.RequestBodyValidator"/>
     <suppress checks="MethodLength" files="org.eclipse.ecsp.gateway.plugins.JwtAuthValidatorTest"/>
     <suppress checks="LineLength" files="org.eclipse.ecsp.gateway.plugins.JwtAuthValidatorTest"/>
+    <!-- Suppress test code style violations -->
+    <suppress checks="AvoidStarImport" files=".*Test\.java$"/>
+    <suppress checks="MagicNumber" files=".*Test\.java$"/>
+    <suppress checks="LineLength" files=".*Test\.java$"/>
 </suppressions>

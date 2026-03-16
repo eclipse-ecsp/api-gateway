@@ -113,7 +113,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that keys can be stored and retrieved correctly.
      */
     @Test
-    void put_whenValidKeyAndValue_thenStoresSuccessfully() {
+    void putWhenValidKeyAndValueThenStoresSuccessfully() {
         // Given
         String keyId = "test-key-1";
         PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
@@ -132,7 +132,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that empty Optional is returned for missing keys.
      */
     @Test
-    void get_whenKeyDoesNotExist_thenReturnsEmpty() {
+    void getWhenKeyDoesNotExistThenReturnsEmpty() {
         // Given
         String nonExistentKey = "non-existent-key";
 
@@ -149,7 +149,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that multiple keys can be stored independently.
      */
     @Test
-    void put_whenMultipleKeys_thenStoresAllCorrectly() {
+    void putWhenMultipleKeysThenStoresAllCorrectly() {
         // Given
         String keyId1 = "test-key-1";
         String keyId2 = "test-key-2";
@@ -175,7 +175,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that existing keys can be updated with new values.
      */
     @Test
-    void put_whenKeyAlreadyExists_thenOverwritesValue() {
+    void putWhenKeyAlreadyExistsThenOverwritesValue() {
         // Given
         String keyId = "test-key";
         PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
@@ -197,7 +197,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that keys can be removed successfully.
      */
     @Test
-    void remove_whenKeyExists_thenRemovesSuccessfully() {
+    void removeWhenKeyExistsThenRemovesSuccessfully() {
         // Given
         String keyId = "test-key";
         PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo(keyId, this.testPublicKey1);
@@ -218,7 +218,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that removing non-existent keys doesn't cause errors.
      */
     @Test
-    void remove_whenKeyDoesNotExist_thenHandlesGracefully() {
+    void removeWhenKeyDoesNotExistThenHandlesGracefully() {
         // Given
         String nonExistentKey = "non-existent-key";
 
@@ -236,7 +236,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that all keys are removed when cache is cleared.
      */
     @Test
-    void clear_whenCacheHasKeys_thenRemovesAllKeys() {
+    void clearWhenCacheHasKeysThenRemovesAllKeys() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("key1", this.testPublicKey1);
         PublicKeyInfo testPublicKeyInfo2 = createTestPublicKeyInfo("key2", this.testPublicKey2);
@@ -258,7 +258,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that size is correctly reported after various operations.
      */
     @Test
-    void size_whenVariousOperations_thenReportsCorrectSize() {
+    void sizeWhenVariousOperationsThenReportsCorrectSize() {
         // Given
         assertEquals(0, cache.size());
 
@@ -285,7 +285,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies proper handling of null keys.
      */
     @Test
-    void put_whenNullKey_thenHandlesCorrectly() {
+    void putWhenNullKeyThenHandlesCorrectly() {
         // When & Then
         try {
             PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("test-key", this.testPublicKey1);
@@ -300,7 +300,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies proper handling of null values.
      */
     @Test
-    void put_whenNullValue_thenHandlesCorrectly() {
+    void putWhenNullValueThenHandlesCorrectly() {
         // Given
         String keyId = "test-key";
 
@@ -321,7 +321,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that concurrent access doesn't cause data corruption.
      */
     @Test
-    void concurrentAccess_whenMultipleThreads_thenThreadSafe() throws InterruptedException {
+    void concurrentAccessWhenMultipleThreadsThenThreadSafe() throws InterruptedException {
         // Given
         int numberOfThreads = NUMBER_OF_THREADS;
         int operationsPerThread = OPERATIONS_PER_THREAD;
@@ -363,7 +363,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entries matching the predicate are removed correctly.
      */
     @Test
-    void remove_whenPredicateMatchesEntries_thenRemovesMatchingEntries() {
+    void removeWhenPredicateMatchesEntriesThenRemovesMatchingEntries() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -403,7 +403,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that false is returned when no entries match the predicate.
      */
     @Test
-    void remove_whenPredicateMatchesNoEntries_thenReturnsFalse() {
+    void removeWhenPredicateMatchesNoEntriesThenReturnsFalse() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -429,7 +429,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that false is returned when cache is empty.
      */
     @Test
-    void remove_whenCacheIsEmpty_thenReturnsFalse() {
+    void removeWhenCacheIsEmptyThenReturnsFalse() {
         // Given
         assertEquals(0, cache.size());
 
@@ -448,7 +448,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that all entries can be removed using a predicate.
      */
     @Test
-    void remove_whenPredicateMatchesAllEntries_thenRemovesAllEntries() {
+    void removeWhenPredicateMatchesAllEntriesThenRemovesAllEntries() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -478,7 +478,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that IllegalArgumentException is thrown for null predicate.
      */
     @Test
-    void remove_whenPredicateIsNull_thenThrowsException() {
+    void removeWhenPredicateIsNullThenThrowsException() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("key1", this.testPublicKey1);
         cache.put("key1", testPublicKeyInfo1);
@@ -497,7 +497,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that complex predicate conditions work correctly.
      */
     @Test
-    void remove_whenComplexPredicate_thenRemovesCorrectEntries() {
+    void removeWhenComplexPredicateThenRemovesCorrectEntries() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("prefix_key1");
@@ -537,7 +537,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entrySet returns correct entries.
      */
     @Test
-    void entrySet_whenCacheHasEntries_thenReturnsCorrectEntrySet() {
+    void entrySetWhenCacheHasEntriesThenReturnsCorrectEntrySet() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -579,7 +579,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entrySet returns empty set when cache is empty.
      */
     @Test
-    void entrySet_whenCacheIsEmpty_thenReturnsEmptyEntrySet() {
+    void entrySetWhenCacheIsEmptyThenReturnsEmptyEntrySet() {
         // Given
         assertEquals(0, cache.size());
 
@@ -597,7 +597,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entrySet reflects changes in the underlying cache.
      */
     @Test
-    void entrySet_whenCacheModifiedAfterRetrieval_thenReflectsChanges() {
+    void entrySetWhenCacheModifiedAfterRetrievalThenReflectsChanges() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -623,7 +623,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entrySet can be safely iterated over.
      */
     @Test
-    void entrySet_whenIterating_thenIteratesSafely() {
+    void entrySetWhenIteratingThenIteratesSafely() {
         // Given
         for (int i = 1; i <= FIVE; i++) {
             PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
@@ -655,7 +655,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that entrySet handles concurrent modifications appropriately.
      */
     @Test
-    void entrySet_whenConcurrentModification_thenHandlesGracefully() {
+    void entrySetWhenConcurrentModificationThenHandlesGracefully() {
         // Given
         PublicKeyInfo testPublicKeyInfo1 = new PublicKeyInfo();
         testPublicKeyInfo1.setKid("key1");
@@ -690,7 +690,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that concurrent predicate-based removal operations are thread-safe.
      */
     @Test
-    void remove_whenConcurrentPredicateRemoval_thenThreadSafe() throws InterruptedException {
+    void removeWhenConcurrentPredicateRemovalThenThreadSafe() throws InterruptedException {
         // Given
         int numberOfKeys = ONE_HUNDRED;
         for (int i = 0; i < numberOfKeys; i++) {
@@ -742,7 +742,7 @@ class InMemoryPublicKeyCacheTest {
      * Verifies that proper validation exceptions are thrown.
      */
     @Test
-    void put_whenPublicKeyInfoHasNullRequiredFields_thenThrowsException() {
+    void putWhenPublicKeyInfoHasNullRequiredFieldsThenThrowsException() {
         PublicKeyInfo invalidInfo = new PublicKeyInfo();
         
         // Test null kid
@@ -759,7 +759,7 @@ class InMemoryPublicKeyCacheTest {
     }
 
     @Test
-    void put_whenKeyOrValueIsNull_thenDoesNotPutIntoCache() {
+    void putWhenKeyOrValueIsNullThenDoesNotPutIntoCache() {
         // Given
         PublicKeyInfo info = createTestPublicKeyInfo("kid1", testPublicKey1);
 
@@ -773,7 +773,7 @@ class InMemoryPublicKeyCacheTest {
     }
 
     @Test
-    void remove_whenKeyIsNull_thenDoesNothing() {
+    void removeWhenKeyIsNullThenDoesNothing() {
         // Given
         cache.put("key1", createTestPublicKeyInfo("kid1", testPublicKey1));
 

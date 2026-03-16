@@ -18,18 +18,11 @@
 
 package org.eclipse.ecsp.registry.events;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.ecsp.registry.config.EventProperties;
+import org.eclipse.ecsp.registry.events.metrics.EventPublishingMetrics;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -45,76 +38,42 @@ import java.util.concurrent.atomic.AtomicReference;
  * Event throttler that implements debouncing with timer reset.
  * Each new event resets the timer, ensuring events are only published
  * after a period of inactivity.
+ * Metrics are automatically tracked for all events via EventPublishingMetrics.
  */
 @Component
-@ConditionalOnProperty(name = "api-registry.events.enabled", havingValue = "true")
 public class RouteEventThrottler {
 
     private static final int FIVE = 5;
-    private static final String EVENT_TYPE = "event_type";
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteEventThrottler.class);
 
     private final ScheduledExecutorService scheduler;
     private final Set<String> pendingServiceNames;
     private final long debounceDelayMs;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final String channel;
-    private final ObjectMapper objectMapper;
+    private final EventPublisher eventPublisher;
+    private final EventPublishingMetrics metrics;
     private final AtomicReference<ScheduledFuture<?>> scheduledFlush = new AtomicReference<>();
-    private final MeterRegistry meterRegistry;
-    private Counter routeChangeEventCounter;
-    private Counter rateLimitConfigChangeEventCounter;
-    private Counter serviceHealthChangeEventCounter;
-
-    @Value("${api-registry.events.metrics.total.published.metrics-name:route.events.published.total}")
-    private String totalPublishedMetricsName;
 
     /**
      * Constructor for RouteEventThrottler.
      *
      * @param eventProperties configuration properties
-     * @param redisTemplate   Redis template for publishing events
-     * @param objectMapper    JSON object mapper
-     * @param meterRegistry   Meter registry for metrics
+     * @param eventPublisher  event publisher for publishing events
+     * @param metrics         metrics component for tracking event publishing
      */
     public RouteEventThrottler(EventProperties eventProperties,
-                               RedisTemplate<String, String> redisTemplate,
-                               ObjectMapper objectMapper,
-                               MeterRegistry meterRegistry) {
+                               EventPublisher eventPublisher,
+                               EventPublishingMetrics metrics) {
         this.debounceDelayMs = eventProperties.getRedis().getDebounceDelayMs();
-        this.channel = eventProperties.getRedis().getChannel();
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
-        this.meterRegistry = meterRegistry;
+        this.eventPublisher = eventPublisher;
+        this.metrics = metrics;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r, "route-event-throttler");
             thread.setDaemon(true);
             return thread;
         });
         this.pendingServiceNames = ConcurrentHashMap.newKeySet();
-        LOGGER.info("RouteEventThrottler initialized with debounce delay: {}ms, channel: {}",
-                debounceDelayMs, channel);
-    }
-
-    /**
-     * Initialize metrics counters after construction.
-     */
-    @PostConstruct
-    public void initializeMetrics() {
-        this.routeChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.ROUTE_CHANGE.name())
-                .description("Total number of route change events published")
-                .register(meterRegistry);
-
-        this.rateLimitConfigChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
-                .description("Total number of rate limit config change events published")
-                .register(meterRegistry);
-
-        this.serviceHealthChangeEventCounter = Counter.builder(totalPublishedMetricsName)
-                .tag(EVENT_TYPE, RouteEventType.SERVICE_HEALTH_CHANGE.name())
-                .description("Total number of service health change events published")
-                .register(meterRegistry);
+        LOGGER.info("RouteEventThrottler initialized with debounce delay: {}ms",
+                debounceDelayMs);
     }
 
 
@@ -160,58 +119,38 @@ public class RouteEventThrottler {
             return;
         }
         List<String> servicesToSend = List.copyOf(pendingServiceNames);
-        boolean sent = sendEvent(RouteEventType.ROUTE_CHANGE, servicesToSend, List.of());
+        org.eclipse.ecsp.registry.events.data.RouteChangeEventData eventData = 
+            new org.eclipse.ecsp.registry.events.data.RouteChangeEventData(servicesToSend, List.of());
+        boolean sent = sendEvent(eventData);
         if (sent) {
             pendingServiceNames.removeAll(servicesToSend);
         }
     }
 
     /**
-     * Send event immediately.
+     * Send event immediately with automatic metrics tracking.
      *
-     * @param eventType   type of route event
-     * @param serviceName list of service names that changed 
-     * @param routeIds    list of route IDs that changed
+     * @param eventData event data to publish
      * @return true if event was sent successfully, false otherwise
      */
-    public boolean sendEvent(RouteEventType eventType, List<String> serviceName, List<String> routeIds) {
-        try {
-            // Create consolidated event with all pending services
-            RouteChangeEvent event = new RouteChangeEvent(eventType, 
-                                        serviceName, 
-                                        routeIds);
-            String eventJson = objectMapper.writeValueAsString(event);
+    public boolean sendEvent(org.eclipse.ecsp.registry.events.data.AbstractEventData eventData) {
+        return metrics.recordPublish(eventData.getEventType(), () -> {
+            try {
+                // Publish event using EventPublisher
+                boolean published = eventPublisher.publishEvent(eventData);
 
-            // Publish to Redis
-            redisTemplate.convertAndSend(channel, eventJson);
+                if (published) {
+                    LOGGER.info("Published {} event: eventId={}", 
+                        eventData.getEventType(), eventData.getEventId());
+                }
+                return published;
 
-            LOGGER.info("Published {} change event: eventId={}, serviceCount={}, services={}",
-                    eventType, event.getEventId(), event.getServices().size(), event.getServices());
-            
-            // Increment appropriate counter
-            switch (eventType) {
-                case ROUTE_CHANGE:
-                    routeChangeEventCounter.increment();
-                    break;
-                case RATE_LIMIT_CONFIG_CHANGE:
-                    rateLimitConfigChangeEventCounter.increment();
-                    break;
-                case SERVICE_HEALTH_CHANGE:
-                    serviceHealthChangeEventCounter.increment();
-                    break;
-                default:
-                    LOGGER.warn("Unknown event type for metrics increment: {}", eventType);
+            } catch (Exception e) {
+                LOGGER.error("Failed to publish event. EventType: {}, EventId: {}", 
+                        eventData.getEventType(), eventData.getEventId(), e);
+                return false;
             }
-            return true;
-
-        } catch (JsonProcessingException e) {
-            LOGGER.error("Failed to serialize route change event. EventType: {}, Services: {}, Routes: {}", 
-                    eventType, serviceName, routeIds, e);
-        } catch (Exception e) {
-            LOGGER.error("Failed to publish route change event to Redis. EventType: {}, Services: {}, Routes: {}", 
-                    eventType, serviceName, routeIds, e);
-        }
-        return false;
+        });
     }
 
     /**

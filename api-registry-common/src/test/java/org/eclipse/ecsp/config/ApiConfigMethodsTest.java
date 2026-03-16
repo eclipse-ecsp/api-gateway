@@ -68,7 +68,7 @@ class ApiConfigMethodsTest {
     }
 
     @Test
-    void testPathsExclude_EmptyArray() {
+    void testPathsExcludeEmptyArray() {
         // Given
         String[] expectedPaths = new String[]{};
         ReflectionTestUtils.setField(apiConfig, "pathsExclude", expectedPaths);
@@ -110,7 +110,7 @@ class ApiConfigMethodsTest {
     }
 
     @Test
-    void testApplicationName_WithSpecialCharacters() {
+    void testApplicationNameWithSpecialCharacters() {
         // Given
         String expectedName = "test-service-v2.1";
         ReflectionTestUtils.setField(apiConfig, "applicationName", expectedName);
@@ -123,7 +123,7 @@ class ApiConfigMethodsTest {
     }
 
     @Test
-    void testApplicationVersion_WithSnapshot() {
+    void testApplicationVersionWithSnapshot() {
         // Given
         String expectedVersion = "1.0.0-SNAPSHOT";
         ReflectionTestUtils.setField(apiConfig, "applicationVersion", expectedVersion);

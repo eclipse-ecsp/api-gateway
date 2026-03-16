@@ -29,4 +29,10 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnNoSqlDatabase
 @Repository("apiRouteMongoDaoImpl")
 public class ApiRouteMongoDaoImpl extends IgniteBaseDAOMongoImpl<String, ApiRouteEntity> {
+    /**
+     * Default constructor for ApiRouteMongoDaoImpl.
+     */
+    public ApiRouteMongoDaoImpl() {
+        // Default constructor
+    }
 }

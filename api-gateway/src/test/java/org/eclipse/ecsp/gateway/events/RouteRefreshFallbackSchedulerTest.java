@@ -1,3 +1,21 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
 package org.eclipse.ecsp.gateway.events;
 
 import org.eclipse.ecsp.gateway.service.RouteRefreshService;
@@ -40,7 +58,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_RedisUp_NoAction() {
+    void testCheckRedisAndRefreshRoutesRedisUpNoAction() {
         // Arrange
         when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
         when(redisConnection.ping()).thenReturn("PONG");
@@ -53,7 +71,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_RedisDown_EnablesFallbackAndRefreshes() {
+    void testCheckRedisAndRefreshRoutesRedisDownEnablesFallbackAndRefreshes() {
         // Arrange
         when(redisConnectionFactory.getConnection())
                 .thenThrow(new RedisConnectionFailureException("Connection failed"));
@@ -66,7 +84,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_RedisStaysDown_RefreshesAgain() {
+    void testCheckRedisAndRefreshRoutesRedisStaysDownRefreshesAgain() {
         // Arrange
         when(redisConnectionFactory.getConnection())
                 .thenThrow(new RedisConnectionFailureException("Connection failed"));
@@ -82,7 +100,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_RedisRecovers_DisablesFallback() {
+    void testCheckRedisAndRefreshRoutesRedisRecoversDisablesFallback() {
         // Arrange - Sequence: Down -> Up
         when(redisConnectionFactory.getConnection())
                 .thenThrow(new RedisConnectionFailureException("Connection failed")) // 1st call
@@ -100,7 +118,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_RefreshException_HandledGracefully() {
+    void testCheckRedisAndRefreshRoutesRefreshExceptionHandledGracefully() {
         // Arrange
         when(redisConnectionFactory.getConnection())
                 .thenThrow(new RedisConnectionFailureException("Connection failed"));
@@ -115,7 +133,7 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testCheckRedisAndRefreshRoutes_PingFails_TriggersFallback() {
+    void testCheckRedisAndRefreshRoutesPingFailsTriggersFallback() {
         // Arrange
         when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
         doThrow(new RuntimeException("Ping failed")).when(redisConnection).ping();
@@ -128,13 +146,13 @@ class RouteRefreshFallbackSchedulerTest {
     }
 
     @Test
-    void testActivateFallback_ManuallyEnablesFallback() {
+    void testActivateFallbackManuallyEnablesFallback() {
         scheduler.activateFallback();
         assertTrue(scheduler.isFallbackActive());
     }
 
     @Test
-    void testIsFallbackActive_ReturnsCorrectState() {
+    void testIsFallbackActiveReturnsCorrectState() {
         assertFalse(scheduler.isFallbackActive());
         scheduler.activateFallback();
         assertTrue(scheduler.isFallbackActive());

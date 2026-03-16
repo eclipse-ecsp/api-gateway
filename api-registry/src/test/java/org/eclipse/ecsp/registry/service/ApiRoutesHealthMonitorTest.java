@@ -19,7 +19,7 @@
 package org.eclipse.ecsp.registry.service;
 
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
-import org.eclipse.ecsp.registry.events.RouteEventPublisher;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ class ApiRoutesHealthMonitorTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private RouteEventPublisher routeEventPublisher;
+    private EventPublisherContext routeEventPublisher;
 
     @BeforeEach
     void beforeEach() {

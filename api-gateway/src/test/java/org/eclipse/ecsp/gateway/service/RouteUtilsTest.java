@@ -47,7 +47,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithPathPredicate_ReturnsPath() {
+    void getRoutePathWithPathPredicateReturnsPath() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition pathPredicate = new PredicateDefinition();
@@ -63,7 +63,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithoutPathPredicate_ReturnsNull() {
+    void getRoutePathWithoutPathPredicateReturnsNull() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition methodPredicate = new PredicateDefinition();
@@ -79,7 +79,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithEmptyPredicates_ReturnsNull() {
+    void getRoutePathWithEmptyPredicatesReturnsNull() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
 
@@ -91,7 +91,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithMultiplePredicates_ReturnsPathFromPathPredicate() {
+    void getRoutePathWithMultiplePredicatesReturnsPathFromPathPredicate() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
 
@@ -113,7 +113,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithMethodPredicate_ReturnsMethod() {
+    void getRouteMethodWithMethodPredicateReturnsMethod() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition methodPredicate = new PredicateDefinition();
@@ -129,7 +129,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithoutMethodPredicate_ReturnsNull() {
+    void getRouteMethodWithoutMethodPredicateReturnsNull() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition pathPredicate = new PredicateDefinition();
@@ -145,7 +145,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithEmptyPredicates_ReturnsNull() {
+    void getRouteMethodWithEmptyPredicatesReturnsNull() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
 
@@ -157,7 +157,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithMultiplePredicates_ReturnsMethodFromMethodPredicate() {
+    void getRouteMethodWithMultiplePredicatesReturnsMethodFromMethodPredicate() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
 
@@ -179,7 +179,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getDummyRoute_CreatesValidDummyRoute() {
+    void getDummyRouteCreatesValidDummyRoute() {
         // When
         IgniteRouteDefinition result = routeUtils.getDummyRoute();
 
@@ -195,7 +195,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getDummyRoute_WithInvalidUri_HandlesException() {
+    void getDummyRouteWithInvalidUriHandlesException() {
         // Given
         ReflectionTestUtils.setField(routeUtils, "apiGatewayUri", "invalid://uri with spaces");
 
@@ -210,7 +210,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithCaseInsensitivePathName_ReturnsPath() {
+    void getRoutePathWithCaseInsensitivePathNameReturnsPath() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition pathPredicate = new PredicateDefinition();
@@ -226,7 +226,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithCaseInsensitiveMethodName_ReturnsMethod() {
+    void getRouteMethodWithCaseInsensitiveMethodNameReturnsMethod() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition methodPredicate = new PredicateDefinition();
@@ -242,7 +242,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRoutePath_WithMultipleArgsInPredicate_ReturnsFirstValue() {
+    void getRoutePathWithMultipleArgsInPredicateReturnsFirstValue() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition pathPredicate = new PredicateDefinition();
@@ -261,7 +261,7 @@ class RouteUtilsTest {
     }
 
     @Test
-    void getRouteMethod_WithMultipleArgsInPredicate_ReturnsFirstValue() {
+    void getRouteMethodWithMultipleArgsInPredicateReturnsFirstValue() {
         // Given
         List<PredicateDefinition> predicates = new ArrayList<>();
         PredicateDefinition methodPredicate = new PredicateDefinition();

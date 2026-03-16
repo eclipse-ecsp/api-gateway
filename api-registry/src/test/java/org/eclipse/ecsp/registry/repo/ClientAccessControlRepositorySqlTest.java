@@ -1,0 +1,93 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
+package org.eclipse.ecsp.registry.repo;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
+/**
+ * Unit tests for ClientAccessControlRepository.
+ *
+ * <p>Tests custom query methods:
+ * - findByClientIdAndIsDeletedFalse
+ * - findByIsActiveAndIsDeletedFalse
+ * - findAllNotDeleted
+ * - findByTenantAndIsDeletedFalse
+ * - existsByClientIdAndIsDeletedFalse
+ *
+ */
+
+@SpringBootTest
+@Testcontainers
+@ContextConfiguration(initializers = ClientAccessControlRepositorySqlTest.Initializer.class)
+class ClientAccessControlRepositorySqlTest extends AbstractClientAccessControlRepositoryTest {
+
+    private static final String POSTGRES_IMAGE = "postgres:15.3";
+    private static final int POSTGRES_PORT = 5432;
+    private static final String POSTGRES_USERNAME = "registry";
+    private static final String POSTGRES_PASSWORD = "registry";
+    private static final String POSTGRES_DB = "ecsp";
+
+    @SuppressWarnings("resource")
+    @Container
+    private static final GenericContainer<?> POSTGRES_CONTAINER = 
+        new GenericContainer<>(DockerImageName.parse(POSTGRES_IMAGE))
+            .withExposedPorts(POSTGRES_PORT)
+            .withEnv("POSTGRES_USER", POSTGRES_USERNAME)
+            .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
+            .withEnv("POSTGRES_DB", POSTGRES_DB);
+
+
+    /**
+     * Application context initializer to configure Postgres properties before context refresh.
+     * This ensures properties are available during @ConfigurationProperties binding.
+     */
+    static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+        @Override
+        public void initialize(ConfigurableApplicationContext applicationContext) {
+            // Ensure testcontainer is started before setting properties
+            POSTGRES_CONTAINER.start();
+            
+            TestPropertyValues.of(
+                "api-registry.database.type=sql",
+                "api-registry.database.provider=postgresql",
+                "postgres.jdbc.url=" + "jdbc:postgresql://" + POSTGRES_CONTAINER.getHost() 
+            + ":" + POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT) + "/" + POSTGRES_DB,
+                "postgres.username=" + POSTGRES_USERNAME,
+                "postgres.password=" + POSTGRES_PASSWORD,
+                // Tenant-specific properties using kebab-case as expected by sql-dao
+                "tenants.profile.default.jdbc-url=" + "jdbc:postgresql://" + POSTGRES_CONTAINER.getHost() 
+            + ":" + POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT) + "/" + POSTGRES_DB,
+                "tenants.profile.default.user-name=" + POSTGRES_USERNAME,
+                "tenants.profile.default.password=" + POSTGRES_PASSWORD,
+                "tenants.profile.default.driver-class-name=org.postgresql.Driver",
+                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.show-sql=false",
+                "multitenancy.enabled=false"
+            ).applyTo(applicationContext.getEnvironment());
+        }
+    }
+}

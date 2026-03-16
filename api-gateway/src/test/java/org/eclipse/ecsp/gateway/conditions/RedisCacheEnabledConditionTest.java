@@ -78,7 +78,7 @@ class RedisCacheEnabledConditionTest {
         "false, local, false",
         "false, false, false"
     })
-    void matches_WithVariousConfigurations_ReturnsExpectedResult(
+    void matchesWithVariousConfigurationsReturnsExpectedResult(
             String cachingEnabled, String cachingType, boolean expected) {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(cachingType);
@@ -96,7 +96,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenRedisCachingEnabled_ReturnsTrue() {
+    void matchesWhenRedisCachingEnabledReturnsTrue() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_REDIS);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_TRUE);
@@ -109,7 +109,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenRedisCachingDisabled_ReturnsFalse() {
+    void matchesWhenRedisCachingDisabledReturnsFalse() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_REDIS);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_FALSE);
@@ -122,7 +122,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenLocalCachingEnabled_ReturnsFalse() {
+    void matchesWhenLocalCachingEnabledReturnsFalse() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_LOCAL);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_TRUE);
@@ -135,7 +135,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenBothDisabled_ReturnsFalse() {
+    void matchesWhenBothDisabledReturnsFalse() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_LOCAL);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_FALSE);
@@ -148,7 +148,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenCachingTypeIsNull_UsesDefaultRedis() {
+    void matchesWhenCachingTypeIsNullUsesDefaultRedis() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_REDIS);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_TRUE);
@@ -162,7 +162,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenCachingEnabledIsNull_UsesDefaultFalse() {
+    void matchesWhenCachingEnabledIsNullUsesDefaultFalse() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn(VALUE_REDIS);
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_FALSE);
@@ -176,7 +176,7 @@ class RedisCacheEnabledConditionTest {
     }
 
     @Test
-    void matches_WhenCachingTypeIsMixedCase_ShouldMatchIgnoreCase() {
+    void matchesWhenCachingTypeIsMixedCaseShouldMatchIgnoreCase() {
         // Arrange
         when(environment.getProperty(PROPERTY_CACHING_TYPE, VALUE_REDIS)).thenReturn("ReDiS");
         when(environment.getProperty(PROPERTY_CACHING_ENABLED, VALUE_FALSE)).thenReturn(VALUE_TRUE);

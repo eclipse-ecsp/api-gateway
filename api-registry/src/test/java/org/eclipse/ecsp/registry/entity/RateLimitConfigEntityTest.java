@@ -56,7 +56,7 @@ class RateLimitConfigEntityTest {
     private static final int EXPECTED_ARGS_SIZE = 2;
 
     @Test
-    void constructor_DefaultValues_ShouldBeSetCorrectly() {
+    void constructorDefaultValuesShouldBeSetCorrectly() {
         // Act
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -77,7 +77,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void settersAndGetters_AllFields_ShouldWorkCorrectly() {
+    void settersAndGettersAllFieldsShouldWorkCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         final LocalDateTime now = LocalDateTime.now();
@@ -133,7 +133,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void setDenyEmptyKey_WithNull_ShouldAcceptNull() {
+    void setDenyEmptyKeyWithNullShouldAcceptNull() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -145,7 +145,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void setArgs_WithEmptyMap_ShouldWorkCorrectly() {
+    void setArgsWithEmptyMapShouldWorkCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         Map<String, String> emptyArgs = new HashMap<>();
@@ -175,7 +175,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void schemaVersion_SetAndGet_ShouldWorkCorrectly() {
+    void schemaVersionSetAndGetShouldWorkCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -202,7 +202,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void auditableIgniteEntity_Implementation_ShouldWorkCorrectly() {
+    void auditableIgniteEntityImplementationShouldWorkCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
         LocalDateTime now = LocalDateTime.now();
@@ -215,7 +215,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void igniteEntity_Implementation_ShouldWorkCorrectly() {
+    void igniteEntityImplementationShouldWorkCorrectly() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -229,7 +229,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void setId_WithNull_ShouldAcceptNull() {
+    void setIdWithNullShouldAcceptNull() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -241,7 +241,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void setKeyResolver_WithDifferentValues_ShouldUpdate() {
+    void setKeyResolverWithDifferentValuesShouldUpdate() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 
@@ -254,7 +254,7 @@ class RateLimitConfigEntityTest {
     }
 
     @Test
-    void includeHeaders_DefaultFalse_CanToggle() {
+    void includeHeadersDefaultFalseCanToggle() {
         // Arrange
         RateLimitConfigEntity entity = new RateLimitConfigEntity();
 

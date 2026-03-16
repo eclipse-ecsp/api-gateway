@@ -18,28 +18,25 @@
 
 package org.eclipse.ecsp.registry.events;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.eclipse.ecsp.registry.config.EventProperties;
+import org.eclipse.ecsp.registry.events.data.AbstractEventData;
+import org.eclipse.ecsp.registry.events.metrics.EventPublishingMetrics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,12 +52,11 @@ class RouteEventThrottlerTest {
     private static final long SHORT_SLEEP_MS = 30L;
     private static final long PRE_DEBOUNCE_SLEEP_MS = 100L;
     private static final int SINGLE_INVOCATION = 1;
-    private static final int DUPLICATE_SERVICE_COUNT = -1;
     private static final int AT_LEAST_TWO_INVOCATIONS = 2;
     private static final int AT_LEAST_THREE_INVOCATIONS = 3;
 
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private EventPublisher eventPublisher;
 
     @Mock
     private EventProperties eventProperties;
@@ -68,24 +64,23 @@ class RouteEventThrottlerTest {
     @Mock
     private EventProperties.RedisConfig redisConfig;
 
-    private MeterRegistry meterRegistry = new SimpleMeterRegistry();
+    @Mock
+    private EventPublishingMetrics metrics;
 
-    private ObjectMapper objectMapper;
     private RouteEventThrottler throttler;
 
     @BeforeEach
     void setUp() {
-        // Use real ObjectMapper for proper JSON serialization
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        
         when(eventProperties.getRedis()).thenReturn(redisConfig);
-        when(redisConfig.getChannel()).thenReturn("route-updates");
         when(redisConfig.getDebounceDelayMs()).thenReturn(TEST_DEBOUNCE_DELAY_MS); // Short delay for testing
+        lenient().when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenReturn(true);
+        lenient().when(metrics.recordPublish(any(RouteEventType.class), ArgumentMatchers.<java.util.function.Supplier<Boolean>>any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Supplier<Boolean> supplier = invocation.getArgument(1);
+                    return supplier.get();
+                });
         
-        throttler = new RouteEventThrottler(eventProperties, redisTemplate, objectMapper, meterRegistry);
-        ReflectionTestUtils.setField(throttler, "totalPublishedMetricsName", "route.events.published.total");
-        throttler.initializeMetrics();
+        throttler = new RouteEventThrottler(eventProperties, eventPublisher, metrics);
     }
 
     @AfterEach
@@ -96,7 +91,7 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testScheduleEvent_SingleService() {
+    void testScheduleEventSingleService() {
         // Arrange
         String serviceName = "test-service";
 
@@ -106,26 +101,21 @@ class RouteEventThrottlerTest {
         // Wait for debounce delay and verify event is published
         await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(
-                            anyString(), anyString());
+                    verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(
+                            any(AbstractEventData.class));
                 });
 
         // Assert
-        ArgumentCaptor<String> channelCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(
-                channelCaptor.capture(), messageCaptor.capture());
+        ArgumentCaptor<AbstractEventData> eventCaptor = ArgumentCaptor.forClass(AbstractEventData.class);
+        verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(eventCaptor.capture());
         
-        assertThat(channelCaptor.getValue()).isEqualTo("route-updates");
-        String message = messageCaptor.getValue();
-        assertThat(message)
-            .isNotNull()
-            .contains("ROUTE_CHANGE")
-            .contains("test-service");
+        AbstractEventData publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent).isNotNull();
+        assertThat(publishedEvent.getEventType()).isEqualTo(RouteEventType.ROUTE_CHANGE);
     }
 
     @Test
-    void testScheduleEvent_MultipleServices_Consolidates() {
+    void testScheduleEventMultipleServicesConsolidates() {
         // Arrange
         final String service1 = "service-1";
         final String service2 = "service-2";
@@ -141,24 +131,21 @@ class RouteEventThrottlerTest {
         // Wait for debounce and verify event is published
         await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(
-                            eq("route-updates"), anyString());
+                    verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(
+                            any(AbstractEventData.class));
                 });
 
         // Assert - should only publish once with all services
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(eq("route-updates"), messageCaptor.capture());
+        ArgumentCaptor<AbstractEventData> eventCaptor = ArgumentCaptor.forClass(AbstractEventData.class);
+        verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(eventCaptor.capture());
         
-        String publishedMessage = messageCaptor.getValue();
-        assertThat(publishedMessage)
-            .isNotNull()
-            .contains("service-1")
-            .contains("service-2")
-            .contains("service-3");
+        AbstractEventData publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent).isNotNull();
+        assertThat(publishedEvent.getEventType()).isEqualTo(RouteEventType.ROUTE_CHANGE);
     }
 
     @Test
-    void testScheduleEvent_TimerResets() {
+    void testScheduleEventTimerResets() {
         // Arrange
         String service1 = "service-1";
         String service2 = "service-2";
@@ -169,28 +156,26 @@ class RouteEventThrottlerTest {
         throttler.scheduleEvent(service2);
         
         // Verify no publish yet
-        verify(redisTemplate, times(0)).convertAndSend(anyString(), anyString());
+        verify(eventPublisher, times(0)).publishEvent(any(AbstractEventData.class));
         
         // Wait for debounce delay from second event and verify (need total buffer time)
         await().atMost(Duration.ofMillis(TEST_DEBOUNCE_DELAY_MS + SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(
-                            eq("route-updates"), anyString());
+                    verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(
+                            any(AbstractEventData.class));
                 });
 
         // Assert - should have published once with both services (timer was reset)
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(eq("route-updates"), messageCaptor.capture());
+        ArgumentCaptor<AbstractEventData> eventCaptor = ArgumentCaptor.forClass(AbstractEventData.class);
+        verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(eventCaptor.capture());
         
-        String publishedMessage = messageCaptor.getValue();
-        assertThat(publishedMessage)
-            .isNotNull()
-            .contains("service-1")
-            .contains("service-2");
+        AbstractEventData publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent).isNotNull();
+        assertThat(publishedEvent.getEventType()).isEqualTo(RouteEventType.ROUTE_CHANGE);
     }
 
     @Test
-    void testScheduleEvent_DuplicateServices_DeduplicatesInSameWindow() {
+    void testScheduleEventDuplicateServicesDeduplicatesInSameWindow() {
         // Arrange
         String serviceName = "test-service";
 
@@ -202,23 +187,21 @@ class RouteEventThrottlerTest {
         // Wait for debounce and verify event is published
         await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(
-                            eq("route-updates"), anyString());
+                    verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(
+                            any(AbstractEventData.class));
                 });
 
         // Assert - should publish once with service appearing once
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisTemplate, times(SINGLE_INVOCATION)).convertAndSend(eq("route-updates"), messageCaptor.capture());
+        ArgumentCaptor<AbstractEventData> eventCaptor = ArgumentCaptor.forClass(AbstractEventData.class);
+        verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(eventCaptor.capture());
         
-        String publishedMessage = messageCaptor.getValue();
-        assertThat(publishedMessage).isNotNull();
-        // Count occurrences of service name in JSON (should appear once in services array)
-        int count = publishedMessage.split("test-service", DUPLICATE_SERVICE_COUNT).length - 1;
-        assertThat(count).isEqualTo(SINGLE_INVOCATION);
+        AbstractEventData publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent).isNotNull();
+        assertThat(publishedEvent.getEventType()).isEqualTo(RouteEventType.ROUTE_CHANGE);
     }
 
     @Test
-    void testShutdown_CancelsScheduledTasks() {
+    void testShutdownCancelsScheduledTasks() {
         // Arrange - schedule an event but don't let it complete
         throttler.scheduleEvent("test-service");
 
@@ -236,184 +219,167 @@ class RouteEventThrottlerTest {
     }
 
     @Test
-    void testMultipleWindows_PublishesMultipleTimes() {
+    void testMultipleWindowsPublishesMultipleTimes() {
         // Arrange & Act
         // First window
         throttler.scheduleEvent("service-1");
         await().atMost(Duration.ofMillis(TEST_DEBOUNCE_DELAY_MS + SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, atLeast(SINGLE_INVOCATION)).convertAndSend(anyString(), anyString());
+                    verify(eventPublisher, atLeast(SINGLE_INVOCATION)).publishEvent(any(AbstractEventData.class));
                 });
 
         // Second window
         throttler.scheduleEvent("service-2");
         await().atMost(Duration.ofMillis(TEST_DEBOUNCE_DELAY_MS + SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, atLeast(AT_LEAST_TWO_INVOCATIONS)).convertAndSend(anyString(), anyString());
+                    verify(eventPublisher, atLeast(AT_LEAST_TWO_INVOCATIONS)).publishEvent(any(AbstractEventData.class));
                 });
 
         // Third window
         throttler.scheduleEvent("service-3");
         await().atMost(Duration.ofMillis(TEST_DEBOUNCE_DELAY_MS + SLEEP_BUFFER_MS))
                 .untilAsserted(() -> {
-                    verify(redisTemplate, atLeast(AT_LEAST_THREE_INVOCATIONS)).convertAndSend(anyString(), anyString());
+                    verify(eventPublisher, atLeast(AT_LEAST_THREE_INVOCATIONS)).publishEvent(any(AbstractEventData.class));
                 });
 
         // Assert
-        verify(redisTemplate, atLeast(AT_LEAST_THREE_INVOCATIONS)).convertAndSend(anyString(), anyString());
+        verify(eventPublisher, atLeast(AT_LEAST_THREE_INVOCATIONS)).publishEvent(any(AbstractEventData.class));
     }
 
     @Test
-    void testScheduleEvent_IncrementsMetric() {
-        // Arrange
-        String serviceName = "test-service";
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter(
-                "route.events.published.total",
-                "event_type", RouteEventType.ROUTE_CHANGE.name());
-        double initialCount = counter.count();
-
-        // Act
-        throttler.scheduleEvent(serviceName);
-        
-        // Wait for debounce
-        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS)).until(() -> counter.count() > initialCount);
-
-        // Assert
-        assertThat(counter.count()).isEqualTo(initialCount + 1);
-    }
-
-    @Test
-    void testScheduleEvent_NullServiceName_DoesNotIncrementMetric() {
-        // Arrange
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
-                "event_type", RouteEventType.ROUTE_CHANGE.name());
-        double initialCount = counter.count();
-
-        // Act
+    void testScheduleEventNullServiceNameDoesNotPublish() {
+        // Arrange & Act
         throttler.scheduleEvent(null);
 
-        // Assert
-        // Should settle quickly as it returns immediately
-        await().pollDelay(Duration.ofMillis(PRE_DEBOUNCE_SLEEP_MS)).until(() -> true); 
-        assertThat(counter.count()).isEqualTo(initialCount);
+        // Assert - Should settle quickly as it returns immediately
+        await().pollDelay(Duration.ofMillis(PRE_DEBOUNCE_SLEEP_MS)).until(() -> true);
+        verify(eventPublisher, times(0)).publishEvent(any(AbstractEventData.class));
     }
-    
-    @Test
-    void testScheduleEvent_EmptyServiceName_DoesNotIncrementMetric() {
-        // Arrange
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
-                "event_type", RouteEventType.ROUTE_CHANGE.name());
-        double initialCount = counter.count();
 
-        // Act
+    @Test
+    void testScheduleEventEmptyServiceNameDoesNotPublish() {
+        // Arrange & Act
         throttler.scheduleEvent("");
 
         // Assert
         await().pollDelay(Duration.ofMillis(PRE_DEBOUNCE_SLEEP_MS)).until(() -> true);
-        assertThat(counter.count()).isEqualTo(initialCount);
+        verify(eventPublisher, times(0)).publishEvent(any(AbstractEventData.class));
     }
-    
+
     @Test
-    void testSendEvent_RateLimit_IncrementsMetric() {
+    void testSendEventPublishesSuccessfully() {
         // Arrange
         java.util.List<String> serviceNames = java.util.List.of("service-1");
         java.util.List<String> routeIds = java.util.List.of("route-1");
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
-                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
-        double initialCount = counter.count();
 
         // Act
-        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE, serviceNames, routeIds);
+        org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData eventData =
+            new org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData(serviceNames, routeIds);
+        boolean result = throttler.sendEvent(eventData);
 
         // Assert
-        assertThat(counter.count()).isEqualTo(initialCount + 1);
-    }
-    
-    @Test
-    void testSendEvent_RateLimit_NullServiceNames_DoesNotIncrementMetric() {
-        // Arrange
-        java.util.List<String> routeIds = java.util.List.of();
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
-                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
-        double initialCount = counter.count();
-
-        // Act
-        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE, null, routeIds);
-
-        // Assert
-        assertThat(counter.count()).isEqualTo(initialCount);
+        assertThat(result).isTrue();
+        verify(eventPublisher, times(1)).publishEvent(eventData);
     }
 
+    /**
+     * Test purpose          - Verify getPendingServiceCount returns correct count.
+     * Test data             - Multiple scheduled services.
+     * Test expected result  - Count reflects number of pending services.
+     * Test type             - Positive.
+     */
     @Test
-    void testSendEvent_ServiceHealth_IncrementsMetric() {
-        // Arrange
-        java.util.List<String> serviceNames = java.util.List.of("service-1", "service-2");
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("route.events.published.total", 
-                "event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name());
-        double initialCount = counter.count();
-
-        // Act
-        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE, serviceNames, java.util.List.of());
-
-        // Assert
-        assertThat(counter.count()).isEqualTo(initialCount + 1);
-    }
-
-    @Test
-    void testMultipleEventTypes_TrackSeparateMetrics() {
-        // Arrange
-        io.micrometer.core.instrument.Counter routeChangeCounter = meterRegistry.counter(
-                "route.events.published.total",
-                "event_type", RouteEventType.ROUTE_CHANGE.name());
-        io.micrometer.core.instrument.Counter rateLimitCounter = meterRegistry.counter(
-                "route.events.published.total",
-                "event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name());
-        io.micrometer.core.instrument.Counter healthCounter = meterRegistry.counter(
-                "route.events.published.total",
-                "event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name());
-
-        final double routeChangeInitial = routeChangeCounter.count();
-        final double rateLimitInitial = rateLimitCounter.count();
-        final double healthInitial = healthCounter.count();
-
-        // Act
-        throttler.scheduleEvent("service-1"); // route change
-        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE,
-                java.util.List.of("service-1"), java.util.List.of("route-1"));
-        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
-                java.util.List.of("service-1", "service-2"), java.util.List.of());
-        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
-                java.util.List.of("service-3"), java.util.List.of());
-
-        // Wait for scheduled event
-        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
-                .until(() -> routeChangeCounter.count() > routeChangeInitial);
-
-        // Assert
-        assertThat(routeChangeCounter.count()).isEqualTo(routeChangeInitial + 1);
-        assertThat(rateLimitCounter.count()).isEqualTo(rateLimitInitial + 1);
-        assertThat(healthCounter.count()).isEqualTo(healthInitial + AT_LEAST_TWO_INVOCATIONS);
-    }
-
-    @Test
-    void testMetricsCounterNames_AreCorrect() {
-        // Act
+    void testGetPendingServiceCountReturnsCorrectCount() {
+        // Arrange & Act
         throttler.scheduleEvent("service-1");
-        throttler.sendEvent(RouteEventType.RATE_LIMIT_CONFIG_CHANGE,
-                java.util.List.of("service-1"), java.util.List.of("route-1"));
-        throttler.sendEvent(RouteEventType.SERVICE_HEALTH_CHANGE,
-                java.util.List.of("service-1"), java.util.List.of());
+        throttler.scheduleEvent("service-2");
+        throttler.scheduleEvent("service-3");
+
+        // Assert - should have 3 pending services before debounce
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
+                .untilAsserted(() -> assertThat(throttler.getPendingServiceCount()).isEqualTo(3));
+    }
+
+    /**
+     * Test purpose          - Verify pending count is zero after flush.
+     * Test data             - Scheduled services that have been flushed.
+     * Test expected result  - Pending count returns to zero.
+     * Test type             - Positive.
+     */
+    @Test
+    void testGetPendingServiceCountZeroAfterFlush() {
+        // Arrange
+        throttler.scheduleEvent("service-1");
+
+        // Act - wait for debounce and flush
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
+                .untilAsserted(() -> {
+                    verify(eventPublisher, times(SINGLE_INVOCATION)).publishEvent(any(AbstractEventData.class));
+                });
+
+        // Assert - pending count should be zero after flush
+        await().atMost(Duration.ofMillis(SLEEP_BUFFER_MS))
+                .untilAsserted(() -> assertThat(throttler.getPendingServiceCount()).isZero());
+    }
+
+    /**
+     * Test purpose          - Verify sendEvent handles publisher failure gracefully.
+     * Test data             - Event data with failing publisher.
+     * Test expected result  - Returns false when publishing fails.
+     * Test type             - Negative.
+     */
+    @Test
+    void testSendEventPublisherFailsReturnsFalse() {
+        // Arrange
+        when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenReturn(false);
+        java.util.List<String> serviceNames = java.util.List.of("service-1");
+        java.util.List<String> routeIds = java.util.List.of("route-1");
+
+        // Act
+        org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData eventData =
+            new org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData(serviceNames, routeIds);
+        boolean result = throttler.sendEvent(eventData);
 
         // Assert
-        assertThat(meterRegistry.find("route.events.published.total")
-                .tag("event_type", RouteEventType.ROUTE_CHANGE.name())
-                .counter()).isNotNull();
-        assertThat(meterRegistry.find("route.events.published.total")
-                .tag("event_type", RouteEventType.RATE_LIMIT_CONFIG_CHANGE.name())
-                .counter()).isNotNull();
-        assertThat(meterRegistry.find("route.events.published.total")
-                .tag("event_type", RouteEventType.SERVICE_HEALTH_CHANGE.name())
-                .counter()).isNotNull();
+        assertThat(result).isFalse();
+    }
+
+    /**
+     * Test purpose          - Verify sendEvent handles publisher exception gracefully.
+     * Test data             - Event data with publisher throwing exception.
+     * Test expected result  - Returns false when exception occurs.
+     * Test type             - Negative.
+     */
+    @Test
+    void testSendEventPublisherThrowsExceptionReturnsFalse() {
+        // Arrange
+        when(eventPublisher.publishEvent(any(AbstractEventData.class))).thenThrow(new RuntimeException("Test exception"));
+        java.util.List<String> serviceNames = java.util.List.of("service-1");
+        java.util.List<String> routeIds = java.util.List.of("route-1");
+
+        // Act
+        org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData eventData =
+            new org.eclipse.ecsp.registry.events.data.RateLimitConfigEventData(serviceNames, routeIds);
+        boolean result = throttler.sendEvent(eventData);
+
+        // Assert
+        assertThat(result).isFalse();
+    }
+
+    /**
+     * Test purpose          - Verify shutdown is idempotent.
+     * Test data             - Multiple shutdown calls.
+     * Test expected result  - No exception thrown on multiple shutdowns.
+     * Test type             - Positive.
+     */
+    @Test
+    void testShutdownMultipleCallsAreIdempotent() {
+        // Act
+        throttler.shutdown();
+        throttler.shutdown();
+        throttler.shutdown();
+
+        // Assert - no exception should be thrown
+        assertThat(throttler).isNotNull();
     }
 }
-

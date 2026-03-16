@@ -82,7 +82,7 @@ class RateLimitConfigControllerTest {
     // ==================== getRateLimitConfigs Tests ====================
 
     @Test
-    void testGetRateLimitConfigs_Success_ReturnsConfigs() {
+    void testGetRateLimitConfigsSuccessReturnsConfigs() {
         // Arrange
         RateLimitConfigDto dto1 = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -102,7 +102,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testGetRateLimitConfigs_EmptyList_ReturnsEmptyList() {
+    void testGetRateLimitConfigsEmptyListReturnsEmptyList() {
         // Arrange
         when(rateLimitConfigService.getRateLimitConfigs()).thenReturn(Collections.emptyList());
 
@@ -116,7 +116,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testGetRateLimitConfigs_ServiceThrowsException_PropagatesException() {
+    void testGetRateLimitConfigsServiceThrowsExceptionPropagatesException() {
         // Arrange
         when(rateLimitConfigService.getRateLimitConfigs())
                 .thenThrow(new RuntimeException("Database connection error"));
@@ -134,7 +134,7 @@ class RateLimitConfigControllerTest {
     // ==================== addOrUpdateRateLimitConfigs Tests ====================
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_Success_SingleConfig() {
+    void testAddOrUpdateRateLimitConfigsSuccessSingleConfig() {
         // Arrange
         RateLimitConfigDto inputDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         List<RateLimitConfigDto> inputConfigs = Collections.singletonList(inputDto);
@@ -156,7 +156,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_Success_MultipleConfigs() {
+    void testAddOrUpdateRateLimitConfigsSuccessMultipleConfigs() {
         // Arrange
         RateLimitConfigDto dto1 = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createServiceDto("service1", REPLENISH_RATE_50, BURST_CAPACITY_100);
@@ -174,7 +174,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_InvalidData_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsInvalidDataThrowsException() {
         // Arrange
         RateLimitConfigDto invalidDto = new RateLimitConfigDto();
         invalidDto.setRouteId("route1");
@@ -198,7 +198,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_EmptyList_Success() {
+    void testAddOrUpdateRateLimitConfigsEmptyListSuccess() {
         // Arrange
         List<RateLimitConfigDto> emptyList = Collections.emptyList();
         when(rateLimitConfigService.addOrUpdateRateLimitConfigs(emptyList)).thenReturn(emptyList);
@@ -213,7 +213,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testAddOrUpdateRateLimitConfigs_DuplicateRouteIds_ThrowsException() {
+    void testAddOrUpdateRateLimitConfigsDuplicateRouteIdsThrowsException() {
         // Arrange
         RateLimitConfigDto dto1 = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         RateLimitConfigDto dto2 = createRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_250);
@@ -236,7 +236,7 @@ class RateLimitConfigControllerTest {
     // ==================== updateRateLimitConfig Tests ====================
 
     @Test
-    void testUpdateRateLimitConfig_Success() {
+    void testUpdateRateLimitConfigSuccess() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto inputDto = createRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -257,7 +257,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_NotFound_ThrowsException() {
+    void testUpdateRateLimitConfigNotFoundThrowsException() {
         // Arrange
         String id = "nonexistent";
         RateLimitConfigDto updateDto = createRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
@@ -278,7 +278,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_InvalidData_ThrowsException() {
+    void testUpdateRateLimitConfigInvalidDataThrowsException() {
         // Arrange
         String id = "route1";
         RateLimitConfigDto invalidDto = createRouteDto("route1", NEGATIVE_REPLENISH_RATE, BURST_CAPACITY_200);
@@ -298,7 +298,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_ServiceConfig_Success() {
+    void testUpdateRateLimitConfigServiceConfigSuccess() {
         // Arrange
         String id = "service1";
         RateLimitConfigDto inputDto = createServiceDto("service1", REPLENISH_RATE_75, BURST_CAPACITY_150);
@@ -318,7 +318,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testUpdateRateLimitConfig_WithHeaderType_Success() {
+    void testUpdateRateLimitConfigWithHeaderTypeSuccess() {
         // Arrange
         RateLimitConfigDto inputDto = createRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
         inputDto.setKeyResolver("HEADER");
@@ -346,7 +346,7 @@ class RateLimitConfigControllerTest {
     // ==================== deleteRateLimitConfig Tests ====================
 
     @Test
-    void testDeleteRateLimitConfig_Success() {
+    void testDeleteRateLimitConfigSuccess() {
         // Arrange
         String id = "route1";
         doNothing().when(rateLimitConfigService).deleteRateLimitConfig(id);
@@ -364,7 +364,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_NotFound_ThrowsException() {
+    void testDeleteRateLimitConfigNotFoundThrowsException() {
         // Arrange
         String id = "nonexistent";
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -383,7 +383,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_ServiceConfig_Success() {
+    void testDeleteRateLimitConfigServiceConfigSuccess() {
         // Arrange
         String id = "service1";
         doNothing().when(rateLimitConfigService).deleteRateLimitConfig(id);
@@ -398,7 +398,7 @@ class RateLimitConfigControllerTest {
     }
 
     @Test
-    void testDeleteRateLimitConfig_DatabaseError_PropagatesException() {
+    void testDeleteRateLimitConfigDatabaseErrorPropagatesException() {
         // Arrange
         doThrow(new RuntimeException("Database connection error"))
                 .when(rateLimitConfigService).deleteRateLimitConfig("route1");

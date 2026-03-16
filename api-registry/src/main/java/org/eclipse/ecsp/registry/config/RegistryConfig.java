@@ -19,6 +19,11 @@
 package org.eclipse.ecsp.registry.config;
 
 import com.fasterxml.jackson.databind.MapperFeature;
+import org.bson.BsonReader;
+import org.bson.BsonWriter;
+import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.EncoderContext;
 import org.eclipse.ecsp.nosqldao.spring.config.IgniteDAOMongoConfigWithProps;
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
@@ -35,6 +40,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import java.time.LocalDateTime;
+
 import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 
 /**
@@ -42,6 +49,13 @@ import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LO
  */
 @AutoConfiguration
 public class RegistryConfig {
+    /**
+     * Default constructor.
+     */
+    public RegistryConfig() {
+        // Default constructor
+    }
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RegistryConfig.class);
 
     /**
@@ -97,6 +111,31 @@ public class RegistryConfig {
         LOGGER.info("Metrics are not enabled, disabling all endpoints.");
         // This filter will disable all endpoints when metrics are not enabled.
         return (endpoint -> false);
+    }
+
+    /**
+     * Codec for LocalDateTime to handle MongoDB serialization and deserialization.
+     *
+     * @return Codec for LocalDateTime
+     */
+    @Bean
+    public Codec<LocalDateTime> localDateTimeCodec() {
+        return new Codec<LocalDateTime>() {
+            @Override
+            public void encode(BsonWriter writer, LocalDateTime value, EncoderContext encoderContext) {
+                writer.writeString(value.toString());
+            }
+
+            @Override
+            public LocalDateTime decode(BsonReader reader, DecoderContext decoderContext) {
+                return LocalDateTime.parse(reader.readString());
+            }
+
+            @Override
+            public Class<LocalDateTime> getEncoderClass() {
+                return LocalDateTime.class;
+            }
+        };
     }
 
 }

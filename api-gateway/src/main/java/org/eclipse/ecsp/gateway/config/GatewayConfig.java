@@ -226,6 +226,7 @@ public class GatewayConfig {
     /**
      * Configure RetryTemplate with exponential backoff.
      *
+     * @param properties JwtProperties containing retry configuration.
      * @return configured RetryTemplate
      */
     @Bean("jwkRefreshRetryTemplate")

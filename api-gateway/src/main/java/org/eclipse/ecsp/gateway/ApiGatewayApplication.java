@@ -33,6 +33,13 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan(basePackages = {"org.eclipse.ecsp"})
 public class ApiGatewayApplication {
     /**
+     * Default constructor.
+     */
+    public ApiGatewayApplication() {
+        // Default constructor
+    }
+
+    /**
      * Api Gateway application to handle all the request and validate them.
      *
      * @param args arguments to run the application.

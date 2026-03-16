@@ -129,7 +129,7 @@ class PublicKeyServiceImplTest {
      * Test successful initialization of the service.
      */
     @Test
-    void initialize_whenValidConfiguration_thenSuccessfullyInitializes() {
+    void initializeWhenValidConfigurationThenSuccessfullyInitializes() {
         // Given
         Map<String, PublicKey> mockKeys = new HashMap<>();
         mockKeys.put("key1", testPublicKey);
@@ -152,7 +152,7 @@ class PublicKeyServiceImplTest {
      * Test finding a public key by ID.
      */
     @Test
-    void findPublicKey_whenKeyExists_thenReturnsKey() {
+    void findPublicKeyWhenKeyExistsThenReturnsKey() {
         // Given
         String keyId = "test-key";
         PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
@@ -175,7 +175,7 @@ class PublicKeyServiceImplTest {
      * Test finding a public key with provider prefix.
      */
     @Test
-    void findPublicKey_whenKeyExistsWithProvider_thenReturnsKey() {
+    void findPublicKeyWhenKeyExistsWithProviderThenReturnsKey() {
         // Given
         String keyId = "test-key";
         String provider = "test-provider";
@@ -201,7 +201,7 @@ class PublicKeyServiceImplTest {
      * Test finding a non-existent public key.
      */
     @Test
-    void findPublicKey_whenKeyDoesNotExist_thenReturnsEmpty() {
+    void findPublicKeyWhenKeyDoesNotExistThenReturnsEmpty() {
         // Given
         String keyId = "non-existent-key";
         when(publicKeyCache.get(anyString())).thenReturn(Optional.empty());
@@ -218,7 +218,7 @@ class PublicKeyServiceImplTest {
      * Test refreshing public keys.
      */
     @Test
-    void refreshPublicKeys_whenCalled_thenRefreshesAllKeys() {
+    void refreshPublicKeysWhenCalledThenRefreshesAllKeys() {
         // Given
         Map<String, PublicKey> mockKeys = new HashMap<>();
         mockKeys.put("key1", testPublicKey);
@@ -239,7 +239,7 @@ class PublicKeyServiceImplTest {
      * Test handling empty key sources.
      */
     @Test
-    void refreshPublicKeys_whenNoKeySources_thenHandlesGracefully() {
+    void refreshPublicKeysWhenNoKeySourcesThenHandlesGracefully() {
         // Given
         when(sourceProvider.keySources()).thenReturn(Collections.emptyList());
 
@@ -256,7 +256,7 @@ class PublicKeyServiceImplTest {
      * Test handling null key ID.
      */
     @Test
-    void findPublicKey_whenKeyIdIsNull_thenReturnsEmpty() {
+    void findPublicKeyWhenKeyIdIsNullThenReturnsEmpty() {
         // When
         Optional<PublicKeyInfo> result = publicKeyService.findPublicKey(null, "provider");
 
@@ -269,7 +269,7 @@ class PublicKeyServiceImplTest {
      * Test handling null provider with existing key.
      */
     @Test
-    void findPublicKey_whenProviderIsNull_thenSearchesWithoutPrefix() {
+    void findPublicKeyWhenProviderIsNullThenSearchesWithoutPrefix() {
         // Given
         String keyId = "test-key";
         PublicKeyInfo testPublicKeyInfo = new PublicKeyInfo();
@@ -294,7 +294,7 @@ class PublicKeyServiceImplTest {
      * enabled.
      */
     @Test
-    void generateCacheKey_whenUseProviderPrefixedKeyEnabled_thenGeneratesPrefixedKey() {
+    void generateCacheKeyWhenUseProviderPrefixedKeyEnabledThenGeneratesPrefixedKey() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-provider");
@@ -326,7 +326,7 @@ class PublicKeyServiceImplTest {
      * disabled.
      */
     @Test
-    void generateCacheKey_whenUseProviderPrefixedKeyDisabled_thenUsesOriginalKeyId() {
+    void generateCacheKeyWhenUseProviderPrefixedKeyDisabledThenUsesOriginalKeyId() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-provider");
@@ -352,7 +352,7 @@ class PublicKeyServiceImplTest {
      * Verifies proper handling of edge cases in key generation.
      */
     @Test
-    void loadPublicKeys_whenNullOrEmptyKeyId_thenSkipsKey() {
+    void loadPublicKeysWhenNullOrEmptyKeyIdThenSkipsKey() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-provider");
@@ -388,7 +388,7 @@ class PublicKeyServiceImplTest {
      * Verifies that service initialization works correctly with metrics.
      */
     @Test
-    void initialize_whenCalled_thenInitializesWithMetrics() {
+    void initializeWhenCalledThenInitializesWithMetrics() {
         // Given
         Map<String, PublicKey> mockKeys = new HashMap<>();
         mockKeys.put("key1", testPublicKey);
@@ -413,7 +413,7 @@ class PublicKeyServiceImplTest {
      * Verifies that keys belonging to specific source are removed correctly.
      */
     @Test
-    void removePublicKeysBySourceId_whenKeysExistForSource_thenRemovesCorrectKeys() {
+    void removePublicKeysBySourceIdWhenKeysExistForSourceThenRemovesCorrectKeys() {
         // Given
         final String sourceId1 = "source1";
         final String sourceId2 = "source2";
@@ -469,7 +469,7 @@ class PublicKeyServiceImplTest {
      * Verifies that method returns 0 when no keys match the source ID.
      */
     @Test
-    void removePublicKeysBySourceId_whenNoKeysMatchSource_thenReturnsZero() {
+    void removePublicKeysBySourceIdWhenNoKeysMatchSourceThenReturnsZero() {
         // Given
         String sourceId = "non-existent-source";
         String existingSourceId = "existing-source";
@@ -505,7 +505,7 @@ class PublicKeyServiceImplTest {
      * Verifies that method handles null source ID gracefully.
      */
     @Test
-    void removePublicKeysBySourceId_whenSourceIdIsNull_thenReturnsZero() {
+    void removePublicKeysBySourceIdWhenSourceIdIsNullThenReturnsZero() {
         // When - use reflection to call private method
         try {
             java.lang.reflect.Method method = PublicKeyServiceImpl.class
@@ -527,7 +527,7 @@ class PublicKeyServiceImplTest {
      * Verifies that method handles empty source ID gracefully.
      */
     @Test
-    void removePublicKeysBySourceId_whenSourceIdIsEmpty_thenReturnsZero() {
+    void removePublicKeysBySourceIdWhenSourceIdIsEmptyThenReturnsZero() {
         // When - use reflection to call private method
         try {
             java.lang.reflect.Method method = PublicKeyServiceImpl.class
@@ -549,7 +549,7 @@ class PublicKeyServiceImplTest {
      * Verifies that method handles whitespace-only source ID gracefully.
      */
     @Test
-    void removePublicKeysBySourceId_whenSourceIdIsWhitespace_thenReturnsZero() {
+    void removePublicKeysBySourceIdWhenSourceIdIsWhitespaceThenReturnsZero() {
         // When - use reflection to call private method
         try {
             java.lang.reflect.Method method = PublicKeyServiceImpl.class
@@ -571,7 +571,7 @@ class PublicKeyServiceImplTest {
      * Verifies that method handles empty cache gracefully.
      */
     @Test
-    void removePublicKeysBySourceId_whenCacheIsEmpty_thenReturnsZero() {
+    void removePublicKeysBySourceIdWhenCacheIsEmptyThenReturnsZero() {
         // Given
         String sourceId = "test-source";
         when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
@@ -597,7 +597,7 @@ class PublicKeyServiceImplTest {
      * Verifies that JWKS refresh is scheduled correctly with proper interval.
      */
     @Test
-    void scheduleJwksRefresh_whenCalled_thenSchedulesRefreshTask() {
+    void scheduleJwksRefreshWhenCalledThenSchedulesRefreshTask() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-jwks-source");
@@ -642,7 +642,7 @@ class PublicKeyServiceImplTest {
      * Verifies that the scheduled task executes refresh logic correctly.
      */
     @Test
-    void scheduleJwksRefresh_whenTaskExecutes_thenRefreshesKeys() {
+    void scheduleJwksRefreshWhenTaskExecutesThenRefreshesKeys() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-jwks-source");
@@ -708,7 +708,7 @@ class PublicKeyServiceImplTest {
      * Verifies that exceptions during refresh are handled properly.
      */
     @Test
-    void scheduleJwksRefresh_whenTaskThrowsException_thenHandlesGracefully() {
+    void scheduleJwksRefreshWhenTaskThrowsExceptionThenHandlesGracefully() {
         // Given
         PublicKeySource source = new PublicKeySource();
         source.setId("test-jwks-source");
@@ -759,7 +759,7 @@ class PublicKeyServiceImplTest {
      * Verifies that multiple JWKS sources can be scheduled independently.
      */
     @Test
-    void scheduleJwksRefresh_whenMultipleSources_thenSchedulesIndependently() {
+    void scheduleJwksRefreshWhenMultipleSourcesThenSchedulesIndependently() {
         // Given
         PublicKeySource source1 = new PublicKeySource();
         source1.setId("jwks-source-1");
@@ -813,7 +813,7 @@ class PublicKeyServiceImplTest {
      * Verifies that only keys from the specified source are removed when multiple sources exist.
      */
     @Test
-    void removePublicKeysBySourceId_whenMixedSources_thenRemovesOnlyTargetSource() {
+    void removePublicKeysBySourceIdWhenMixedSourcesThenRemovesOnlyTargetSource() {
         // Given
         final String targetSourceId = "target-source";
         final String otherSourceId1 = "other-source-1";

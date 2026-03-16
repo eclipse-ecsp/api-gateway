@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.plugins;
 
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RequestBodyValidator extends AbstractGatewayFilterFactory<RequestBodyFilter.Config> {
+
+    @Value("${requestBody.validation:false}")
+    private boolean requestBodyValidation;
+
     /**
      * Constructor to initialize RequestBodyValidator.
      */
@@ -38,7 +43,7 @@ public class RequestBodyValidator extends AbstractGatewayFilterFactory<RequestBo
 
     @Override
     public GatewayFilter apply(Config config) {
-        return new RequestBodyFilter(config);
+        return new RequestBodyFilter(config, requestBodyValidation);
     }
 
 

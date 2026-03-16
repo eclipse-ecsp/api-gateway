@@ -40,13 +40,13 @@ import static org.mockito.Mockito.when;
 class GatewayMeterFilterTest {
 
     @Test
-    void constructor_WithNullConfig_InitializesSuccessfully() {
+    void constructorWithNullConfigInitializesSuccessfully() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         assertNotNull(filter);
     }
 
     @Test
-    void constructor_WithConfigAndIgnoreTags_InitializesWithIgnoreTags() {
+    void constructorWithConfigAndIgnoreTagsInitializesWithIgnoreTags() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getIgnoreTags()).thenReturn(List.of("tag1", "tag2"));
         
@@ -55,7 +55,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void constructor_WithConfigAndNoIgnoreTags_InitializesSuccessfully() {
+    void constructorWithConfigAndNoIgnoreTagsInitializesSuccessfully() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getIgnoreTags()).thenReturn(List.of());
         
@@ -64,7 +64,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void accept_WithNullConfig_ReturnsNeutral() {
+    void acceptWithNullConfigReturnsNeutral() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Meter.Id meterId = mock(Meter.Id.class);
         when(meterId.getName()).thenReturn("test.metric");
@@ -74,7 +74,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void accept_WithEnabledMetric_ReturnsNeutral() {
+    void acceptWithEnabledMetricReturnsNeutral() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getPrefix()).thenReturn("gateway.metrics");
         when(config.getEnabled()).thenReturn(true);
@@ -88,7 +88,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void accept_WithDisabledMetric_ReturnsDeny() {
+    void acceptWithDisabledMetricReturnsDeny() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getPrefix()).thenReturn("gateway.metrics");
         when(config.getEnabled()).thenReturn(false);
@@ -102,7 +102,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void accept_WithNonMatchingPrefix_ReturnsNeutral() {
+    void acceptWithNonMatchingPrefixReturnsNeutral() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getPrefix()).thenReturn("gateway.metrics");
         when(config.getEnabled()).thenReturn(false);
@@ -116,7 +116,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void map_WithDefaultFilter_ReturnsSameId() {
+    void mapWithDefaultFilterReturnsSameId() {
         BaseMetrics config = mock(BaseMetrics.class);
         when(config.getIgnoreTags()).thenReturn(List.of());
         
@@ -128,7 +128,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithNullConfig_ReturnsOriginalConfig() {
+    void configureWithNullConfigReturnsOriginalConfig() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Meter.Id meterId = mock(Meter.Id.class);
         DistributionStatisticConfig config = DistributionStatisticConfig.DEFAULT;
@@ -138,7 +138,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithDisabledMetrics_ReturnsOriginalConfig() {
+    void configureWithDisabledMetricsReturnsOriginalConfig() {
         BaseMetrics metricsConfig = mock(BaseMetrics.class);
         when(metricsConfig.getEnabled()).thenReturn(false);
         
@@ -151,7 +151,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithNonMatchingPrefix_ReturnsOriginalConfig() {
+    void configureWithNonMatchingPrefixReturnsOriginalConfig() {
         BaseMetrics metricsConfig = mock(BaseMetrics.class);
         when(metricsConfig.getEnabled()).thenReturn(true);
         when(metricsConfig.getPrefix()).thenReturn("gateway.metrics");
@@ -166,7 +166,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithNonDistributedMetrics_ReturnsOriginalConfig() {
+    void configureWithNonDistributedMetricsReturnsOriginalConfig() {
         BaseMetrics metricsConfig = mock(BaseMetrics.class);
         when(metricsConfig.getEnabled()).thenReturn(true);
         when(metricsConfig.getPrefix()).thenReturn("gateway.metrics");
@@ -182,7 +182,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithDistributedMetricsDisabled_ReturnsOriginalConfig() {
+    void configureWithDistributedMetricsDisabledReturnsOriginalConfig() {
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
         when(metricsConfig.getEnabled()).thenReturn(true);
@@ -201,7 +201,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithDistributedMetricsEnabledForTimer_ReturnsConfiguredConfig() {
+    void configureWithDistributedMetricsEnabledForTimerReturnsConfiguredConfig() {
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
         Duration[] buckets = new Duration[]{Duration.ofMillis(10), Duration.ofMillis(100), Duration.ofSeconds(1)};
@@ -227,7 +227,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithDistributedMetricsEnabledForDistributionSummary_ReturnsConfiguredConfig() {
+    void configureWithDistributedMetricsEnabledForDistributionSummaryReturnsConfiguredConfig() {
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
         Duration[] buckets = new Duration[]{Duration.ofMillis(10), Duration.ofMillis(100)};
@@ -252,7 +252,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithValidBucketsAndNullExpiry_ReturnsConfiguredConfig() {
+    void configureWithValidBucketsAndNullExpiryReturnsConfiguredConfig() {
         // Test with valid buckets to ensure configuration works properly
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
@@ -278,7 +278,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithEmptyBuckets_ReturnsConfigWithoutSlo() {
+    void configureWithEmptyBucketsReturnsConfigWithoutSlo() {
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
         
@@ -302,7 +302,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void configure_WithNonTimerOrSummaryType_ReturnsOriginalConfig() {
+    void configureWithNonTimerOrSummaryTypeReturnsOriginalConfig() {
         DistributedMetrics metricsConfig = mock(DistributedMetrics.class);
         DistributionConfig distributionConfig = mock(DistributionConfig.class);
         
@@ -323,7 +323,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void convertServiceLevelObjectives_WithValidDurations_ReturnsDoubleArray() {
+    void convertServiceLevelObjectivesWithValidDurationsReturnsDoubleArray() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[]{Duration.ofMillis(10), Duration.ofMillis(100), Duration.ofSeconds(1)};
         
@@ -337,7 +337,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void convertServiceLevelObjectives_WithEmptyArray_ReturnsEmptyArray() {
+    void convertServiceLevelObjectivesWithEmptyArrayReturnsEmptyArray() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[0];
         
@@ -348,7 +348,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMinimumValue_WithValidDurations_ReturnsMinimum() {
+    void getMinimumValueWithValidDurationsReturnsMinimum() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[]{Duration.ofMillis(100), Duration.ofMillis(10), Duration.ofSeconds(1)};
         
@@ -358,7 +358,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMinimumValue_WithEmptyArray_ReturnsDefaultValue() {
+    void getMinimumValueWithEmptyArrayReturnsDefaultValue() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[0];
         
@@ -368,7 +368,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMaximumValue_WithValidDurations_ReturnsMaximum() {
+    void getMaximumValueWithValidDurationsReturnsMaximum() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[]{Duration.ofMillis(10), Duration.ofMillis(100), Duration.ofSeconds(1)};
         
@@ -378,7 +378,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMaximumValue_WithEmptyArray_ReturnsDefaultValue() {
+    void getMaximumValueWithEmptyArrayReturnsDefaultValue() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[0];
         
@@ -388,7 +388,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMinimumValue_WithSingleDuration_ReturnsThatValue() {
+    void getMinimumValueWithSingleDurationReturnsThatValue() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[]{Duration.ofMillis(50)};
         
@@ -398,7 +398,7 @@ class GatewayMeterFilterTest {
     }
 
     @Test
-    void getMaximumValue_WithSingleDuration_ReturnsThatValue() {
+    void getMaximumValueWithSingleDurationReturnsThatValue() {
         GatewayMeterFilter<BaseMetrics> filter = new GatewayMeterFilter<>(null);
         Duration[] durations = new Duration[]{Duration.ofMillis(50)};
         

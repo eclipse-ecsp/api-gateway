@@ -57,7 +57,7 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void constructor_WithValidEnvironment_SetsManagementProperties() {
+    void constructorWithValidEnvironmentSetsManagementProperties() {
         // Verify exposure include contains health and prometheus
         assertTrue(systemProperties.containsKey("management.endpoints.web.exposure.include"));
         String exposureInclude = (String) systemProperties.get("management.endpoints.web.exposure.include");
@@ -66,14 +66,14 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void constructor_WithValidEnvironment_SetsJmxExcludeAll() {
+    void constructorWithValidEnvironmentSetsJmxExcludeAll() {
         assertTrue(systemProperties.containsKey("management.endpoints.jmx.exposure.exclude"));
         String jmxExclude = (String) systemProperties.get("management.endpoints.jmx.exposure.exclude");
         assertEquals("*", jmxExclude);
     }
 
     @Test
-    void constructor_WithValidEnvironment_SetsWebExclusionList() {
+    void constructorWithValidEnvironmentSetsWebExclusionList() {
         assertTrue(systemProperties.containsKey("management.endpoints.web.exposure.exclude"));
         String webExclude = (String) systemProperties.get("management.endpoints.web.exposure.exclude");
         assertTrue(webExclude.contains("gateway"));
@@ -82,7 +82,7 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void constructor_WithValidEnvironment_DisablesDefaultMetrics() {
+    void constructorWithValidEnvironmentDisablesDefaultMetrics() {
         assertTrue(systemProperties.containsKey("management.endpoints.access.default"));
         assertTrue(systemProperties.containsKey("management.defaults.metrics.export.enabled"));
         
@@ -94,7 +94,7 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void registryEndpointFilter_WithHealthEndpoint_ReturnsTrue() {
+    void registryEndpointFilterWithHealthEndpointReturnsTrue() {
         ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
         EndpointId endpointId = mock(EndpointId.class);
         when(endpoint.getEndpointId()).thenReturn(endpointId);
@@ -107,7 +107,7 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void registryEndpointFilter_WithPrometheusEndpoint_ReturnsTrue() {
+    void registryEndpointFilterWithPrometheusEndpointReturnsTrue() {
         ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
         EndpointId endpointId = mock(EndpointId.class);
         when(endpoint.getEndpointId()).thenReturn(endpointId);
@@ -120,14 +120,14 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void registryEndpointFilter_WithMetricsEndpoint_ReturnsFalse() {
-        testMetricsEndpoint_ReturnsFalse("metrics");
-        testMetricsEndpoint_ReturnsFalse("beans");
-        testMetricsEndpoint_ReturnsFalse("gateway");
-        testMetricsEndpoint_ReturnsFalse("unknown");
+    void registryEndpointFilterWithMetricsEndpointReturnsFalse() {
+        testMetricsEndpointReturnsFalse("metrics");
+        testMetricsEndpointReturnsFalse("beans");
+        testMetricsEndpointReturnsFalse("gateway");
+        testMetricsEndpointReturnsFalse("unknown");
     }
 
-    private boolean testMetricsEndpoint_ReturnsFalse(String endpointName) {
+    private boolean testMetricsEndpointReturnsFalse(String endpointName) {
         ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
         EndpointId endpointId = mock(EndpointId.class);
         when(endpoint.getEndpointId()).thenReturn(endpointId);
@@ -141,7 +141,7 @@ class RegistryMetricsConfigTest {
     }
 
     @Test
-    void registryEndpointFilter_CalledMultipleTimes_ReturnsSameLogic() {
+    void registryEndpointFilterCalledMultipleTimesReturnsSameLogic() {
         ExposableWebEndpoint healthEndpoint = mock(ExposableWebEndpoint.class);
         EndpointId healthId = mock(EndpointId.class);
         when(healthEndpoint.getEndpointId()).thenReturn(healthId);

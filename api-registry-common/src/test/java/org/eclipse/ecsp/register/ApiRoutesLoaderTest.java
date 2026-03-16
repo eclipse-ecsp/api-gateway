@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.register;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -31,6 +32,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +69,7 @@ import java.util.Optional;
 class ApiRoutesLoaderTest {
 
     GroupedOpenApi groupedOpenApi = Mockito.mock(GroupedOpenApi.class);
-    ObjectFactory objectFactory = Mockito.mock(ObjectFactory.class);
+    ObjectFactory<?> objectFactory = Mockito.mock(ObjectFactory.class);
     OpenAPIService openApiService = Mockito.mock(OpenAPIService.class);
     AbstractRequestService abstractRequestService = Mockito.mock(AbstractRequestService.class);
     GenericResponseService genericResponseService = Mockito.mock(GenericResponseService.class);
@@ -86,8 +88,8 @@ class ApiRoutesLoaderTest {
      *
      * @return returns Schema
      */
-    private static Schema getSchemaObj() {
-        Schema schema = new Schema();
+    private static Schema<?> getSchemaObj() {
+        Schema<?> schema = new Schema<>();
         schema.set$ref("#/components/schemas/Test");
         return schema;
     }
@@ -183,6 +185,7 @@ class ApiRoutesLoaderTest {
         Paths paths = getPathsObj();
         openApi.setPaths(paths);
         Components components = new Components();
+        @SuppressWarnings("rawtypes")
         Map<String, Schema> schemaMap = new HashMap<>();
         schemaMap.put("Test", getSchemaObj());
         components.setSchemas(schemaMap);
@@ -214,7 +217,7 @@ class ApiRoutesLoaderTest {
         RequestBody requestBody = new RequestBody();
         Content content = new Content();
         MediaType mediaType = new MediaType();
-        Schema schema = getSchemaObj();
+        Schema<?> schema = getSchemaObj();
         mediaType.setSchema(schema);
         content.put("application/json", mediaType);
         requestBody.setContent(content);
@@ -233,6 +236,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-route123", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertFalse(apiRotes.isEmpty());
@@ -247,9 +251,9 @@ class ApiRoutesLoaderTest {
         operation.parameters(
                 List.of(
                         new Parameter().name("dummyHeader").in("header").required(true)
-                                .schema(new Schema().type("string")),
+                                .schema(new Schema<>().type("string")),
                         new Parameter().name("dummyHeader2").in("header").required(null)
-                                .schema(new Schema().type("string"))));
+                                .schema(new Schema<>().type("string"))));
         operation.setExtensions(Map.of("cacheSize", "100", "cacheKey", "key123", "cacheTll", "100"));
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
@@ -257,6 +261,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderMetadata", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);
@@ -276,9 +281,9 @@ class ApiRoutesLoaderTest {
         operation.parameters(
                 List.of(
                         new Parameter().name("dummyHeader").in("header").required(true)
-                                .schema(new Schema().type("string")),
+                                .schema(new Schema<>().type("string")),
                         new Parameter().name("dummyHeader2").in("header").required(null)
-                                .schema(new Schema().type("string"))
+                                .schema(new Schema<>().type("string"))
                 ));
         operation.setExtensions(Map.of("cacheSize", "100", "cacheKey", "key123", "cacheTll", "100"));
         SecurityRequirement securityRequirement = new SecurityRequirement();
@@ -287,6 +292,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderOptionalMetadata", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);
@@ -311,6 +317,7 @@ class ApiRoutesLoaderTest {
         apiRoutesLoader.setScopesMap(Map.of("GET-testEmptyHeaders", List.of("ABCScope")));
         ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
+        @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
                 ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
         Assertions.assertNotNull(apiRotes);
@@ -320,6 +327,75 @@ class ApiRoutesLoaderTest {
                 .findFirst();
         Assertions.assertTrue(route.isPresent());
         Assertions.assertFalse(route.get().getMetadata().containsKey("headers"));
+    }
+
+    @Test
+    void testSchemaStoredWithRefsAndComponents() throws Exception {
+        // Simulate a schema where the body $ref points to a schema that itself
+        // has nested $ref nodes — the exact scenario that caused ResolutionException.
+        // After the fix the stored schema must be a full document containing
+        // both $ref and components.schemas so openapi4j can resolve all refs.
+        Schema innerSchema = new Schema();
+        innerSchema.set$ref("#/components/schemas/AddressInfo");
+
+        Schema addressSchema = new Schema();
+        addressSchema.addProperty("street", new Schema().type("string"));
+
+        Schema vehicleSchema = new Schema();
+        vehicleSchema.addProperty("model", new Schema().type("string"));
+        vehicleSchema.addProperty("address", innerSchema); // nested $ref
+
+        Components components = new Components();
+        components.addSchemas("VehicleAttributes", vehicleSchema);
+        components.addSchemas("AddressInfo", addressSchema);
+        ReflectionTestUtils.setField(apiRoutesLoader, "components", components);
+
+        // Build an operation with a body $ref pointing to VehicleAttributes
+        Operation operation = new Operation();
+        operation.setTags(List.of("vehicles-controller"));
+        operation.setOperationId("update");
+        operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
+
+        MediaType mediaType = new MediaType();
+        Schema bodyRef = new Schema();
+        bodyRef.set$ref("#/components/schemas/VehicleAttributes");
+        mediaType.setSchema(bodyRef);
+        Content content = new Content();
+        content.put("application/json", mediaType);
+        RequestBody requestBody = new RequestBody();
+        requestBody.setContent(content);
+        operation.setRequestBody(requestBody);
+
+        ReflectionTestUtils.invokeMethod(
+                apiRoutesLoader, "setOperation", HttpMethod.POST, "/v2/vehicles", operation);
+
+        List<RouteDefinition> routes = (List<RouteDefinition>)
+                ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
+
+        Optional<RouteDefinition> route = routes.stream()
+                .filter(r -> r.getId().equals("vehicles-controller-update"))
+                .findFirst();
+        Assertions.assertTrue(route.isPresent(), "Route should have been registered");
+
+        // The Schema metadata must now be a full document, not a bare schema fragment
+        Object schemaObj = route.get().getMetadata().get(RegistryCommonConstants.SCHEMA);
+        Assertions.assertNotNull(schemaObj, "Schema metadata must be present");
+        JsonNode schemaDoc = new ObjectMapper().readTree((String) schemaObj);
+
+        // Must have $ref at the top level pointing to the body schema
+        Assertions.assertTrue(schemaDoc.has("$ref"),
+                "Stored schema must have a top-level $ref");
+        Assertions.assertEquals("#/components/schemas/VehicleAttributes", schemaDoc.get("$ref").asText());
+
+        // Must embed all component schemas so nested $refs can be resolved
+        Assertions.assertTrue(schemaDoc.has("components"),
+                "Stored schema must contain components");
+        Assertions.assertTrue(schemaDoc.path("components").has("schemas"),
+                "components must contain schemas");
+        Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("VehicleAttributes"),
+                "components.schemas must include VehicleAttributes");
+        Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("AddressInfo"),
+                "components.schemas must include AddressInfo (needed for nested $ref resolution)");
     }
 
     @Test

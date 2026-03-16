@@ -75,7 +75,7 @@ class KeyResolversTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolver_WithXForwardedFor_ReturnsFirstIp() {
+    void clientIpKeyResolverWithXForwardedForReturnsFirstIp() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         headers.add("X-Forwarded-For", "192.168.1.100, 10.0.0.1");
@@ -91,7 +91,7 @@ class KeyResolversTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolver_WithSingleXForwardedFor_ReturnsTrimmedIp() {
+    void clientIpKeyResolverWithSingleXForwardedForReturnsTrimmedIp() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         headers.add("X-Forwarded-For", "  172.16.0.50  ");
@@ -107,7 +107,7 @@ class KeyResolversTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolver_WithoutXForwardedFor_ReturnsRemoteAddress() {
+    void clientIpKeyResolverWithoutXForwardedForReturnsRemoteAddress() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         InetSocketAddress remoteAddress = new InetSocketAddress("10.20.30.40", PORT_8080);
@@ -123,7 +123,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void clientIpKeyResolver_WithNullRemoteAddress_ReturnsEmpty() {
+    void clientIpKeyResolverWithNullRemoteAddressReturnsEmpty() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         when(request.getRemoteAddress()).thenReturn(null);
@@ -138,7 +138,7 @@ class KeyResolversTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolver_WithEmptyXForwardedFor_UsesRemoteAddress() {
+    void clientIpKeyResolverWithEmptyXForwardedForUsesRemoteAddress() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         headers.add("X-Forwarded-For", "");
@@ -157,7 +157,7 @@ class KeyResolversTest {
     // ========== RequestHeaderKeyResolver Tests ==========
 
     @Test
-    void requestHeaderKeyResolver_WithValidHeader_ReturnsHeaderValue() {
+    void requestHeaderKeyResolverWithValidHeaderReturnsHeaderValue() {
         // Arrange
         
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-API-Key");
@@ -177,7 +177,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithMissingHeaderName_ReturnsEmpty() {
+    void requestHeaderKeyResolverWithMissingHeaderNameReturnsEmpty() {
         // Arrange
         RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
         
@@ -193,7 +193,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithEmptyHeaderName_ReturnsEmpty() {
+    void requestHeaderKeyResolverWithEmptyHeaderNameReturnsEmpty() {
         // Arrange
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "");
         
@@ -210,7 +210,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithMissingHeaderValue_ReturnsEmpty() {
+    void requestHeaderKeyResolverWithMissingHeaderValueReturnsEmpty() {
         // Arrange
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Custom-Header");
         
@@ -228,7 +228,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithEmptyHeaderValue_ReturnsEmpty() {
+    void requestHeaderKeyResolverWithEmptyHeaderValueReturnsEmpty() {
         // Arrange
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "X-Empty-Header");
         headers.add("X-Empty-Header", "");
@@ -247,7 +247,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithMultipleMetadata_FiltersCorrectly() {
+    void requestHeaderKeyResolverWithMultipleMetadataFiltersCorrectly() {
         // Arrange
         metadata.put("someOtherKey", "value");
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "headerName", "Authorization");
@@ -268,7 +268,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithCaseInsensitiveHeaderNameAttribute_ReturnsHeaderValue() {
+    void requestHeaderKeyResolverWithCaseInsensitiveHeaderNameAttributeReturnsHeaderValue() {
         // Arrange - test case insensitive attribute key matching (HEADERNAME, HeaderName, etc.)
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "HEADERNAME", "X-User-ID");
         headers.add("X-User-ID", "user-12345");
@@ -287,7 +287,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void requestHeaderKeyResolver_WithMixedCaseHeaderNameAttribute_ReturnsHeaderValue() {
+    void requestHeaderKeyResolverWithMixedCaseHeaderNameAttributeReturnsHeaderValue() {
         // Arrange - test with mixed case attribute key
         metadata.put(GatewayConstants.RATE_LIMITING_METADATA_PREFIX + "HeaderName", "X-Client-ID");
         headers.add("X-Client-ID", "client-98765");
@@ -308,7 +308,7 @@ class KeyResolversTest {
     // ========== RouteNameKeyResolver Tests ==========
 
     @Test
-    void routeNameKeyResolver_WithValidRoute_ReturnsCombinedKey() {
+    void routeNameKeyResolverWithValidRouteReturnsCombinedKey() {
         // Arrange
         metadata.put(GatewayConstants.SERVICE_NAME, "user-service");
         
@@ -327,7 +327,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void routeNameKeyResolver_WithNullServiceName_ReturnsNull() {
+    void routeNameKeyResolverWithNullServiceNameReturnsNull() {
         // Arrange
               
         when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(route);
@@ -343,7 +343,7 @@ class KeyResolversTest {
     }
 
     @Test
-    void routeNameKeyResolver_WithComplexServiceName_ReturnsCorrectFormat() {
+    void routeNameKeyResolverWithComplexServiceNameReturnsCorrectFormat() {
         // Arrange
         metadata.put(GatewayConstants.SERVICE_NAME, "payment-processing-v2");
         
@@ -364,7 +364,7 @@ class KeyResolversTest {
     // ========== RoutePathKeyResolver Tests ==========
 
     @Test
-    void routePathKeyResolver_WithSimplePath_ReturnsPath() {
+    void routePathKeyResolverWithSimplePathReturnsPath() {
         testRoutePath("http://localhost:8080/api/users", "/api/users");
         testRoutePath("http://api.example.com/v2/products/123/details", "/v2/products/123/details");
         testRoutePath("http://localhost:9000/", "/");

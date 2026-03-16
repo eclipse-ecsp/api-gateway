@@ -34,6 +34,12 @@ import java.util.Map;
  */
 @Converter
 public class MapToJsonConverter implements AttributeConverter<Map<String, String>, String> {
+    /**
+     * Default constructor.
+     */
+    public MapToJsonConverter() {
+        // Default constructor
+    }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(MapToJsonConverter.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

@@ -41,6 +41,14 @@ import java.util.List;
  */
 @Configuration
 public class ApiConfig {
+    /**
+     * Default constructor.
+     */
+    public ApiConfig() {
+        // Default constructor
+    }
+
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiConfig.class);
 
     @Value("${openapi.path.include}")

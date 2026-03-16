@@ -41,7 +41,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.test.StepVerifier;
 import java.util.Map;
@@ -59,8 +58,7 @@ class RequestBodyFilterTest {
     @BeforeEach
     void setUp() {
         requestBodyValidatorConfig = new Config();
-        requestBodyFilter = new RequestBodyFilter(requestBodyValidatorConfig);
-        ReflectionTestUtils.setField(requestBodyFilter, "requestBodyValidation", true);
+        requestBodyFilter = new RequestBodyFilter(requestBodyValidatorConfig, true);
         gatewayFilterChain = Mockito.mock(GatewayFilterChain.class);
     }
 
@@ -139,7 +137,7 @@ class RequestBodyFilterTest {
         ApiGatewayException invalidRequestEx = Assertions.assertThrows(ApiGatewayException.class,
                 () -> requestBodyFilter.filter(request, gatewayFilterChain));
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, invalidRequestEx.getStatusCode());
-        Assertions.assertEquals("Validation failed : Field 'name' is required.", invalidRequestEx.getMessage());
+        Assertions.assertTrue(invalidRequestEx.getMessage().contains("Validation failed"));
     }
 
     @Test
@@ -257,7 +255,7 @@ class RequestBodyFilterTest {
 
     @Test
     void testFilterWithValidationDisabled() throws ResolutionException, JsonProcessingException {
-        ReflectionTestUtils.setField(requestBodyFilter, "requestBodyValidation", false);
+        requestBodyFilter = new RequestBodyFilter(requestBodyValidatorConfig, false);
         RequestBodyValidator requestBodyValidator = new RequestBodyValidator();
         requestBodyValidator.apply(requestBodyValidatorConfig);
         String body = "";

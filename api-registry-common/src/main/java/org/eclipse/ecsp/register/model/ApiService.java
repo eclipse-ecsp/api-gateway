@@ -21,10 +21,8 @@ package org.eclipse.ecsp.register.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -34,12 +32,30 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-@NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @JsonInclude(value = Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ApiService implements Comparable<ApiService> {
+
+    /**
+     * Default constructor.
+     */
+    public ApiService() {
+        // Default constructor
+    }
+
+    /**
+     * Constructor with all fields.
+     *
+     * @param name the name of the service
+     * @param url the URL of the service
+     * @param description the description of the service
+     */
+    public ApiService(String name, String url, String description) {
+        this.name = name;
+        this.url = url;
+        this.description = description;
+    }
 
     private String name;
     private String url;

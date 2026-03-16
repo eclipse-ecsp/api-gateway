@@ -33,7 +33,12 @@ import java.util.Optional;
 @ConditionalOnSqlDatabase
 @Repository("rateLimitConfigJpaRepository")
 public interface RateLimitConfigJpaRepository extends CrudRepository<RateLimitConfigEntity, String> {
-
+    /**
+     * Find a rate limit configuration by service name.
+     *
+     * @param service the service name
+     * @return optional containing the rate limit configuration if found
+     */
     Optional<RateLimitConfigEntity> findByService(String service);
 
 }

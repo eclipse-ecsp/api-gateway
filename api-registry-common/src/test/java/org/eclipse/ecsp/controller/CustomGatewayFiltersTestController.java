@@ -117,4 +117,10 @@ public class CustomGatewayFiltersTestController {
     public String testFiltersNoArgs() {
         return "testWithFiltersNoArgs";
     }
+
+    @GetMapping("/testWithSpelArgs")
+    @CustomGatewayFilter(name = "TestSpelFilter", args = "key1=${test.property}")
+    public String testWithSpelArgs() {
+        return "testWithSpelArgs";
+    }
 }

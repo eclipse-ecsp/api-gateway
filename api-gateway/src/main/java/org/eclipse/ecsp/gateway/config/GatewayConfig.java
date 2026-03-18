@@ -246,4 +246,41 @@ public class GatewayConfig {
         return retryTemplate;
     }
 
+    /**
+     * Configure RetryTemplate with exponential backoff for routes refresh.
+     *
+     * @param properties RouteRefreshProperties containing retry configuration.
+     * @return configured RetryTemplate
+     */
+    @Bean("routesRefreshRetryTemplate")
+    public RetryTemplate routesRefreshRetryTemplate(RouteRefreshProperties properties) {
+        // Configure exponential backoff policy
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(properties.getRetry().getInitialIntervalMs());
+        backOffPolicy.setMultiplier(properties.getRetry().getMultiplier());
+        backOffPolicy.setMaxInterval(properties.getRetry().getMaxIntervalMs());
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+
+        // Configure retry policy with max attempts
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions = new HashMap<>();
+        retryableExceptions.put(RestClientException.class, true);
+        retryableExceptions.put(Exception.class, true);
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
+                properties.getRetry().getMaxAttempts(),
+                retryableExceptions
+        );
+        retryTemplate.setRetryPolicy(retryPolicy);
+
+        LOGGER.info("Routes Refresh RetryTemplate configured: "
+            + "maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
+                properties.getRetry().getMaxAttempts(),
+                properties.getRetry().getInitialIntervalMs(),
+                properties.getRetry().getMultiplier(),
+                properties.getRetry().getMaxIntervalMs());
+
+        return retryTemplate;
+    }
+
 }

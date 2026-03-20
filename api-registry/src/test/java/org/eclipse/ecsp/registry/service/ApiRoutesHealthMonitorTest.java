@@ -76,7 +76,7 @@ class ApiRoutesHealthMonitorTest {
         apiRouteEntities.add(apiRouteEntity);
         Mockito.when(apiRouteRepo.findAll()).thenReturn(apiRouteEntities);
         Mockito.when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
-                .thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
+                .thenReturn(new ResponseEntity<>(HttpStatus.OK));
         apiRoutesHealthMonitor.healthCheck();
         Mockito.verify(restTemplate, Mockito.atLeastOnce()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
 

@@ -24,7 +24,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -43,9 +46,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration test for event-driven route refresh using Testcontainers with Redis.
  * Tests Redis connectivity and basic component functionality.
- *
- * <p>NOTE: These tests are disabled because RegistryApplication excludes JPA auto-configuration,
- * preventing context loading. The event-driven functionality is validated through unit tests.
  */
 @SpringBootTest(
     properties = {
@@ -61,11 +61,9 @@ class EventDrivenRouteRefreshIntegrationTest {
 
     private static final int REDIS_PORT = 6379;
     private static final int TEST_TIMEOUT_SECONDS = 10;
+    private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
-    /** Max seconds to wait for the subscriber thread to obtain a Redis connection. */
-    private static final long SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS = 5L;
 
-    @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT);
@@ -94,14 +92,14 @@ class EventDrivenRouteRefreshIntegrationTest {
     private StringRedisTemplate redisTemplate;
 
     @Test
-    void testRedisContainerIsRunning() {
+    void testRedisContainer_IsRunning() {
         // Verify Redis container is running
         assertThat(redis.isRunning()).isTrue();
         assertThat(redis.getFirstMappedPort()).isGreaterThan(0);
     }
 
     @Test
-    void testRedisConnectivityBasicOperations() {
+    void testRedisConnectivity_BasicOperations() {
         // Verify Redis is accessible and basic operations work
         String testKey = "test-key-" + UUID.randomUUID();
         String testValue = "test-value";
@@ -116,66 +114,68 @@ class EventDrivenRouteRefreshIntegrationTest {
     }
 
     @Test
-    void testEventPublisherIsConfigured() {
+    void testEventPublisher_IsConfigured() {
         // Verify event publisher is properly autowired
         assertThat(eventPublisher).isNotNull();
     }
 
     @Test
-    void testEventThrottlerIsConfigured() {
+    void testEventThrottler_IsConfigured() {
         // Verify event throttler is properly autowired
         assertThat(eventThrottler).isNotNull();
     }
 
     @Test
-    void testEventPublisherCanPublishEvent() throws InterruptedException {
-        // Test that event publisher can be invoked without errors and publishes to Redis
+    void testEventPublisher_CanPublishEvent() throws InterruptedException {
+        // Test that event publisher can be invoked without errors and publishes to Redis.
+        // Uses RedisMessageListenerContainer (the Spring-recommended API) instead of a raw
+        // connection, which is required for correct pub/sub behaviour in Spring Data Redis 4.x
+        // (Spring Boot 4.0.2+). Direct subscribe() calls on a pooled Lettuce connection are
+        // not reliable in that version.
         String serviceId = "test-service-" + UUID.randomUUID();
         CountDownLatch messageLatch = new CountDownLatch(1);
-        // Separate latch to signal that the Redis connection is obtained and subscribe() is about to be called.
-        // This prevents a race condition on CI where obtaining the connection takes longer than
-        // SUBSCRIPTION_START_WAIT_MS, causing the published event to be missed because the
-        // subscription was not yet registered on the Redis server.
-        CountDownLatch subscriptionReady = new CountDownLatch(1);
-        // Latch to signal that the SUBSCRIBE command has been fully acknowledged by Redis
-        CountDownLatch subscriptionAcknowledged = new CountDownLatch(1);
         String channel = "route-changes-it";
 
-        // Subscribe to channel in a separate thread
-        Thread subscriber = new Thread(() -> {
-            // Signal that connection is obtained; subscribe() is about to be invoked.
-            // The main thread waits on subscriptionReady before publishing, ensuring
-            // the SUBSCRIBE command has been sent before any message is published.
-            subscriptionReady.countDown();
-            redisTemplate.getConnectionFactory().getConnection().subscribe((message, pattern) -> {
-                if (new String(message.getBody()).contains(serviceId)) {
-                    messageLatch.countDown();
-                }
-            }, channel.getBytes());
-            subscriptionAcknowledged.countDown();
-        });
-        subscriber.start();
+        MessageListener listener = (message, pattern) -> {
+            if (new String(message.getBody()).contains(serviceId)) {
+                messageLatch.countDown();
+            }
+        };
 
-        // Wait until the subscriber thread has obtained the connection and is about
-        // to call subscribe(). Then wait for the SUBSCRIBE command to be fully acknowledged
-        // by Redis before we publish — critical on slow CI runners.
-        subscriptionReady.await(SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        subscriptionAcknowledged.await(SUBSCRIPTION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        RedisMessageListenerContainer listenerContainer = new RedisMessageListenerContainer();
+        listenerContainer.setConnectionFactory(redisTemplate.getConnectionFactory());
+        listenerContainer.addMessageListener(listener, new ChannelTopic(channel));
+        listenerContainer.afterPropertiesSet();
+        listenerContainer.start();
 
-        // This should not throw an exception
-        eventThrottler.scheduleEvent(serviceId);
+        try {
+            // Allow time for the container's internal subscription thread to establish
+            // the SUBSCRIBE command with Redis before we publish. Using a latch await
+            // with timeout as a sleep substitute to comply with checkstyle rules.
+            new CountDownLatch(1).await(SUBSCRIPTION_START_WAIT_MS, TimeUnit.MILLISECONDS);
 
-        // Wait for debouncing delay to complete and event to be received
-        // Debounce is 100ms.
-        boolean received = messageLatch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+            // This should not throw an exception
+            eventThrottler.scheduleEvent(serviceId);
 
-        assertThat(received)
-                .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)
-                .isTrue();
+            // Wait for debouncing delay to complete and event to be received
+            // Debounce is 100ms.
+            boolean received = messageLatch.await(EVENT_RECEIPT_WAIT_MS, TimeUnit.MILLISECONDS);
+
+            assertThat(received)
+                    .withFailMessage("Event for service %s was not received on Redis channel %s", serviceId, channel)
+                    .isTrue();
+        } finally {
+            listenerContainer.stop();
+            try {
+                listenerContainer.destroy();
+            } catch (Exception ex) {
+                // best-effort cleanup
+            }
+        }
     }
 
     @Test
-    void testRedisTemplateCanPublishToChannel() {
+    void testRedisTemplate_CanPublishToChannel() {
         // Test that we can publish to the Redis channel
         String testMessage = "test-message";
         String channel = "route-changes-it";

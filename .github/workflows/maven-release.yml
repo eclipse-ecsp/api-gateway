@@ -10,14 +10,14 @@ jobs:
     secrets:
       token: ${{ secrets.SONAR_TOKEN }}
     with:
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
   licence_compliance_status:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
     name: Check Licence Compliance Status
     with:
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
       create-review: false
 
@@ -50,7 +50,7 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@main
     secrets: inherit
     with:
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
       release_version: ${{ needs.extract_version.outputs.release_version }}
 
@@ -62,7 +62,7 @@ jobs:
       context_path: ./api-registry
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
 
   docker_push_api_gateway:
@@ -73,7 +73,7 @@ jobs:
       context_path: ./api-gateway
       image_tag: ${{ needs.extract_version.outputs.release_version }}
       maven_args: 'clean package -P release'
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
 
   update_next_version:
@@ -81,6 +81,6 @@ jobs:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-update-next-version.yml@main
     with:
       version: ${{ needs.extract_version.outputs.release_version }}
-      java_version: '21'
+      java_version: '25'
       java_distribution: 'temurin'
     secrets: inherit

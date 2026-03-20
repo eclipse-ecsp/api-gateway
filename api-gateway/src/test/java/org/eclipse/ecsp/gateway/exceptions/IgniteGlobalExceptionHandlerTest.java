@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.exceptions;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.resource.NoResourceFoundException;
@@ -55,7 +56,7 @@ class IgniteGlobalExceptionHandlerTest {
 
     @Test
     void testHandleNoResourceFoundException() {
-        NoResourceFoundException exception = new NoResourceFoundException("Resource not found");
+        NoResourceFoundException exception = Mockito.mock(NoResourceFoundException.class);
         Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals(GatewayConstants.REQUEST_NOT_FOUND, response.get("message"));
@@ -93,7 +94,7 @@ class IgniteGlobalExceptionHandlerTest {
         HttpStatusCode status = IgniteGlobalExceptionHandler.determineHttpStatus(exception);
         Assertions.assertEquals(HttpStatus.NOT_FOUND, status);
 
-        NoResourceFoundException noResourceFoundException = new NoResourceFoundException("Resource not found");
+        NoResourceFoundException noResourceFoundException = Mockito.mock(NoResourceFoundException.class);
         status = IgniteGlobalExceptionHandler.determineHttpStatus(noResourceFoundException);
         Assertions.assertEquals(HttpStatus.NOT_FOUND, status);
 

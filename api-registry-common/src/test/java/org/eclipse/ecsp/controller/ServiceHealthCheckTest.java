@@ -19,19 +19,23 @@
 package org.eclipse.ecsp.controller;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Health check controller test.
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class ServiceHealthCheckTest {
 
-    @InjectMocks
     private ServiceHealthCheck serviceHealthCheck;
+    
+    @BeforeEach
+    void setUp() {
+        serviceHealthCheck = new ServiceHealthCheck();
+    }
 
     @Test
     void testSuccess() {

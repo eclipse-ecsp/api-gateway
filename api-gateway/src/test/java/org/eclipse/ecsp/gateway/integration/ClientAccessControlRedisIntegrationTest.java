@@ -32,7 +32,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
@@ -40,7 +39,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -64,13 +62,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@RunWith(SpringRunner.class)
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ClientAccessControlRedisIntegrationTest {
 
     private static final int REDIS_PORT = 6379;
     private static final String REDIS_CHANNEL = "client-access-updates";
+    private static final String TEST_KEY = "test-key";
 
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
@@ -100,20 +98,24 @@ class ClientAccessControlRedisIntegrationTest {
         }
     }
 
-    @Autowired
-    private ReactiveStringRedisTemplate redisTemplate;
-
-    @Autowired
-    private ClientAccessControlService cacheService;
-
-    @Autowired
-    private ClientAccessControlProperties properties;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ReactiveStringRedisTemplate redisTemplate;
+    private final ClientAccessControlService cacheService;
+    private final ClientAccessControlProperties properties;
+    private final ObjectMapper objectMapper;
 
     @MockitoBean
     private IgniteGlobalExceptionHandler globalExceptionHandler;
+
+    @Autowired
+    ClientAccessControlRedisIntegrationTest(ReactiveStringRedisTemplate redisTemplate,
+            ClientAccessControlService cacheService,
+            ClientAccessControlProperties properties,
+            ObjectMapper objectMapper) {
+        this.redisTemplate = redisTemplate;
+        this.cacheService = cacheService;
+        this.properties = properties;
+        this.objectMapper = objectMapper;
+    }
 
     @BeforeEach
     void setUp() {
@@ -128,10 +130,10 @@ class ClientAccessControlRedisIntegrationTest {
         assertThat(redis.getFirstMappedPort()).isGreaterThan(0);
         
         // Verify Redis connectivity
-        redisTemplate.opsForValue().set("test-key", "test-value").block();
-        Mono<String> value = redisTemplate.opsForValue().get("test-key");
+        redisTemplate.opsForValue().set(TEST_KEY, "test-value").block();
+        Mono<String> value = redisTemplate.opsForValue().get(TEST_KEY);
         assertThat(value.block()).isEqualTo("test-value");
-        redisTemplate.delete("test-key").block();
+        redisTemplate.delete(TEST_KEY).block();
     }
 
     @Test

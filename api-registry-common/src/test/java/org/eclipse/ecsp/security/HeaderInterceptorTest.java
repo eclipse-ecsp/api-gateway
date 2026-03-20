@@ -36,10 +36,10 @@ import jakarta.servlet.http.HttpUpgradeHandler;
 import jakarta.servlet.http.Part;
 import org.eclipse.ecsp.interceptors.HeaderInterceptor;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -55,11 +55,15 @@ import java.util.logging.LogRecord;
 /**
  * Test class for HeaderInterceptor.
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class HeaderInterceptorTest {
 
-    @InjectMocks
     private HeaderInterceptor headerInterceptor;
+    
+    @BeforeEach
+    void setUp() {
+        headerInterceptor = new HeaderInterceptor();
+    }
 
     @Test
     void testPreHandle() {
@@ -470,6 +474,11 @@ class HeaderInterceptorTest {
 
         @Override
         public void sendRedirect(String location) throws IOException {
+            // No implementation needed
+        }
+
+        @Override
+        public void sendRedirect(String location, int sc, boolean clearBuffer) throws IOException {
             // No implementation needed
         }
 

@@ -20,12 +20,12 @@ package org.eclipse.ecsp.register;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,15 +33,21 @@ import java.util.List;
 /**
  * Test class for ApiRouteRegistrationService.
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class ApiRouteRegistrationServiceTest {
 
     @Mock
     ApiRoutesLoader apiRoutesLoader;
-    @InjectMocks
-    private ApiRouteRegistrationService apiRouteRegistrationService;
+    
     @Mock
     private RestTemplate restTemplate;
+    
+    private ApiRouteRegistrationService apiRouteRegistrationService;
+    
+    @BeforeEach
+    void setUp() {
+        apiRouteRegistrationService = new ApiRouteRegistrationService(apiRoutesLoader, restTemplate);
+    }
 
     @Test
     void testRegister() throws Exception {

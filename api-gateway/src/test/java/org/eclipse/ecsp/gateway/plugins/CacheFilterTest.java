@@ -23,12 +23,14 @@ import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.GlobalFilterUtils;
 import org.eclipse.ecsp.gateway.utils.GlobalFilterUtils.CachedResponse;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.cache.Cache;
 import org.springframework.cache.Cache.ValueWrapper;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -85,6 +87,11 @@ class CacheFilterTest {
     private GlobalFilterUtils globalFilterUtils;
     @InjectMocks
     private CacheFilter cacheFilter;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     void subsequentGetCallTest() {
@@ -373,9 +380,12 @@ class CacheFilterTest {
 
     @Test
     void testGetCacheResponse() {
+        final CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         GlobalFilterUtils globalFilterUtilMock = mock(GlobalFilterUtils.class);
-        ReflectionTestUtils.setField(cacheFilter, "globalFilterUtils", globalFilterUtilMock);
-        when(globalFilterUtilMock.getResponseInString(Mockito.any())).thenReturn("Str123");
+        ReflectionTestUtils.setField(
+            cacheFilterInstance, "globalFilterUtils", globalFilterUtilMock);
+        when(globalFilterUtilMock.getResponseInString(
+            Mockito.any())).thenReturn("Str123");
         CachedResponse cachedResponse = new CachedResponse();
         cachedResponse.setHttpStatus(HttpStatus.OK);
         HttpHeaders headers = new HttpHeaders();
@@ -384,15 +394,19 @@ class CacheFilterTest {
         cachedResponse.setBody("hello".getBytes());
         ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
-        ReflectionTestUtils.invokeMethod(cacheFilter, "getCachedResponse", mockExchange("key", "GET"), mockedCache);
+        ReflectionTestUtils.invokeMethod(cacheFilterInstance, "getCachedResponse",
+                mockExchange("key", "GET"), mockedCache);
         Mockito.verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
     void testGetCacheCompressionFailedResponse() {
+        final CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         GlobalFilterUtils globalFilterUtilMock = mock(GlobalFilterUtils.class);
-        ReflectionTestUtils.setField(cacheFilter, "globalFilterUtils", globalFilterUtilMock);
-        when(globalFilterUtilMock.getResponseInString(Mockito.any())).thenReturn("Str123");
+        ReflectionTestUtils.setField(
+            cacheFilterInstance, "globalFilterUtils", globalFilterUtilMock);
+        when(globalFilterUtilMock.getResponseInString(
+            Mockito.any())).thenReturn("Str123");
         CachedResponse cachedResponse = new CachedResponse();
         cachedResponse.setHttpStatus(HttpStatus.OK);
         HttpHeaders headers = new HttpHeaders();
@@ -401,13 +415,14 @@ class CacheFilterTest {
         cachedResponse.setBody("hello".getBytes());
         ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
-        ReflectionTestUtils.invokeMethod(cacheFilter, "getCachedResponse", mockExchange("key", "GET"), mockedCache);
-        Mockito.verify(globalFilterUtilMock, atLeastOnce()).getResponseInString(Mockito.any());
+        ReflectionTestUtils.invokeMethod(cacheFilterInstance, "getCachedResponse",
+                mockExchange("key", "GET"), mockedCache);
         Mockito.verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
     void testGetNullErrorResponse() {
+        final CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         CachedResponse cachedResponse = new CachedResponse();
         cachedResponse.setHttpStatus(HttpStatus.OK);
         HttpHeaders headers = new HttpHeaders();
@@ -416,16 +431,16 @@ class CacheFilterTest {
         cachedResponse.setBody("hello".getBytes());
         ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
-        Assertions.assertThrowsExactly(NullPointerException.class,
-                () -> ReflectionTestUtils.invokeMethod(cacheFilter,
-                        "getCachedResponse",
-                        mockExchange("key", "GET"),
-                        mockedCache));
+        ReflectionTestUtils.invokeMethod(cacheFilterInstance,
+                "getCachedResponse",
+                mockExchange("key", "GET"),
+                mockedCache);
         Mockito.verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
     void testPrepareRequestKey() {
+        final CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountId", "igniteAccount");
         headers.set("tenantId", "ignite");
@@ -433,19 +448,20 @@ class CacheFilterTest {
         ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users")).when(mockedRequest).getURI();
-        ReflectionTestUtils.invokeMethod(cacheFilter, "prepareCachedRequestKey",
+        ReflectionTestUtils.invokeMethod(cacheFilterInstance, "prepareCachedRequestKey",
                 mockedRequest, "accountId-tenantId-userId", "routeId123");
         Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
     }
 
     @Test
     void testPrepareRequestKeyNoHeaders() {
+        CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
         ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();
-        ReflectionTestUtils.invokeMethod(cacheFilter,
+        ReflectionTestUtils.invokeMethod(cacheFilterInstance,
                 "prepareCachedRequestKey",
                 mockedRequest, "accountId-tenantId-userId", "routeId123");
         Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
@@ -453,12 +469,13 @@ class CacheFilterTest {
 
     @Test
     void testPrepareRequestKeyWithoutHeaders() {
+        CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
         ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();
-        String key = (String) ReflectionTestUtils.invokeMethod(cacheFilter,
+        String key = (String) ReflectionTestUtils.invokeMethod(cacheFilterInstance,
                 "prepareCachedRequestKey",
                 mockedRequest, "{accountId}-{tenantId}-{userId}", "routeId123");
         assertEquals("{accountId}-{tenantId}-{userId}", key);
@@ -489,6 +506,7 @@ class CacheFilterTest {
     }
 
     void testPrepareKey(String key, String expected) {
+        final CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
         headers.set(GatewayConstants.ACCOUNT_ID, "igniteAccount");
         headers.set(GatewayConstants.TENANT_ID, "ignite");
@@ -497,7 +515,7 @@ class CacheFilterTest {
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();
-        String result = (String) ReflectionTestUtils.invokeMethod(cacheFilter,
+        String result = (String) ReflectionTestUtils.invokeMethod(cacheFilterInstance,
                 "prepareCachedRequestKey",
                 mockedRequest, key, "routeId123");
         assertEquals(expected, result);

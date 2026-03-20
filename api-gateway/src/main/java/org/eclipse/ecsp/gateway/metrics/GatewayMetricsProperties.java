@@ -20,9 +20,9 @@ package org.eclipse.ecsp.gateway.metrics;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogProperties;
-import org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.micrometer.metrics.autoconfigure.export.datadog.DatadogProperties;
+import org.springframework.boot.micrometer.metrics.autoconfigure.export.prometheus.PrometheusProperties;
 import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 import java.util.List;

@@ -19,8 +19,10 @@
 package org.eclipse.ecsp.registry.repo;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.ContextConfiguration;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -40,6 +42,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @Testcontainers
+@ContextConfiguration(initializers = ClientAccessControlRepositorySqlTest.Initializer.class)
 class ClientAccessControlRepositorySqlTest extends AbstractClientAccessControlRepositoryTest {
 
     private static final String POSTGRES_IMAGE = "postgres:15.3";
@@ -57,15 +60,34 @@ class ClientAccessControlRepositorySqlTest extends AbstractClientAccessControlRe
             .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
             .withEnv("POSTGRES_DB", POSTGRES_DB);
 
-    @DynamicPropertySource
-    static void configurePostgresProperties(DynamicPropertyRegistry registry) {
-        registry.add("api-registry.database.type", () -> "sql");
-        registry.add("api-registry.database.provider", () -> "postgresql");
-        registry.add("postgres.jdbc.url", () -> 
-            "jdbc:postgresql://" + POSTGRES_CONTAINER.getHost() 
-            + ":" + POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT) + "/" + POSTGRES_DB);
-        registry.add("postgres.port", () -> POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT));
-        registry.add("postgres.username", () -> POSTGRES_USERNAME);
-        registry.add("postgres.password", () -> POSTGRES_PASSWORD);
+
+    /**
+     * Application context initializer to configure Postgres properties before context refresh.
+     * This ensures properties are available during @ConfigurationProperties binding.
+     */
+    static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+        @Override
+        public void initialize(ConfigurableApplicationContext applicationContext) {
+            // Ensure testcontainer is started before setting properties
+            POSTGRES_CONTAINER.start();
+            
+            TestPropertyValues.of(
+                "api-registry.database.type=sql",
+                "api-registry.database.provider=postgresql",
+                "postgres.jdbc.url=" + "jdbc:postgresql://" + POSTGRES_CONTAINER.getHost() 
+            + ":" + POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT) + "/" + POSTGRES_DB,
+                "postgres.username=" + POSTGRES_USERNAME,
+                "postgres.password=" + POSTGRES_PASSWORD,
+                // Tenant-specific properties using kebab-case as expected by sql-dao
+                "tenants.profile.default.jdbc-url=" + "jdbc:postgresql://" + POSTGRES_CONTAINER.getHost() 
+            + ":" + POSTGRES_CONTAINER.getMappedPort(POSTGRES_PORT) + "/" + POSTGRES_DB,
+                "tenants.profile.default.user-name=" + POSTGRES_USERNAME,
+                "tenants.profile.default.password=" + POSTGRES_PASSWORD,
+                "tenants.profile.default.driver-class-name=org.postgresql.Driver",
+                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.show-sql=false",
+                "multitenancy.enabled=false"
+            ).applyTo(applicationContext.getEnvironment());
+        }
     }
 }

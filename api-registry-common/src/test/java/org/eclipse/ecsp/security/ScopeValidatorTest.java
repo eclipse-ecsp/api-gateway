@@ -22,11 +22,12 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.eclipse.ecsp.security.validator.TestValidator;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
@@ -35,13 +36,21 @@ import java.util.Set;
 /**
  * Test cases for ScopeValidator.
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class ScopeValidatorTest {
 
-    JoinPoint joinPoint = Mockito.mock(JoinPoint.class);
-    MethodSignature signature = Mockito.mock(MethodSignature.class);
-    @InjectMocks
+    @Mock
+    JoinPoint joinPoint;
+    
+    @Mock
+    MethodSignature signature;
+    
     private ScopeValidator scopeValidator;
+    
+    @BeforeEach
+    void setUp() {
+        scopeValidator = new ScopeValidator();
+    }
 
     private void quickSetup(String methodName, Set<String> userScopes, Set<String> overrideScopes)
             throws NoSuchMethodException {

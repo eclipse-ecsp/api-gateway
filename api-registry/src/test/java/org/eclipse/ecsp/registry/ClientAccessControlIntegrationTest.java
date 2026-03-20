@@ -33,11 +33,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -73,6 +75,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
+@ContextConfiguration(initializers = ClientAccessControlIntegrationTest.Initializer.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SuppressWarnings("java:S6813")// allow spring Autowire
 class ClientAccessControlIntegrationTest {
@@ -102,13 +105,32 @@ class ClientAccessControlIntegrationTest {
     static RedisContainer redis = new RedisContainer("redis:8-alpine")
             .withExposedPorts(6379);
 
-    @DynamicPropertySource
-    static void postgresProperties(DynamicPropertyRegistry registry) {
-        registry.add("api-registry.database.type", () -> "sql");
-        registry.add("postgres.jdbc.url", postgres::getJdbcUrl);
-        registry.add("postgres.username", postgres::getUsername);
-        registry.add("postgres.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+    /**
+     * Application context initializer to configure Postgres properties before context refresh.
+     * This ensures properties are available during @ConfigurationProperties binding.
+     */
+    static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+        @Override
+        public void initialize(ConfigurableApplicationContext applicationContext) {
+            // Ensure testcontainer is started before setting properties
+            postgres.start();
+            
+            TestPropertyValues.of(
+                "api-registry.database.type=sql",
+                "api-registry.database.provider=postgres",
+                "postgres.jdbc.url=" + postgres.getJdbcUrl(),
+                "postgres.username=" + postgres.getUsername(),
+                "postgres.password=" + postgres.getPassword(),
+                // Tenant-specific properties using kebab-case as expected by sql-dao
+                "tenants.profile.default.jdbc-url=" + postgres.getJdbcUrl(),
+                "tenants.profile.default.user-name=" + postgres.getUsername(),
+                "tenants.profile.default.password=" + postgres.getPassword(),
+                "tenants.profile.default.driver-class-name=org.postgresql.Driver",
+                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.show-sql=false",
+                "multitenancy.enabled=false"
+            ).applyTo(applicationContext.getEnvironment());
+        }
     }
 
     @Autowired

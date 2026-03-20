@@ -23,9 +23,9 @@ import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -35,9 +35,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
-
+import javax.crypto.SecretKey;
 import java.util.Date;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -63,29 +62,29 @@ import static org.mockito.Mockito.when;
     "api.gateway.client-access-control.enabled=true",
     
     // Configure static routes for testing
-    "spring.cloud.gateway.routes[0].id=user-service-get-profile",
-    "spring.cloud.gateway.routes[0].uri=http://localhost:9999",
-    "spring.cloud.gateway.routes[0].predicates[0]=Path=/user-service/get-profile",
-    "spring.cloud.gateway.routes[0].metadata.service=user-service",
-    "spring.cloud.gateway.routes[0].filters[0].name=ClientAccessControl",
-    "spring.cloud.gateway.routes[0].filters[0].args.serviceName=user-service",
-    "spring.cloud.gateway.routes[0].filters[0].args.routeId=user-service-get-profile",
+    "spring.cloud.gateway.server.webflux.routes[0].id=user-service-get-profile",
+    "spring.cloud.gateway.server.webflux.routes[0].uri=http://localhost:9999",
+    "spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/user-service/get-profile",
+    "spring.cloud.gateway.server.webflux.routes[0].metadata.service=user-service",
+    "spring.cloud.gateway.server.webflux.routes[0].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.server.webflux.routes[0].filters[0].args.serviceName=user-service",
+    "spring.cloud.gateway.server.webflux.routes[0].filters[0].args.routeId=user-service-get-profile",
     
-    "spring.cloud.gateway.routes[1].id=payment-service-charge",
-    "spring.cloud.gateway.routes[1].uri=http://localhost:9999",
-    "spring.cloud.gateway.routes[1].predicates[0]=Path=/payment-service/charge",
-    "spring.cloud.gateway.routes[1].metadata.service=payment-service",
-    "spring.cloud.gateway.routes[1].filters[0].name=ClientAccessControl",
-    "spring.cloud.gateway.routes[1].filters[0].args.serviceName=payment-service",
-    "spring.cloud.gateway.routes[1].filters[0].args.routeId=payment-service-charge",
+    "spring.cloud.gateway.server.webflux.routes[1].id=payment-service-charge",
+    "spring.cloud.gateway.server.webflux.routes[1].uri=http://localhost:9999",
+    "spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/payment-service/charge",
+    "spring.cloud.gateway.server.webflux.routes[1].metadata.service=payment-service",
+    "spring.cloud.gateway.server.webflux.routes[1].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.server.webflux.routes[1].filters[0].args.serviceName=payment-service",
+    "spring.cloud.gateway.server.webflux.routes[1].filters[0].args.routeId=payment-service-charge",
     
-    "spring.cloud.gateway.routes[2].id=vehicle-service-get-vehicle",
-    "spring.cloud.gateway.routes[2].uri=http://localhost:9999",
-    "spring.cloud.gateway.routes[2].predicates[0]=Path=/vehicle-service/get-vehicle",
-    "spring.cloud.gateway.routes[2].metadata.service=vehicle-service",
-    "spring.cloud.gateway.routes[2].filters[0].name=ClientAccessControl",
-    "spring.cloud.gateway.routes[2].filters[0].args.serviceName=vehicle-service",
-    "spring.cloud.gateway.routes[2].filters[0].args.routeId=vehicle-service-get-vehicle",
+    "spring.cloud.gateway.server.webflux.routes[2].id=vehicle-service-get-vehicle",
+    "spring.cloud.gateway.server.webflux.routes[2].uri=http://localhost:9999",
+    "spring.cloud.gateway.server.webflux.routes[2].predicates[0]=Path=/vehicle-service/get-vehicle",
+    "spring.cloud.gateway.server.webflux.routes[2].metadata.service=vehicle-service",
+    "spring.cloud.gateway.server.webflux.routes[2].filters[0].name=ClientAccessControl",
+    "spring.cloud.gateway.server.webflux.routes[2].filters[0].args.serviceName=vehicle-service",
+    "spring.cloud.gateway.server.webflux.routes[2].filters[0].args.routeId=vehicle-service-get-vehicle",
     
     // Enable dynamic routes but mock the API registry to return empty routes
     "api.registry.enabled=false",
@@ -97,6 +96,11 @@ import static org.mockito.Mockito.when;
     "spring.data.redis.port=6379"
 })
 class ClientAccessControlGatewayFilterIntegrationTest {
+
+    private static final String CLIENT_ID_CLAIM = "clientId";
+    private static final String USER_SERVICE_PROFILE_URI = "/user-service/get-profile";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final SecretKey TEST_SIGNING_KEY = Jwts.SIG.HS256.key().build();
 
     @TestConfiguration
     static class TestConfig {
@@ -110,8 +114,12 @@ class ClientAccessControlGatewayFilterIntegrationTest {
         }
     }
 
+    private final WebTestClient webTestClient;
+
     @Autowired
-    private WebTestClient webTestClient;
+    ClientAccessControlGatewayFilterIntegrationTest(WebTestClient webTestClient) {
+        this.webTestClient = webTestClient;
+    }
 
     // Mock beans required by Spring context
     @MockitoBean
@@ -129,14 +137,14 @@ class ClientAccessControlGatewayFilterIntegrationTest {
 
     @Test
     void testValidJwtWithClientIdClaim() {
-        String jwt = createJwt("test-client-123", "clientId");
+        String jwt = createJwt("test-client-123", CLIENT_ID_CLAIM);
 
         // Since cache is not implemented yet (Phase 6), the filter will return 401 "Client not found"
         // This is expected behavior for Phase 3/4 until cache service is added
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized(); // Expected until cache is implemented
     }
@@ -147,8 +155,8 @@ class ClientAccessControlGatewayFilterIntegrationTest {
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized(); // Expected until cache is implemented
     }
@@ -160,7 +168,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
         webTestClient
                 .get()
                 .uri("/payment-service/charge")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized(); // Expected until cache is implemented
     }
@@ -172,7 +180,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
         webTestClient
                 .get()
                 .uri("/vehicle-service/get-vehicle")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized(); // Expected until cache is implemented
     }
@@ -185,7 +193,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     void testMissingAuthorizationHeader() {
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
+                .uri(USER_SERVICE_PROFILE_URI)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -194,7 +202,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     void testEmptyAuthorizationHeader() {
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
+                .uri(USER_SERVICE_PROFILE_URI)
                 .header(HttpHeaders.AUTHORIZATION, "")
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -202,11 +210,11 @@ class ClientAccessControlGatewayFilterIntegrationTest {
 
     @Test
     void testAuthorizationHeaderWithoutBearerPrefix() {
-        String jwt = createJwt("test-client-123", "clientId");
+        String jwt = createJwt("test-client-123", CLIENT_ID_CLAIM);
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
+                .uri(USER_SERVICE_PROFILE_URI)
                 .header(HttpHeaders.AUTHORIZATION, jwt) // Missing "Bearer " prefix
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -220,7 +228,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     void testMalformedJwt() {
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
+                .uri(USER_SERVICE_PROFILE_URI)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-jwt-token")
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -231,12 +239,13 @@ class ClientAccessControlGatewayFilterIntegrationTest {
         String jwt = Jwts.builder()
                 .subject("user123")
                 .issuedAt(new Date())
+                .signWith(TEST_SIGNING_KEY)
                 .compact();
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -247,36 +256,36 @@ class ClientAccessControlGatewayFilterIntegrationTest {
 
     @Test
     void testSqlInjectionInClientId() {
-        String jwt = createJwt("test' UNION SELECT * FROM users--", "clientId");
+        String jwt = createJwt("test' UNION SELECT * FROM users--", CLIENT_ID_CLAIM);
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void testXssInClientId() {
-        String jwt = createJwt("<script>alert('xss')</script>", "clientId");
+        String jwt = createJwt("<script>alert('xss')</script>", CLIENT_ID_CLAIM);
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void testPathTraversalInClientId() {
-        String jwt = createJwt("../../etc/passwd", "clientId");
+        String jwt = createJwt("../../etc/passwd", CLIENT_ID_CLAIM);
 
         webTestClient
                 .get()
-                .uri("/user-service/get-profile")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .uri(USER_SERVICE_PROFILE_URI)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -321,6 +330,7 @@ class ClientAccessControlGatewayFilterIntegrationTest {
                 .claim(claimName, clientId)
                 .subject("test-subject")
                 .issuedAt(new Date())
+                .signWith(TEST_SIGNING_KEY)
                 .compact();
     }
 }

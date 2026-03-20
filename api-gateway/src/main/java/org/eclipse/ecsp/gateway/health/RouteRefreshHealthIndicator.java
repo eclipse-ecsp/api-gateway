@@ -22,8 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.eclipse.ecsp.gateway.conditions.RouteRefreshEventEnabledCondition;
 import org.eclipse.ecsp.gateway.config.RouteRefreshProperties;
 import org.eclipse.ecsp.gateway.events.RouteRefreshFallbackScheduler;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 

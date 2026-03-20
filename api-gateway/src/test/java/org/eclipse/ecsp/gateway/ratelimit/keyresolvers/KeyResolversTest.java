@@ -157,6 +157,20 @@ class KeyResolversTest {
     // ========== RequestHeaderKeyResolver Tests ==========
 
     @Test
+    void requestHeaderKeyResolverWithNullRouteReturnsEmpty() {
+        // Arrange
+        RequestHeaderKeyResolver resolver = new RequestHeaderKeyResolver();
+        when(exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)).thenReturn(null);
+
+        // Act
+        Mono<String> result = resolver.resolve(exchange);
+
+        // Assert
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
     void requestHeaderKeyResolverWithValidHeaderReturnsHeaderValue() {
         // Arrange
         

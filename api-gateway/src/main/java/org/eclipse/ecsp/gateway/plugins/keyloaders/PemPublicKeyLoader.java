@@ -162,8 +162,8 @@ public class PemPublicKeyLoader implements PublicKeyLoader {
             PublicKey publicKey = keyFactory.generatePublic(keySpec);
             LOGGER.debug("Successfully parsed {} public key", algorithm);
             return publicKey;
-        } catch (Exception e) {
-            LOGGER.warn("Failed to parse public key with algorithm {}", algorithm);
+        } catch (Exception ex) {
+            LOGGER.debug("Failed to parse public key with algorithm {}, {}", algorithm, ex);
             // Try next algorithm
         }
         return null;

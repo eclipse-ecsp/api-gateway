@@ -92,6 +92,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 @SuppressWarnings("checkstyle:MethodLength")
 class JwtAuthValidatorTest {
+    private static final org.eclipse.ecsp.utils.logger.IgniteLogger LOGGER =
+            org.eclipse.ecsp.utils.logger.IgniteLoggerFactory.getLogger(JwtAuthValidatorTest.class);
     private static final String BEARER_TOKEN_WITHOUT_KID = JwtTestTokenGenerator.createTokenWithoutKid();
     private static final long START_DATE = 1683811748923L;
     public static final int ONE_THOUSAND = 1000;
@@ -1492,8 +1494,9 @@ class JwtAuthValidatorTest {
             // Should throw exception due to insufficient scope
             Assertions.assertThrows(Exception.class, () ->
                 validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, "requestId", "requestPath"));
-        } catch (Exception e) {
+        } catch (Exception ex) {
             // Expected to fail due to missing scope
+            LOGGER.debug("Expected exception for missing scope: {}", ex.getMessage());       
         }
     }
 

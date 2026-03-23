@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -97,7 +98,7 @@ public class GatewayRateLimiter extends RedisRateLimiter {
         
         if (routeConfig == null) {
             LOGGER.warn("No rate limit config available for route {}, allowing request", routeId);
-            return Mono.just(new Response(true, getHeaders(routeConfig, DEFAULT_TOKENS_ON_ERROR)));
+            return Mono.just(new Response(true, Collections.emptyMap()));
         }
 
         int replenishRate = routeConfig.getReplenishRate();

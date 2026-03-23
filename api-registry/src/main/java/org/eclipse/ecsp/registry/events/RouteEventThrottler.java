@@ -145,9 +145,9 @@ public class RouteEventThrottler {
                 }
                 return published;
 
-            } catch (Exception e) {
+            } catch (Exception ex) {
                 LOGGER.error("Failed to publish event. EventType: {}, EventId: {}", 
-                        eventData.getEventType(), eventData.getEventId(), e);
+                        eventData.getEventType(), eventData.getEventId(), ex);
                 return false;
             }
         });
@@ -165,6 +165,7 @@ public class RouteEventThrottler {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
+            LOGGER.warn("RouteEventThrottler shutdown interrupted", e);
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         }

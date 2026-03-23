@@ -22,9 +22,10 @@ import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 /**
  * Integration test suite backed by a PostgreSQL Testcontainer.
@@ -41,7 +42,7 @@ class RateLimitConfigControllerPostgresIntegrationTest extends AbstractRateLimit
 
     @SuppressWarnings("resource")
     @Container
-    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>(POSTGRES_IMAGE)
+    private static final PostgreSQLContainer POSTGRES_CONTAINER = new PostgreSQLContainer(DockerImageName.parse(POSTGRES_IMAGE))
             .withDatabaseName("ecsp")
             .withUsername("postgres")
             .withPassword("postgres");

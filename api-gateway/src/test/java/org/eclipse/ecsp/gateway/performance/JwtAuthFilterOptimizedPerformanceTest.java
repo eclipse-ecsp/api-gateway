@@ -187,8 +187,8 @@ class JwtAuthFilterOptimizedPerformanceTest {
             
             testOptimizedRegexValidation(claims);
             
-        } catch (Exception e) {
-            // Ignore for performance testing
+        } catch (Exception ex) {
+            LOGGER.debug("Ignored exception in performance test: {}", ex.getMessage());
         }
     }
 

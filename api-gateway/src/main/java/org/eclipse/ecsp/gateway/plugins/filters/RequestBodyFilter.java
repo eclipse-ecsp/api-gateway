@@ -37,6 +37,7 @@ import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import java.util.stream.Collectors;
@@ -82,7 +83,7 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
         }
         // get schema validator
         // no validation required if there is no schema defined
-        if (route.getMetadata() == null) {
+        if (CollectionUtils.isEmpty(route.getMetadata())) {
             return;
         }
         // Validate if schema validator defined

@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.utils;
 
+import jakarta.annotation.Nonnull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,7 +36,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
@@ -81,7 +81,7 @@ public class GlobalFilterUtils {
             final DataBufferFactory dataBufferFactory = originalResponse.bufferFactory();
             decorator = new ServerHttpResponseDecorator(originalResponse) {
                 @Override
-                public Mono<Void> writeWith(@NonNull Publisher<? extends DataBuffer> body) {
+                public Mono<Void> writeWith(@Nonnull Publisher<? extends DataBuffer> body) {
                     try {
                         LOGGER.debug("RequestCache | responseCache for request {} ", exchange.getRequest().getPath());
                         if (body instanceof Flux<? extends DataBuffer> fluxData) {
@@ -94,9 +94,9 @@ public class GlobalFilterUtils {
                                     dataBuffer.read(responseContent);
                                     try {
                                         outputStream.write(responseContent);
-                                    } catch (IOException e) {
+                                    } catch (IOException ex) {
                                         LOGGER.error("RequestCache | Error while reading api {} response stream {}",
-                                                exchange.getRequest().getPath(), e);
+                                                exchange.getRequest().getPath(), ex);
                                         throw new ApiGatewayException(HttpStatus.INTERNAL_SERVER_ERROR,
                                                 "api.gateway.request.error",
                                                 "Error occurred while processing the request");

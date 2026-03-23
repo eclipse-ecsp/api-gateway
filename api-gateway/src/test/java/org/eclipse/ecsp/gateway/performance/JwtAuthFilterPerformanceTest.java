@@ -215,8 +215,8 @@ class JwtAuthFilterPerformanceTest {
             // which is what happens inside JwtAuthFilter
             testRegexValidation(claims);
             
-        } catch (Exception e) {
-            // Ignore exceptions for performance testing
+        } catch (Exception ex) {
+            LOGGER.debug("Ignored exception in performance test: {}", ex.getMessage());
         }
     }
 

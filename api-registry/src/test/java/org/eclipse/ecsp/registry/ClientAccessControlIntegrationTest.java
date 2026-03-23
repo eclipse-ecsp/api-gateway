@@ -42,9 +42,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -95,7 +96,7 @@ class ClientAccessControlIntegrationTest {
 
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:15-alpine"))
             .withDatabaseName("api_registry_test")
             .withUsername("test")
             .withPassword("test");

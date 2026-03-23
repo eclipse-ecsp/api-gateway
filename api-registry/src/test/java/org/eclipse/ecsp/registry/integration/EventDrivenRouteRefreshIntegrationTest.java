@@ -59,6 +59,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class EventDrivenRouteRefreshIntegrationTest {
 
+    private static final org.eclipse.ecsp.utils.logger.IgniteLogger LOGGER =
+            org.eclipse.ecsp.utils.logger.IgniteLoggerFactory.getLogger(EventDrivenRouteRefreshIntegrationTest.class);
+
     private static final int REDIS_PORT = 6379;
     private static final int TEST_TIMEOUT_SECONDS = 10;
     private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
@@ -170,6 +173,7 @@ class EventDrivenRouteRefreshIntegrationTest {
                 listenerContainer.destroy();
             } catch (Exception ex) {
                 // best-effort cleanup
+                LOGGER.debug("Ignored cleanup exception: {}", ex.getMessage());
             }
         }
     }

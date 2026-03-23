@@ -28,9 +28,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -381,5 +384,28 @@ class RouteEventThrottlerTest {
 
         // Assert - no exception should be thrown
         assertThat(throttler).isNotNull();
+    }
+
+    @Test
+    void testShutdownInterruptedExceptionHandledGracefully() throws Exception {
+        // Arrange - replace the real scheduler with a mock that throws InterruptedException
+        ScheduledExecutorService mockScheduler =
+                Mockito.mock(ScheduledExecutorService.class);
+        Mockito.doNothing().when(mockScheduler).shutdown();
+        Mockito.doThrow(new InterruptedException("Test interrupt"))
+            .when(mockScheduler).awaitTermination(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.concurrent.TimeUnit.class));
+        // shutdownNow() returns List<Runnable> — default mock returns empty list, no stub needed
+        ReflectionTestUtils.setField(throttler, "scheduler", mockScheduler);
+
+        // Act
+        throttler.shutdown();
+
+        // Assert - interrupt flag should be set on the current thread
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        // Clear the interrupt flag to avoid affecting other tests
+        Thread.interrupted();
+        org.mockito.Mockito.verify(mockScheduler).shutdownNow();
     }
 }

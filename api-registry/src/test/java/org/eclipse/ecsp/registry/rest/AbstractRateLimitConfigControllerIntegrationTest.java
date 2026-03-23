@@ -65,6 +65,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 abstract class AbstractRateLimitConfigControllerIntegrationTest {
 
+    private static final org.eclipse.ecsp.utils.logger.IgniteLogger LOGGER =
+            org.eclipse.ecsp.utils.logger.IgniteLoggerFactory.getLogger(
+                    AbstractRateLimitConfigControllerIntegrationTest.class);
+
     private static final int REPLENISH_RATE_100 = 100;
     private static final int BURST_CAPACITY_200 = 200;
     private static final int REPLENISH_RATE_50 = 50;
@@ -111,8 +115,9 @@ abstract class AbstractRateLimitConfigControllerIntegrationTest {
             for (RateLimitConfigEntity entity : allEntities) {
                 rateLimitConfigRepository.delete(entity);
             }
-        } catch (Exception e) {
+        } catch (Exception ex) {
             // Ignore if repository is not available
+            LOGGER.debug("Skipping database cleanup: {}", ex.getMessage());
         }
     }
 

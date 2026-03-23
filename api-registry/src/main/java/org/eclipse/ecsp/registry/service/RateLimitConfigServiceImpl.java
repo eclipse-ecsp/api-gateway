@@ -352,7 +352,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
                 HttpStatus.resolve(Integer.valueOf(config.getEmptyKeyStatus()));
             } catch (IllegalArgumentException e) {
                 LOGGER.error("Invalid empty key status code in the config: {}," 
-                    + " must be a valid HTTP status code", config);
+                    + " must be a valid HTTP status code. Error: {}", config, e.getMessage());
                 throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     String.format("Empty key status must be a valid HTTP status code for %s.", identifier)

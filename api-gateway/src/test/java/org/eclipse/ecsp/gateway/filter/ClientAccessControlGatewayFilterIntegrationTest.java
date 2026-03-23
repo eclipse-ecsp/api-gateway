@@ -22,6 +22,8 @@ import io.jsonwebtoken.Jwts;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -135,51 +137,21 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     // AS-1: Valid JWT scenarios
     // =========================
 
-    @Test
-    void testValidJwtWithClientIdClaim() {
-        String jwt = createJwt("test-client-123", CLIENT_ID_CLAIM);
+    @ParameterizedTest(name = "Valid JWT with claim [{1}] on [{2}] should return 401")
+    @CsvSource({
+        "test-client-123, clientId, /user-service/get-profile",
+        "azure-client-456, azp, /user-service/get-profile",
+        "auth0-client-789, client_id, /payment-service/charge",
+        "okta-client-abc, cid, /vehicle-service/get-vehicle"
+    })
+    void testValidJwtWithDifferentClaimTypes(String clientId, String claimName, String uri) {
+        String jwt = createJwt(clientId, claimName);
 
         // Since cache is not implemented yet (Phase 6), the filter will return 401 "Client not found"
         // This is expected behavior for Phase 3/4 until cache service is added
         webTestClient
                 .get()
-                .uri(USER_SERVICE_PROFILE_URI)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
-                .exchange()
-                .expectStatus().isUnauthorized(); // Expected until cache is implemented
-    }
-
-    @Test
-    void testValidJwtWithAzpClaim() {
-        String jwt = createJwt("azure-client-456", "azp");
-
-        webTestClient
-                .get()
-                .uri(USER_SERVICE_PROFILE_URI)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
-                .exchange()
-                .expectStatus().isUnauthorized(); // Expected until cache is implemented
-    }
-
-    @Test
-    void testValidJwtWithClientIdClaimUnderscoreVariant() {
-        String jwt = createJwt("auth0-client-789", "client_id");
-
-        webTestClient
-                .get()
-                .uri("/payment-service/charge")
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
-                .exchange()
-                .expectStatus().isUnauthorized(); // Expected until cache is implemented
-    }
-
-    @Test
-    void testValidJwtWithCidClaim() {
-        String jwt = createJwt("okta-client-abc", "cid");
-
-        webTestClient
-                .get()
-                .uri("/vehicle-service/get-vehicle")
+                .uri(uri)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
                 .exchange()
                 .expectStatus().isUnauthorized(); // Expected until cache is implemented
@@ -254,33 +226,14 @@ class ClientAccessControlGatewayFilterIntegrationTest {
     // Security validation scenarios
     // =========================
 
-    @Test
-    void testSqlInjectionInClientId() {
-        String jwt = createJwt("test' UNION SELECT * FROM users--", CLIENT_ID_CLAIM);
-
-        webTestClient
-                .get()
-                .uri(USER_SERVICE_PROFILE_URI)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void testXssInClientId() {
-        String jwt = createJwt("<script>alert('xss')</script>", CLIENT_ID_CLAIM);
-
-        webTestClient
-                .get()
-                .uri(USER_SERVICE_PROFILE_URI)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + jwt)
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void testPathTraversalInClientId() {
-        String jwt = createJwt("../../etc/passwd", CLIENT_ID_CLAIM);
+    @ParameterizedTest(name = "Malicious clientId [{0}] should return 401")
+    @CsvSource({
+        "test' UNION SELECT * FROM users--",
+        "<script>alert('xss')</script>",
+        "../../etc/passwd"
+    })
+    void testMaliciousClientIdIsRejected(String maliciousClientId) {
+        String jwt = createJwt(maliciousClientId, CLIENT_ID_CLAIM);
 
         webTestClient
                 .get()

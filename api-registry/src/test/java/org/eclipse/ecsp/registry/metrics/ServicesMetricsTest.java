@@ -116,8 +116,8 @@ class ServicesMetricsTest {
     void listenHealthStatusWithNullEventDoesNotThrowException() {
         try {
             servicesMetrics.listenHealthStatus(null);
-        } catch (Exception e) {
-            fail("Method should not throw exception when event is null");
+        } catch (Exception ex) {
+            fail("Method should not throw exception when event is null: " + ex.getMessage());
         }
     }
 

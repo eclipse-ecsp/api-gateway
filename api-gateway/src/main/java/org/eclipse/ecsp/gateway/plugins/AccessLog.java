@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.gateway.exceptions.IgniteGlobalExceptionHandler;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
@@ -37,7 +38,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
@@ -254,7 +254,7 @@ public class AccessLog implements GlobalFilter, Ordered {
         final DataBufferFactory dataBufferFactory = originalResponse.bufferFactory();
         return new ServerHttpResponseDecorator(originalResponse) {
             @Override
-            public Mono<Void> writeWith(@NonNull Publisher<? extends DataBuffer> body) {
+            public Mono<Void> writeWith(@Nonnull Publisher<? extends DataBuffer> body) {
                 HttpStatusCode statusCode = originalResponse.getStatusCode();
                 MediaType contentType = originalResponse.getHeaders().getContentType();
                 

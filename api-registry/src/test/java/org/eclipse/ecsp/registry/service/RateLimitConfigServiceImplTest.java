@@ -773,6 +773,22 @@ class RateLimitConfigServiceImplTest {
         return dto;
     }
 
+    @Test
+    void testCreateOrUpdateWithInvalidNonNumericEmptyKeyStatusThrowsBadRequest() {
+        // Arrange - emptyKeyStatus is a non-numeric string causing Integer.valueOf() to throw
+        RateLimitConfigDto dto = createValidRouteDto("route1", REPLENISH_RATE_100, BURST_CAPACITY_200);
+        dto.setDenyEmptyKey(true);
+        dto.setEmptyKeyStatus("not-a-number");
+
+        // Act & Assert
+        try {
+            rateLimitConfigService.addOrUpdateRateLimitConfigs(List.of(dto));
+        } catch (ResponseStatusException ex) {
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            assertTrue(ex.getReason().contains("Empty key status must be a valid HTTP status code"));
+        }
+    }
+
     private RateLimitConfigDto createValidServiceDto(String service, long replenishRate, long burstCapacity) {
         RateLimitConfigDto dto = new RateLimitConfigDto();
         dto.setService(service);

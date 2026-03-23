@@ -45,6 +45,7 @@ public class TestKeyPairGenerator {
      * @throws Exception if any error occurs during key generation or encoding
      */
     public static void main(String[] args) throws Exception {
+        LOGGER.info("Generating RSA key pair with args: {}", args.length > 0 ? String.join(", ", args) : "none");
         // Generate RSA key pair
         java.security.KeyPairGenerator keyGen = java.security.KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(KEYSIZE);

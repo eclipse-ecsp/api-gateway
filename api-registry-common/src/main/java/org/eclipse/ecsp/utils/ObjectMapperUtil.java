@@ -34,11 +34,13 @@ public class ObjectMapperUtil {
     private static final ObjectMapper INSTANCE;
 
     static {
-        INSTANCE = JsonMapper.builder().enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS).build();
+        INSTANCE = JsonMapper.builder()
+                .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
+                .build();
         INSTANCE.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         INSTANCE.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         INSTANCE.configure(Feature.INCLUDE_SOURCE_IN_LOCATION, true);
-        INSTANCE.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        INSTANCE.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         INSTANCE.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
     }
 

@@ -172,6 +172,19 @@ class GatewayRateLimiterTest {
             .verifyComplete();
     }
 
+    @Test
+    void isAllowedWhenNeitherRouteNorDefaultFiltersConfiguredReturnsAllowedWithEmptyHeaders() {
+        // No config registered for routeId and no "defaultFilters" config either
+        StepVerifier.create(gatewayRateLimiter.isAllowed(UNKNOWN_ROUTE, RESOLVED_KEY))
+            .assertNext(response -> {
+                assertTrue(response.isAllowed(),
+                    "Request should be allowed when no rate limit config is available");
+                assertTrue(response.getHeaders().isEmpty(),
+                    "Response headers should be empty when no config is available");
+            })
+            .verifyComplete();
+    }
+
     private void registerRouteConfig(String routeId, int replenishRate, int burstCapacity, int requestedTokens) {
         RedisRateLimiter.Config config = new RedisRateLimiter.Config()
             .setReplenishRate(replenishRate)

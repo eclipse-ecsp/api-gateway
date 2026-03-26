@@ -12,6 +12,11 @@ spring:
     name: api-gateway
   main:
     web-application-type: reactive
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
   # data:
   #   redis:
   #     cluster:
@@ -31,31 +36,33 @@ spring:
           globalcors:
             cors-configurations:
               config:
-                allowedmethods: "*"
-                allowedheaders: "*"
-                maxage: "3600"
-                allowedoriginpatterns: "https://*.example.com"
+                allowed-methods: "*"
+                allowed-headers: "*"
+                max-age: "3600"
+                allowed-origin-patterns: "https://*.example.com"
           httpclient:
             wiretap: true
-            pool.metrics: ${api.gateway.metrics.enabled}
+            pool:
+              metrics: ${api.gateway.metrics.enabled}
           metrics:
             enabled: ${api.gateway.metrics.gateway-requests.enabled}
             prefix: ${api.gateway.metrics.gateway-requests.prefix}
-      filter:
-        redis.cache.enabled: false
-      default-filters:
-        - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
-        - name: RequestHeaderFilter
-          args:
-            remove-unknown-headers: ${api_gateway_request-header-filter_remove_unknown_headers:true}
-            skip-validation-for-apis: ${api_gateway_request-header-filter_skip_validation_for_apis:/api-docs/**,/v3/api-docs/**}
-            allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName}
-            append-headers-if-missing: ${api_gateway_request-header-filter_append_headers_if_missing:correlationId}
-            global-headers:
-              - name: correlationId
-                required: true # first level
-                regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
-
+          filter:
+            redis:
+              cache:
+                enabled: false
+          default-filters:
+            - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
+            - name: RequestHeaderFilter
+              args:
+                remove-unknown-headers: ${api_gateway_request-header-filter_remove_unknown_headers:true}
+                skip-validation-for-apis: ${api_gateway_request-header-filter_skip_validation_for_apis:/api-docs/**,/v3/api-docs/**}
+                allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName}
+                append-headers-if-missing: ${api_gateway_request-header-filter_append_headers_if_missing:correlationId}
+                global-headers:
+                - name: correlationId
+                  required: true # first level
+                  regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
 jwt:
   keySources:
   - id: test
@@ -93,7 +100,7 @@ api:
   isFilterOverrideEnabled: false
   overrideFilterConfig:
     JwtAuthValidator:
-      filterName: CustomValidator
+      filterName: <FilterName>
   caching:
     type: "redis"
     enabled: true
@@ -105,7 +112,7 @@ api:
     routes:
       enabled: true
   registered:
-    services: "test-dmap"
+    services: ""
   userId:
     field: "sub"
   gateway:
@@ -216,11 +223,6 @@ springdoc:
   version: '@springdoc.version@'
   swagger-ui:
     use-root-path: true
-logging:
-  level:
-    org.springframework.cloud.gateway: ERROR
-    org.springframework.boot.context.config: ERROR
-    org.springframework.boot.loader: ERROR
 ## Plugin configurations
 plugin:
   enabled: ${plugin_enabled:false}

@@ -113,7 +113,7 @@ public class ApiRoutesHealthMonitor {
             boolean currentStatus = getHealth(name, url, "actuator/health") || getHealth(name, url, "v1/health");
             Boolean prevStatus = previousStatus.get(name);
             // Track status changes
-            if (prevStatus != null && !currentStatus == prevStatus) {
+            if (prevStatus != null && currentStatus != prevStatus) {
                 changedServices.add(name);
                 LOGGER.info("Service: {}, health status changed from: {} to: {}", name, prevStatus, currentStatus);
                 update(name, currentStatus);

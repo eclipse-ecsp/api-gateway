@@ -66,6 +66,14 @@
     <logger name="org.eclipse.ecsp.gateway.plugins.AccessLog" level="${ACCESS_LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
     </logger>
+    <logger name="reactor.netty.http.server.AccessLog" level="${SPRING_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
+    </logger>
+    <!-- Wire-level logging for outgoing backend HTTP requests/responses (headers, status codes).
+         Requires spring.cloud.gateway.server.webflux.httpclient.wiretap=true (already set). -->
+    <logger name="reactor.netty.http.client.HttpClient" level="${BACKEND_WIRE_LOG_LEVEL:-ERROR}" additivity="false">
+        <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>
+    </logger>
     <logger name="org.eclipse.ecsp.nosqldao" level="${STORAGE_LOG_LEVEL:-ERROR}"
             additivity="false">
         <appender-ref ref="${LOG_APPENDER:-STDOUT}"/>

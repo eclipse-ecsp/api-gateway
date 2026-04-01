@@ -36,10 +36,10 @@ spring:
           globalcors:
             cors-configurations:
               config:
-                allowed-methods: "*"
-                allowed-headers: "*"
-                max-age: "3600"
-                allowed-origin-patterns: "https://*.example.com"
+                allowedmethods: "*"
+                allowedheaders: "*"
+                maxage: "3600"
+                allowedoriginpatterns: "https://*.example.com"
           httpclient:
             wiretap: true
             pool:

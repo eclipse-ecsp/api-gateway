@@ -39,6 +39,7 @@ import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +47,13 @@ import java.util.stream.Collectors;
  */
 public class RequestBodyFilter implements GatewayFilter, Ordered {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RequestBodyFilter.class);
+
+    /**
+     * Matches a timezone offset without colon (e.g. +0000, -0530) at the end of a
+     * date-time string, so it can be normalised to RFC 3339 form (+00:00, -05:30).
+     */
+    private static final Pattern TIMEZONE_OFFSET_PATTERN =
+            Pattern.compile("(\\d{4}-\\d{2}-\\d{2}T[\\d:.]+)([+-])(\\d{2})(\\d{2})");
 
     /**
      * Request body validation flag.
@@ -102,7 +110,7 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
             if (requestBodyValidation) {
                 JsonNode contentNode;
                 try {
-                    contentNode = ObjectMapperUtil.getObjectMapper().readTree(body);
+                    contentNode = ObjectMapperUtil.getObjectMapper().readTree(normalizeTimezoneOffset(body));
                 } catch (Exception e) {
                     LOGGER.error("Invalid request body validation failed with error {} for request: {}",
                             e,
@@ -126,6 +134,18 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
                 }
             }
         }
+    }
+
+    /**
+     * Normalises timezone offsets in the body string from the Java {@code java.util.Date}
+     * serialisation format (e.g. {@code +0000}) to RFC 3339 form ({@code +00:00}) so that
+     * openapi4j's {@code date-time} format validator accepts them.
+     *
+     * @param body raw request body string
+     * @return body with all bare timezone offsets converted to {@code ±HH:MM}
+     */
+    private String normalizeTimezoneOffset(String body) {
+        return TIMEZONE_OFFSET_PATTERN.matcher(body).replaceAll("$1$2$3:$4");
     }
 
     @Override

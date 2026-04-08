@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.test.util.ReflectionTestUtils;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -68,7 +69,7 @@ class ApiConfigGroupedOpenApiTest {
     @Test
     void testGroupedOpenApiWithValidDependencies() {
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);
@@ -83,7 +84,7 @@ class ApiConfigGroupedOpenApiTest {
         ReflectionTestUtils.setField(apiConfig, "pathsInclude", new String[]{});
 
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);
@@ -96,7 +97,7 @@ class ApiConfigGroupedOpenApiTest {
         ReflectionTestUtils.setField(apiConfig, "pathsExclude", new String[]{});
 
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);
@@ -106,7 +107,7 @@ class ApiConfigGroupedOpenApiTest {
     @Test
     void testGroupedOpenApiCreatesGroupedOpenApiWithCustomizers() {
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);
@@ -122,7 +123,7 @@ class ApiConfigGroupedOpenApiTest {
         ReflectionTestUtils.setField(apiConfig, "applicationName", customAppName);
 
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);
@@ -136,7 +137,7 @@ class ApiConfigGroupedOpenApiTest {
         ReflectionTestUtils.setField(apiConfig, "pathsInclude", multiplePaths);
 
         // When
-        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, customGatewayFilterCustomizer);
+        GroupedOpenApi result = apiConfig.groupedOpenApi(scopeTagger, cachingTagger, Optional.of(customGatewayFilterCustomizer));
 
         // Then
         assertNotNull(result);

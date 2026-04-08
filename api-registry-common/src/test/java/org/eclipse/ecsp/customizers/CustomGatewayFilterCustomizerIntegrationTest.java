@@ -42,6 +42,7 @@ import java.util.Optional;
 @TestPropertySource(properties = {
     "api.registry.enabled=true",
     "api.registry.service_name=http://registry",
+    "api.registry.custom-gateway-filter.enabled=true",
     "openapi.path.include=/v1/test/**",
     "openapi.path.exclude=/v2/test/**",
     "spring.application.name=registry-test-service",

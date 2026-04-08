@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ApiConfig.
@@ -166,24 +167,24 @@ public class ApiConfig {
      *
      * @param scopeTagger   used to match the scope
      * @param cachingTagger caching tagger
-     * @param customGatewayFilterCustomizer add custom gateway filter
+     * @param customGatewayFilterCustomizer add custom gateway filter (optional)
      *
      * @return GroupedOpenApi object
      */
     @Bean
     public GroupedOpenApi groupedOpenApi(final ScopeTagger scopeTagger,
                                          final CachingTagger cachingTagger,
-                                         final CustomGatewayFilterCustomizer customGatewayFilterCustomizer) {
+                                         final Optional<CustomGatewayFilterCustomizer> customGatewayFilterCustomizer) {
         LOGGER.info("Calling GroupedOpenApi of " + applicationName() + " \nEndpoints Included "
                 + Arrays.toString(this.pathsInclude()) + " \nEndpoints Excluded "
                 + Arrays.toString(this.pathsExclude()));
-        return GroupedOpenApi.builder()
+        GroupedOpenApi.Builder builder = GroupedOpenApi.builder()
                 .group(applicationName())
                 .pathsToMatch(pathsInclude())
                 .pathsToExclude(pathsExclude())
                 .addOperationCustomizer(scopeTagger)
-                .addOperationCustomizer(cachingTagger)
-                .addOperationCustomizer(customGatewayFilterCustomizer)
-                .build();
+                .addOperationCustomizer(cachingTagger);
+        customGatewayFilterCustomizer.ifPresent(builder::addOperationCustomizer);
+        return builder.build();
     }
 }

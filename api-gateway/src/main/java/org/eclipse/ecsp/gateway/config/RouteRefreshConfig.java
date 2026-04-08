@@ -28,12 +28,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.retry.backoff.ExponentialBackOffPolicy;
-import org.springframework.retry.policy.SimpleRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.client.RestClientException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Redis configuration for route event subscription in API Gateway.
@@ -80,40 +74,5 @@ public class RouteRefreshConfig {
                 properties.getRedis().getChannel());
 
         return container;
-    }
-
-    /**
-     * Configure RetryTemplate with exponential backoff.
-     *
-     * @return configured RetryTemplate
-     */
-    @Bean("routesRefreshRetryTemplate")
-    public RetryTemplate routesRefreshRetryTemplate() {
-        // Configure exponential backoff policy
-        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setInitialInterval(properties.getRetry().getInitialIntervalMs());
-        backOffPolicy.setMultiplier(properties.getRetry().getMultiplier());
-        backOffPolicy.setMaxInterval(properties.getRetry().getMaxIntervalMs());
-        RetryTemplate retryTemplate = new RetryTemplate();
-        retryTemplate.setBackOffPolicy(backOffPolicy);
-
-        // Configure retry policy with max attempts
-        Map<Class<? extends Throwable>, Boolean> retryableExceptions = new HashMap<>();
-        retryableExceptions.put(RestClientException.class, true);
-        retryableExceptions.put(Exception.class, true);
-
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
-                properties.getRetry().getMaxAttempts(),
-                retryableExceptions
-        );
-        retryTemplate.setRetryPolicy(retryPolicy);
-
-        LOGGER.info("RetryTemplate configured: maxAttempts={}, initialInterval={}ms, multiplier={}, maxInterval={}ms",
-                properties.getRetry().getMaxAttempts(),
-                properties.getRetry().getInitialIntervalMs(),
-                properties.getRetry().getMultiplier(),
-                properties.getRetry().getMaxIntervalMs());
-
-        return retryTemplate;
     }
 }

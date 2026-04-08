@@ -25,6 +25,7 @@ import org.eclipse.ecsp.utils.NumericConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringValueResolver;
@@ -46,6 +47,8 @@ import java.util.stream.Collectors;
  * ({@code #{...}}), which are resolved at application context startup time.
  */
 @Component
+@ConditionalOnProperty(name = "api.registry.custom-gateway-filter.enabled", 
+    havingValue = "true", matchIfMissing = false)
 public class CustomGatewayFilterCustomizer implements OperationCustomizer, EmbeddedValueResolverAware {
 
     private StringValueResolver embeddedValueResolver;

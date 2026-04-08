@@ -292,4 +292,39 @@ class RequestBodyFilterTest {
         Assertions.assertEquals("Invalid request payload", invalidRequestEx.getMessage());
     }
 
+    @Test
+    void testFilterWithJavaDateTimezoneOffset() throws ResolutionException, JsonProcessingException {
+        // java.util.Date serialises timezone offsets without colon (e.g. +0000 instead of +00:00).
+        // The filter must normalise these before schema validation so the date-time format
+        // check does not reject them.
+        String body = """
+                {
+                  "createdOn": "2018-08-08T15:48:37.883+0000",
+                  "updatedOn": "2018-08-08T15:48:37.883+0530"
+                }
+                """;
+        request = MockServerWebExchange.builder(
+                MockServerHttpRequest.method(HttpMethod.POST, "/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+        ).build();
+        Map<String, Object> attributes = request.getAttributes();
+        attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
+        Route route = Mockito.mock(Route.class);
+        JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
+                {
+                  "type": "object",
+                  "properties": {
+                    "createdOn": { "type": "string", "format": "date-time" },
+                    "updatedOn": { "type": "string", "format": "date-time" }
+                  }
+                }""");
+        SchemaValidator schemaValidator = new SchemaValidator("schema", schema);
+        when(route.getMetadata()).thenReturn(Map.of(GatewayConstants.SCHEMA_VALIDATOR, schemaValidator));
+        attributes.put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, route);
+
+        // Must NOT throw — +0000 and +0530 offsets should be accepted after normalisation
+        Assertions.assertDoesNotThrow(() -> requestBodyFilter.filter(request, gatewayFilterChain));
+    }
+
 }

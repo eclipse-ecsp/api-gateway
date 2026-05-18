@@ -117,7 +117,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             LOGGER.warn("Missing or malformed authentication token for endpoint {}", request.getRequestURI());
-            return writeUnauthorized(response, "Missing or malformed authentication token");
+            return writeUnauthorized(response, "Invalid token");
         }
 
         String token = authHeader.substring(BEARER_PREFIX_LENGTH);
@@ -130,7 +130,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
             return true;
         } catch (TokenValidatorException ex) {
             LOGGER.warn("Token validation failed: {}, for the endpoint {}", ex.getMessage(), request.getRequestURI());
-            return writeUnauthorized(response, ex.getMessage());
+            return writeUnauthorized(response, "Token validation failed");
         }
     }
 
@@ -147,7 +147,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
         } catch (InvalidClaimException exInvalidClaimException) {
             LOGGER.warn("Token does not have required scopes for endpoint {}",
                 request.getRequestURI(), exInvalidClaimException);
-            return writeUnauthorized(response, "Insufficient token scopes");
+            return writeUnauthorized(response, "Token validation failed");
         }
     }
 

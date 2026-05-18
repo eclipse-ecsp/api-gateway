@@ -18,11 +18,15 @@
 
 package org.eclipse.ecsp.restclient;
 
+import org.eclipse.ecsp.config.RestTemplateConfig;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -30,6 +34,9 @@ import org.springframework.web.client.RestTemplate;
  */
 @ExtendWith(MockitoExtension.class)
 class RestTemplateConfigTest {
+
+    @Mock
+    private ObjectProvider<RestTemplateTokenInterceptor> tokenInterceptorProvider;
 
     private RestTemplateConfig restTemplateConfig;
     
@@ -40,7 +47,8 @@ class RestTemplateConfigTest {
 
     @Test
     void restTemplateTest() {
-        RestTemplate restTemplate = restTemplateConfig.restTemplate();
+        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        RestTemplate restTemplate = restTemplateConfig.restTemplate(tokenInterceptorProvider);
         Assertions.assertNotNull(restTemplate);
     }
 

@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import java.util.Optional;
 
 /**
  * InterceptorConfigTest.
@@ -41,7 +42,7 @@ class InterceptorConfigTest {
     
     @BeforeEach
     void setUp() {
-        interceptorConfig = new InterceptorConfig(headerInterceptor);
+        interceptorConfig = new InterceptorConfig(headerInterceptor, Optional.empty());
     }
 
     @Test

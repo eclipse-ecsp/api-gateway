@@ -49,7 +49,7 @@ class ScopeValidatorTest {
     
     @BeforeEach
     void setUp() {
-        scopeValidator = new ScopeValidator();
+        scopeValidator = new ScopeValidator(new ScopeOverrideProperties());
     }
 
     private void quickSetup(String methodName, Set<String> userScopes, Set<String> overrideScopes)

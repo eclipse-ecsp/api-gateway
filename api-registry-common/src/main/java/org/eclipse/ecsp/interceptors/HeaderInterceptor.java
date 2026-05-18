@@ -69,4 +69,20 @@ public class HeaderInterceptor implements HandlerInterceptor {
         }
         return true;
     }
+
+    /**
+     * Clears the {@link HeaderContext} ThreadLocal after every request, preventing
+     * memory leaks caused by servlet-container thread reuse.
+     *
+     * @param request  the current HTTP request
+     * @param response the current HTTP response
+     * @param handler  the chosen handler
+     * @param ex       any exception thrown during handler execution, or {@code null}
+     */
+    @Override
+    public void afterCompletion(@NotNull HttpServletRequest request,
+                                @NotNull HttpServletResponse response,
+                                @NotNull Object handler, Exception ex) {
+        HeaderContext.clear();
+    }
 }

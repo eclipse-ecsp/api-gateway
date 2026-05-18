@@ -27,10 +27,12 @@ import org.eclipse.ecsp.gateway.model.Response;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.WebProperties;
+import org.springframework.boot.http.codec.CodecCustomizer;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.web.server.autoconfigure.ServerProperties;
 import org.springframework.cloud.circuitbreaker.resilience4j.ReactiveResilience4JCircuitBreakerFactory;
@@ -46,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -295,6 +298,12 @@ public class GatewayConfig {
                 properties.getRetry().getMaxIntervalMs());
 
         return retryTemplate;
+    }
+
+    //@Bean
+    public CodecCustomizer codecCustomizer(@Value("${spring.codec.max-in-memory-size:1MB}") String maxInMemorySize) {
+        int maxInMemorySizeBytes = (int) DataSize.parse(maxInMemorySize).toBytes();
+        return configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySizeBytes);
     }
 
 }

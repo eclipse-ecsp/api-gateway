@@ -41,6 +41,7 @@ import java.util.Optional;
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
     "api.registry.enabled=true",
+    "api.registry.security.enabled=false",
     "api.registry.service_name=http://registry",
     "api.registry.custom-gateway-filter.enabled=true",
     "openapi.path.include=/v1/test/**",

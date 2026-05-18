@@ -148,4 +148,44 @@ public class RegistryCommonConstants {
      * Replacement regular expression.
      */
     public static final String REPLACEMENT_REGEX = "/${segment}";
+
+    /**
+     * Base configuration prefix for all {@code api.registry} properties.
+     */
+    public static final String API_REGISTRY_PREFIX = "api.registry";
+
+    /**
+     * Configuration prefix for {@code api.registry.security} properties.
+     * Used as the {@code prefix} in {@code @ConditionalOnProperty} and
+     * {@code @ConfigurationProperties} annotations that control JWT security.
+     */
+    public static final String API_REGISTRY_SECURITY_PREFIX = API_REGISTRY_PREFIX + ".security";
+
+    /**
+     * Full property key for enabling/disabling JWT security
+     * ({@code api.registry.security.enabled}).
+     * Used in programmatic property lookups such as {@link org.springframework.boot.env.EnvironmentPostProcessor}.
+     */
+    public static final String API_REGISTRY_SECURITY_ENABLED = API_REGISTRY_SECURITY_PREFIX + ".enabled";
+
+    /**
+     * Configuration prefix for RestTemplate token-propagation properties
+     * ({@code api.registry.token-propagation.rest-template}).
+     */
+    public static final String API_REGISTRY_REST_TEMPLATE_PROPAGATION_PREFIX =
+            API_REGISTRY_PREFIX + ".token-propagation.rest-template";
+
+    /**
+     * Configuration prefix for RestClient token-propagation properties
+     * ({@code api.registry.token-propagation.rest-client}).
+     */
+    public static final String API_REGISTRY_REST_CLIENT_PROPAGATION_PREFIX =
+            API_REGISTRY_PREFIX + ".token-propagation.rest-client";
+
+    /**
+     * Configuration prefix for WebClient token-propagation properties
+     * ({@code api.registry.token-propagation.web-client}).
+     */
+    public static final String API_REGISTRY_WEB_CLIENT_PROPAGATION_PREFIX =
+            API_REGISTRY_PREFIX + ".token-propagation.web-client";
 }

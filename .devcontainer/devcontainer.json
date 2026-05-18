@@ -58,5 +58,13 @@
       "onAutoForward": "ignore"
     }
   },
-  "otherPortsAttributes": {"onAutoForward": "ignore"}
+  "otherPortsAttributes": {"onAutoForward": "ignore"},
+  "shutdownAction": "none",
+  "mounts": [
+    "source=/data/home/akumar87/.m2,target=/home/vscode/.m2,type=bind,consistency=consistent",
+    "source=/data/home/akumar87/codebase/bitbucket/api-gateway-custom-plugin,target=/workspaces/api-gateway-custom-plugin,type=bind,consistency=cached",
+    "source=/data/home/akumar87/codebase/scripts/,target=/workspaces/scripts,type=bind,consistency=cached",
+    "source=/data/home/akumar87/codebase/ecsp/token-validator,target=/workspaces/token-validator,type=bind,consistency=cached",
+    "source=/data/home/akumar87/codebase/harman-auto/sp-platform-productenablers-api-gateway-test,target=/workspaces/sp-platform-productenablers-api-gateway-test,type=bind,consistency=cached"
+  ]
 }

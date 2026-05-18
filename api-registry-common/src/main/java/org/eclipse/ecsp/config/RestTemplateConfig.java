@@ -16,10 +16,14 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.restclient;
+package org.eclipse.ecsp.config;
 
+import org.eclipse.ecsp.restclient.RestTemplateErrorHandler;
+import org.eclipse.ecsp.restclient.RestTemplateLogInterceptor;
+import org.eclipse.ecsp.restclient.RestTemplateTokenInterceptor;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,15 +48,23 @@ public class RestTemplateConfig {
     /**
      * Create and returns the object of RestTemplate.
      *
+     * <p>If a {@link RestTemplateTokenInterceptor} bean is available it is added to the
+     * interceptor chain so that Bearer tokens are forwarded to downstream services.
+     *
+     * @param tokenInterceptorProvider provider for the optional token propagation interceptor
      * @return RestTemplate Object
      */
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate restTemplate() {
+    public RestTemplate restTemplate(ObjectProvider<RestTemplateTokenInterceptor> tokenInterceptorProvider) {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.setErrorHandler(new RestTemplateErrorHandler());
         if (LOGGER.isDebugEnabled()) {
             restTemplate.getInterceptors().add(new RestTemplateLogInterceptor());
+        }
+        RestTemplateTokenInterceptor tokenInterceptor = tokenInterceptorProvider.getIfAvailable();
+        if (tokenInterceptor != null) {
+            restTemplate.getInterceptors().add(tokenInterceptor);
         }
         return restTemplate;
     }

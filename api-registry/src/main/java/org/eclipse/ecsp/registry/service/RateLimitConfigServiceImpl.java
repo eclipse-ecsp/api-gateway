@@ -128,7 +128,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
             List<String> servicesList = new ArrayList<>();
             List<String> routesList = new ArrayList<>();
             
-            updatedDtos.stream().forEach(dto -> {
+            updatedDtos.forEach(dto -> {
                 if (StringUtils.isNotBlank(dto.getService())) {
                     servicesList.add(dto.getService());
                 }

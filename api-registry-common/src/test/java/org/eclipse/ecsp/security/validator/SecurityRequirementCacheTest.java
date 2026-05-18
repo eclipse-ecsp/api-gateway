@@ -50,7 +50,6 @@ class SecurityRequirementCacheTest {
 
     @Test
     void shouldReturnFalseWhenAnnotationAbsent() throws Exception {
-        Method method = SampleController.class.getMethod("publicEndpoint");
         HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 

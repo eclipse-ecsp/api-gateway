@@ -23,6 +23,7 @@ import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -144,6 +145,9 @@ public abstract class SecurityContext {
                 Object value = claim.getValue();
                 if (value instanceof Number num) {
                     return Instant.ofEpochMilli(num.longValue() * MILLIS_PER_SECOND);
+                }
+                if (value instanceof Date date) {
+                    return date.toInstant();
                 }
                 LOGGER.warn("Unexpected type for 'exp' claim: {}", value == null ? "null" : value.getClass());
                 return null;

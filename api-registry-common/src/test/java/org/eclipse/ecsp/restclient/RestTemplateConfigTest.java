@@ -48,7 +48,7 @@ class RestTemplateConfigTest {
     @Test
     void restTemplateTest() {
         Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
-        RestTemplate restTemplate = restTemplateConfig.restTemplate(tokenInterceptorProvider);
+        RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, tokenInterceptorProvider);
         Assertions.assertNotNull(restTemplate);
     }
 

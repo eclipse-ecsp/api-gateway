@@ -98,43 +98,6 @@ public class TokenValidationConfiguration {
     }
 
     /**
-     * Creates the RestTemplate token propagation interceptor when enabled.
-     *
-     * @param config the validation / propagation configuration properties
-     * @return the interceptor
-     */
-    @Bean
-    @ConditionalOnProperty(
-        prefix = RegistryCommonConstants.API_REGISTRY_REST_TEMPLATE_PROPAGATION_PREFIX,
-        name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true
-    )
-    public RestTemplateTokenInterceptor restTemplateTokenInterceptor(ValidationConfigProperties config) {
-        LOGGER.debug("Creating RestTemplateTokenInterceptor bean");
-        return new RestTemplateTokenInterceptor(config);
-    }
-
-    /**
-     * Creates a {@link RestClientTokenInterceptor} bean for token propagation.
-     *
-     * @param config the validation / propagation configuration properties
-     * @return the interceptor
-     */
-    @Bean
-    @ConditionalOnProperty(
-        prefix = RegistryCommonConstants.API_REGISTRY_REST_CLIENT_PROPAGATION_PREFIX,
-        name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true
-    )
-    @ConditionalOnClass(org.springframework.web.client.RestClient.class)
-    public RestClientTokenInterceptor restClientTokenInterceptor(ValidationConfigProperties config) {
-        LOGGER.debug("Creating RestClientTokenInterceptor bean");
-        return new RestClientTokenInterceptor(config);
-    }
-
-    /**
      * Creates a default ObjectMapper bean if one is not already defined.
      *
      * @return the object mapper

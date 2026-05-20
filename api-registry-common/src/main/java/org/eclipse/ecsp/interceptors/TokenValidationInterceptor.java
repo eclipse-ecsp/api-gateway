@@ -102,7 +102,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
                              @NotNull HttpServletResponse response,
                              @NotNull Object handler) throws IOException {
         if (!config.getSecurity().isEnabled()) {
-            LOGGER.debug("security not enabled, skipping token validation");
+            LOGGER.debug("security not enabled, skipping token validation for endpoint {}", request.getRequestURI());
             return true;
         }
         if (!(handler instanceof HandlerMethod)) {
@@ -110,7 +110,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
         }
         HandlerMethod handlerMethod = (HandlerMethod) handler;
         if (!securityRequirementCache.isSecured(handlerMethod)) {
-            LOGGER.debug("Endpoint is not secured, skipping token validation");
+            LOGGER.debug("Endpoint {} is not secured, skipping token validation", request.getRequestURI());
             return true;
         }
 
@@ -124,9 +124,11 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
         try {
             List<TokenClaim> claims = tokenValidator.validate(token);
             if (!validateScopes(handlerMethod, claims, request, response)) {
+                LOGGER.warn("Token does not have required scopes for endpoint {}", request.getRequestURI());
                 return false;
             }
             SecurityContext.set(token, claims);
+            LOGGER.debug("Token validated successfully for endpoint {}", request.getRequestURI());
             return true;
         } catch (TokenValidatorException ex) {
             LOGGER.warn("Token validation failed: {}, for the endpoint {}", ex.getMessage(), request.getRequestURI());
@@ -143,6 +145,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
         List<String> effectiveScopes = resolveEffectiveScopes(handlerMethod, requiredScopes);
         try {
             scopeValidator.validateClaims(claims, effectiveScopes);
+            LOGGER.debug("Token has required scopes for endpoint {}", request.getRequestURI());
             return true;
         } catch (InvalidClaimException exInvalidClaimException) {
             LOGGER.warn("Token does not have required scopes for endpoint {}",
@@ -163,6 +166,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     public void afterCompletion(@NotNull HttpServletRequest request,
                                 @NotNull HttpServletResponse response,
                                 @NotNull Object handler, Exception ex) {
+        LOGGER.debug("Clearing SecurityContext for the api: {}", request.getRequestURI());                       
         SecurityContext.clear();
     }
 

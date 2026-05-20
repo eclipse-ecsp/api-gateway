@@ -70,15 +70,18 @@ public abstract class AbstractTokenPropagationInterceptor {
     protected boolean shouldSkipPropagation(URI targetUri) {
         String host = targetUri.getHost();
         if (host == null) {
+            LOGGER.warn("Target URI {} does not have a host; skipping token propagation", targetUri);
             return false;
         }
         List<String> excludeHosts = config.getTokenPropagation().getExcludeHosts();
         for (String excluded : excludeHosts) {
             if (host.equalsIgnoreCase(excluded)) {
+                LOGGER.debug("Host {} is in exclude-hosts; skipping token propagation", host);
                 return true;
             }
         }
         if (config.getTokenPropagation().isAllowExternalHosts()) {
+            LOGGER.debug("allow-external-hosts is true; allowing token propagation to {}", host);
             return false;
         }
         // If allow-external-hosts is false, only forward when host is in include-hosts
@@ -86,12 +89,15 @@ public abstract class AbstractTokenPropagationInterceptor {
         if (!includeHosts.isEmpty()) {
             for (String included : includeHosts) {
                 if (host.equalsIgnoreCase(included)) {
+                    LOGGER.debug("Host {} is in include-hosts; allowing token propagation", host);
                     return false;
                 }
             }
+            LOGGER.debug("Host {} is not in include-hosts; skipping token propagation", host);
             return true;
         }
         // No include-hosts restriction — allow all non-excluded hosts
+        LOGGER.debug("No include-hosts restriction; allowing token propagation to {}", host);
         return false;
     }
 
@@ -106,12 +112,14 @@ public abstract class AbstractTokenPropagationInterceptor {
     protected Optional<String> resolveToken(URI targetUri) {
         Optional<String> token = SecurityContext.getToken();
         if (token.isEmpty()) {
+            LOGGER.warn("No token found in SecurityContext; skipping propagation to {}", targetUri);
             return Optional.empty();
         }
         if (SecurityContext.isTokenExpired()) {
             LOGGER.warn("Token is expired; skipping propagation to {}", targetUri);
             return Optional.empty();
         }
+        LOGGER.debug("Token is valid; allowing propagation to {}", targetUri);
         return token;
     }
 }

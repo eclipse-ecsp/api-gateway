@@ -18,17 +18,25 @@
 
 package org.eclipse.ecsp.config;
 
+import io.netty.channel.ChannelOption;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.webclient.WebClientTokenFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.http.client.reactive.ClientHttpConnectorBuilder;
 import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Auto-configuration for WebClient bean with token propagation support.
@@ -115,15 +123,17 @@ public class WebClientConfig {
      */
     @Bean
     @ConditionalOnMissingBean(WebClient.Builder.class)
-    @ConditionalOnProperty(
-        prefix = RegistryCommonConstants.API_REGISTRY_WEB_CLIENT_PROPAGATION_PREFIX,
-        name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true
-    )
-    public WebClient.Builder webClientBuilder(WebClientTokenFilter tokenFilter) {
+    public WebClient.Builder webClientBuilder(Optional<WebClientTokenFilter> tokenFilter,
+        @Value("${api.registry.web-client.connect-timeout-ms:5000}") long connectTimeoutMs,
+        @Value("${api.registry.web-client.read-timeout-ms:5000}") long readTimeoutMs) {
+        
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) connectTimeoutMs)
+                .responseTimeout(Duration.ofMillis(readTimeoutMs));
+        ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
         WebClient.Builder builder = WebClient.builder();
-        builder.filter(tokenFilter);
+        tokenFilter.ifPresent(builder::filter);
+        builder.clientConnector(connector);
         return builder;
     }
 
@@ -137,7 +147,6 @@ public class WebClientConfig {
      *
      * @param builder the WebClient.Builder to build the WebClient with
      * @return a default WebClient
-     * @see #webClientBuilder(WebClientTokenFilter)
      */
     @Bean
     @ConditionalOnMissingBean(WebClient.class)

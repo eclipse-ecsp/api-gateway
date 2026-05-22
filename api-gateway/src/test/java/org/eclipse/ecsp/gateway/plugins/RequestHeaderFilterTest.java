@@ -43,6 +43,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -292,8 +293,8 @@ class RequestHeaderFilterTest {
         wireMockServer.verify(postRequestedFor(urlEqualTo("/v3/test/route-invalid-header-metadata"))
                 .withHeader("correlationId", matching("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
                 .withHeader("sessionId", equalTo("sessionId1"))
-                .withoutHeader("x-tenant-id")
-                .withoutHeader("x-api-key"));
+                .withHeader("x-api-key", equalTo("MyValidApiKey"))
+                .withoutHeader("x-tenant-id"));
     }
 
     @Test
@@ -339,7 +340,7 @@ class RequestHeaderFilterTest {
                 .expectBody(String.class);
     }
 
-    @TestConfiguration()
+    @TestConfiguration
     static class RequestHeaderFilterTestConfig {
 
         @Autowired

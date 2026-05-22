@@ -18,10 +18,12 @@
 
 package org.eclipse.ecsp.config;
 
+import io.netty.channel.ChannelOption;
 import org.eclipse.ecsp.restclient.RestClientTokenInterceptor;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,7 +31,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.client.RestClient;
+import reactor.netty.http.client.HttpClient;
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Auto-configuration that binds the {@link RestClientTokenInterceptor} to
@@ -87,14 +94,16 @@ public class RestClientConfig {
      */
     @Bean
     @ConditionalOnMissingBean(RestClient.Builder.class)
-    @ConditionalOnProperty(
-            prefix = RegistryCommonConstants.API_REGISTRY_REST_CLIENT_PROPAGATION_PREFIX,
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-        )
-    public RestClient.Builder restClientBuilder(RestClientTokenInterceptor tokenInterceptor) {
-        return RestClient.builder().requestInterceptor(tokenInterceptor);
+    public RestClient.Builder restClientBuilder(Optional<RestClientTokenInterceptor> tokenInterceptor,
+        @Value("${api.registry.rest-client.connect-timeout-ms:5000}") long connectTimeoutMs,
+        @Value("${api.registry.rest-client.read-timeout-ms:5000}") long readTimeoutMs) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        
+        requestFactory.setConnectTimeout((int) connectTimeoutMs);
+        requestFactory.setReadTimeout((int) readTimeoutMs);
+        RestClient.Builder builder = RestClient.builder().requestFactory(requestFactory);
+        tokenInterceptor.ifPresent(builder::requestInterceptor);
+        return builder;
     }
 
     /**

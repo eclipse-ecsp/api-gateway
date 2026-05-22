@@ -34,6 +34,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.restclient.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -99,6 +100,8 @@ public class RestTemplateConfig {
     @ConditionalOnMissingBean(RestTemplate.class)
     public RestTemplate registryRestTemplate(
             @Value("${api.registry.rest-template.handle-error:true}") boolean handleError,
+            @Value("${api.registry.rest-template.connect-timeout-ms:5000}") long connectTimeoutMs,
+            @Value("${api.registry.rest-template.read-timeout-ms:5000}") long readTimeoutMs,
             ObjectProvider<RestTemplateTokenInterceptor> tokenInterceptorProvider) {
         RestTemplate restTemplate = new RestTemplate();
 
@@ -112,6 +115,11 @@ public class RestTemplateConfig {
         if (tokenInterceptor != null) {
             restTemplate.getInterceptors().add(tokenInterceptor);
         }
+        
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout((int) connectTimeoutMs);
+        requestFactory.setReadTimeout((int) readTimeoutMs);
+        restTemplate.setRequestFactory(requestFactory);
         return restTemplate;
     }
 

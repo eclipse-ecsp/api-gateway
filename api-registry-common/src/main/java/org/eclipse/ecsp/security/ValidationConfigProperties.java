@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.security;
 
-import org.eclipse.ecsp.tokenvalidator.model.PublicKeySource;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.ArrayList;
@@ -85,7 +84,6 @@ public class ValidationConfigProperties {
     public static class Security {
 
         private boolean enabled = false;
-        private List<PublicKeySource> keySources = new ArrayList<>();
 
         /**
          * Default constructor.
@@ -110,24 +108,6 @@ public class ValidationConfigProperties {
          */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
-        }
-
-        /**
-         * Returns the list of public key sources for JWT validation.
-         *
-         * @return the list of public key sources
-         */
-        public List<PublicKeySource> getKeySources() {
-            return keySources;
-        }
-
-        /**
-         * Sets the list of public key sources for JWT validation.
-         *
-         * @param keySources the list of public key sources
-         */
-        public void setKeySources(List<PublicKeySource> keySources) {
-            this.keySources = keySources;
         }
     }
 

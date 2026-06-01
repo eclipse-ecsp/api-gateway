@@ -58,7 +58,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <!--  ignite-properties -->
         <ecsp.utils.version>1.2.0</ecsp.utils.version>
-        <ecsp.token-validator.version>0.0.1-SNAPSHOT</ecsp.token-validator.version>
+        <ecsp.token-validator.version>0.0.1</ecsp.token-validator.version>
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.21.2</jackson-bom.version>

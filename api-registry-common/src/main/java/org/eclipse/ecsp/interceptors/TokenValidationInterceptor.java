@@ -24,12 +24,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.security.SecurityContext;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
-import org.eclipse.ecsp.tokenvalidator.ScopeMatchMode;
 import org.eclipse.ecsp.tokenvalidator.ScopeValidator;
 import org.eclipse.ecsp.tokenvalidator.TokenValidator;
 import org.eclipse.ecsp.tokenvalidator.exception.InvalidClaimException;
 import org.eclipse.ecsp.tokenvalidator.exception.TokenValidatorException;
-import org.eclipse.ecsp.tokenvalidator.impl.DefaultScopeValidator;
 import org.eclipse.ecsp.tokenvalidator.model.TokenClaim;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -42,7 +40,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Spring MVC interceptor that validates JWT Bearer tokens on secured endpoints.
@@ -71,7 +68,7 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     private final ValidationConfigProperties config;
     private final SecurityRequirementCache securityRequirementCache;
     private final ObjectMapper objectMapper;
-    private final ScopeValidator scopeValidator = new DefaultScopeValidator(Set.<String>of(), ScopeMatchMode.ANY);
+    private final ScopeValidator scopeValidator;
     private final ScopeOverrideProperties scopeOverrideProperties;
 
     /**
@@ -81,17 +78,20 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
      * @param config                   the validation configuration properties
      * @param securityRequirementCache the annotation-lookup cache
      * @param objectMapper             the object mapper for JSON serialization
+     * @param scopeValidator           the scope validator for authorization checks
      * @param scopeOverrideProperties  the scope-override configuration properties
      */
     public TokenValidationInterceptor(TokenValidator tokenValidator,
                                       ValidationConfigProperties config,
                                       SecurityRequirementCache securityRequirementCache,
                                       ObjectMapper objectMapper,
+                                      ScopeValidator scopeValidator,
                                       ScopeOverrideProperties scopeOverrideProperties) {
         LOGGER.debug("Initializing TokenValidationInterceptor");
         this.tokenValidator = tokenValidator;
         this.config = config;
         this.securityRequirementCache = securityRequirementCache;
+        this.scopeValidator = scopeValidator;
         this.objectMapper = objectMapper;
         this.scopeOverrideProperties = scopeOverrideProperties;
         LOGGER.debug("TokenValidationInterceptor initialized");

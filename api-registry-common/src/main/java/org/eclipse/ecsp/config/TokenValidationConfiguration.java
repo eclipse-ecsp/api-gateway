@@ -23,6 +23,7 @@ import org.eclipse.ecsp.interceptors.SecurityRequirementCache;
 import org.eclipse.ecsp.interceptors.TokenValidationInterceptor;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
+import org.eclipse.ecsp.tokenvalidator.ScopeValidator;
 import org.eclipse.ecsp.tokenvalidator.TokenValidator;
 import org.eclipse.ecsp.tokenvalidator.config.TokenValidatorAutoConfiguration;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
@@ -79,6 +80,7 @@ public class TokenValidationConfiguration {
      * @param config                   the validation configuration properties
      * @param securityRequirementCache the annotation-lookup cache
      * @param objectMapper             the object mapper for JSON serialization
+     * @param scopeValidator           the scope validator for authorization checks
      * @param scopeOverrideProperties  the scope-override configuration properties
      * @return the interceptor
      */
@@ -88,9 +90,12 @@ public class TokenValidationConfiguration {
             ValidationConfigProperties config,
             SecurityRequirementCache securityRequirementCache,
             ObjectMapper objectMapper,
+            ScopeValidator scopeValidator,
             ScopeOverrideProperties scopeOverrideProperties) {
         LOGGER.debug("Creating TokenValidationInterceptor bean");
-        return new TokenValidationInterceptor(tokenValidator, config, securityRequirementCache, objectMapper,
+        return new TokenValidationInterceptor(tokenValidator, config, 
+                securityRequirementCache, objectMapper,
+                scopeValidator,
                 scopeOverrideProperties);
     }
 

@@ -26,9 +26,11 @@ import org.eclipse.ecsp.interceptors.TokenValidationInterceptor;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.security.SecurityContext;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
+import org.eclipse.ecsp.tokenvalidator.ScopeMatchMode;
 import org.eclipse.ecsp.tokenvalidator.TokenValidator;
 import org.eclipse.ecsp.tokenvalidator.exception.InvalidSignatureException;
 import org.eclipse.ecsp.tokenvalidator.exception.TokenExpiredException;
+import org.eclipse.ecsp.tokenvalidator.impl.DefaultScopeValidator;
 import org.eclipse.ecsp.tokenvalidator.model.TokenClaim;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -45,6 +47,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tests for {@link TokenValidationInterceptor}.
@@ -79,7 +82,7 @@ class TokenValidationInterceptorTest {
         config.getSecurity().setEnabled(true);
         scopeOverrideProperties = new ScopeOverrideProperties();
         underTest = new TokenValidationInterceptor(tokenValidator, config, securityRequirementCache, new ObjectMapper(),
-                scopeOverrideProperties);
+                new DefaultScopeValidator(Set.of(), ScopeMatchMode.ANY), scopeOverrideProperties);
         responseWriter = new StringWriter();
         Mockito.lenient().when(response.getWriter()).thenReturn(new PrintWriter(responseWriter));
     }

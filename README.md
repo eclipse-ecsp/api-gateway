@@ -43,7 +43,7 @@ from the command line interface.
 ### Prerequisites
 
 The list of tools required to build and run the project:
-1. Java 21
+1. Java 25
 2. Apache Maven 3.8 or higher
 
 ### Installation
@@ -147,7 +147,13 @@ submitting pull requests to us.
 
 ## Contributors
 
-* **[Abhishek Kumar](https://github.com/abhishekkumar-harman)** - *Initial work*
+<table>
+  <tbody>
+    <tr>
+	  <td align="left" valign="top" width="14.28%"><a href="https://github.com/abhishekkumar-harman"><img src="https://github.com/abhishekkumar-harman.png" width="100px;" alt="Abhishek Kumar"/><br /><sub><b>Abhishek Kumar</b></sub></a><br /><a href="https://github.com/eclipse-ecsp/api-gateway/commits?author=abhishekkumar-harman" title="Code and Documentation">📖</a> <a href="https://github.com/eclipse-ecsp/api-gateway/pulls?q=is%3Apr+reviewed-by%3Aabhishekkumar-harman" title="Reviewed Pull Requests">👀</a></td>
+    </tr>
+  </tbody>
+</table>
 
 The list of [contributors](../../graphs/contributors) who participated in this project.
 

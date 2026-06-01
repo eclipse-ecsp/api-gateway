@@ -60,3 +60,11 @@ jobs:
       maven_args: 'clean package --file pom.xml'
       java_version: '25'
       java_distribution: 'temurin'
+  
+  deploy-snapshot:
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@52c11f63f46f741e4f56c5dace97b44982a4372b
+    secrets: inherit
+    needs: sonar_analysis
+    with:
+      java_version: '25'
+      java_distribution: 'temurin'

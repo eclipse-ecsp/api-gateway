@@ -20,13 +20,9 @@ package org.eclipse.ecsp.security;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.models.Operation;
-import lombok.Getter;
-import lombok.Setter;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springdoc.core.customizers.OperationCustomizer;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import java.util.Arrays;
@@ -37,30 +33,20 @@ import java.util.Map;
  * ScopeTagger to load the scopes dynamically.
  */
 @Component
-@ConfigurationProperties(prefix = "scopes")
-@Getter
-@Setter
 public class ScopeTagger implements OperationCustomizer {
-    /**
-     * Default constructor.
-     */
-    public ScopeTagger() {
-        // Default constructor
-    }
-
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ScopeTagger.class);
-    /**
-     * Property holds scopesMap.
-     * {@link Map} of routeId and list of scopes.
-     */
-    private Map<String, List<String>> scopesMap;
+
+    private final ScopeOverrideProperties scopeOverrideProperties;
 
     /**
-     * Property holds overrideScopeEnabled.
+     * Constructor for ScopeTagger.
+     *
+     * @param scopeOverrideProperties the scope-override configuration properties
      */
-    @Value("${scopes.override.enabled:false}")
-    private boolean isOverrideScopeEnabled;
+    public ScopeTagger(ScopeOverrideProperties scopeOverrideProperties) {
+        this.scopeOverrideProperties = scopeOverrideProperties;
+    }
 
     @Override
     public Operation customize(final Operation operation, HandlerMethod handlerMethod) {
@@ -93,9 +79,10 @@ public class ScopeTagger implements OperationCustomizer {
                     + Arrays.toString(annotation.scopes())
                     + "</p>");
             // override scope config
-            if (isOverrideScopeEnabled && scopesMap != null
+            Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
+            if (scopeOverrideProperties.getOverride().isEnabled() && scopesMap != null
                     && (scopesMap.get(routeId) != null || scopesMap.get(routeId.toLowerCase()) != null)) {
-                updateNewScopes(operation, routeId);
+                updateNewScopes(operation, routeId, scopesMap);
             }
         } else {
             operation.description(operation.getDescription() + "<p style='color:red;'>SCOPE: EMPTY </p>");
@@ -103,7 +90,7 @@ public class ScopeTagger implements OperationCustomizer {
         return operation;
     }
 
-    private void updateNewScopes(final Operation operation, String routeId) {
+    private void updateNewScopes(final Operation operation, String routeId, Map<String, List<String>> scopesMap) {
         List<String> scopesList =
                 scopesMap.get(routeId) != null ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
         LOGGER.debug("Override Scopes Map Config: " + scopesMap);

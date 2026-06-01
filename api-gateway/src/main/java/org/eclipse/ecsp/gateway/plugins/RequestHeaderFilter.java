@@ -107,8 +107,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
                 String headerValue = UUID.randomUUID().toString();
                 LOGGER.debug("Adding missing header {} : {} to the request {}", header, headerValue, uri);
                 builder.header(header, headerValue);
-                allowHeaders.add(header);
             }
+            allowHeaders.add(header);
         });
         exchange = exchange.mutate().request(builder.build()).build();
         LOGGER.debug("Append check completed for URI: {}, headers added : {}", uri, config.getAppendHeadersIfMissing());

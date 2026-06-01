@@ -41,7 +41,7 @@ public class Response {
     /**
      * Response code.
      */
-    protected Integer code;
+    protected Object code;
     /**
      * Response message.
      */
@@ -66,7 +66,7 @@ public class Response {
      * @param code    response code
      * @param message response message
      */
-    public Response(Integer code, String message) {
+    public Response(Object code, String message) {
         this.code = code;
         this.message = message;
     }

@@ -20,13 +20,12 @@ package org.eclipse.ecsp.security;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.models.Operation;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.method.HandlerMethod;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -51,11 +50,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ScopeTaggerTest {
 
     private static final int EXPECTED_SECURITY_REQUIREMENT_COUNT = 2;
-    @InjectMocks
+    private ScopeOverrideProperties scopeOverrideProperties;
     private ScopeTagger scopeTagger;
 
     @Mock
     private HandlerMethod handlerMethod;
+
+    @BeforeEach
+    void setUp() {
+        scopeOverrideProperties = new ScopeOverrideProperties();
+        scopeTagger = new ScopeTagger(scopeOverrideProperties);
+    }
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -146,7 +151,7 @@ class ScopeTaggerTest {
         Operation operation = buildOperation("myOp");
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", false);
+        scopeOverrideProperties.getOverride().setEnabled(false);
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
@@ -167,8 +172,8 @@ class ScopeTaggerTest {
         final Operation operation = buildOperation("myOp");
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(Map.of("some-other-controller-otherOp", List.of("NewScope")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(Map.of("some-other-controller-otherOp", List.of("NewScope")));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
@@ -190,8 +195,8 @@ class ScopeTaggerTest {
         final Operation operation = buildOperation("myOp");
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(
                 Map.of("test-controller-myOp", List.of("SelfManage", "ManageNotifications")));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
@@ -214,8 +219,8 @@ class ScopeTaggerTest {
         final Operation operation = buildOperation("MYOP");
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(Map.of("test-controller-myop", List.of("SelfManage")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(Map.of("test-controller-myop", List.of("SelfManage")));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
@@ -237,8 +242,8 @@ class ScopeTaggerTest {
         operation.setSecurity(null);
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(Map.of("test-controller-myOp", List.of("SelfManage")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(Map.of("test-controller-myOp", List.of("SelfManage")));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
@@ -262,8 +267,8 @@ class ScopeTaggerTest {
 
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(
                 Map.of("test-controller-myOp", List.of("SelfManage", "ManageNotifications")));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
@@ -316,8 +321,8 @@ class ScopeTaggerTest {
         final Operation operation = buildOperation("myOp");
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
-        ReflectionTestUtils.setField(scopeTagger, "isOverrideScopeEnabled", true);
-        scopeTagger.setScopesMap(null);
+        scopeOverrideProperties.getOverride().setEnabled(true);
+        scopeOverrideProperties.setScopesMap(null);
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 

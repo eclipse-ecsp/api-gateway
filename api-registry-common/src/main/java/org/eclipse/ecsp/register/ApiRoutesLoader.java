@@ -30,13 +30,12 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.Getter;
-import lombok.Setter;
 import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.CachingTagger;
+import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.security.Security;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
@@ -54,7 +53,6 @@ import org.springdoc.webmvc.api.OpenApiResource;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -86,7 +84,6 @@ import java.util.stream.Stream;
  * @author SBala2
  */
 @Service
-@ConfigurationProperties(prefix = "scopes")
 @ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
 public class ApiRoutesLoader extends OpenApiResource {
     /**
@@ -105,9 +102,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * API Routes configuration.
      */
     protected ApiRoutesConfig apiRoutesConfig;
-    @Getter
-    @Setter
-    private Map<String, List<String>> scopesMap;
+    private final ScopeOverrideProperties scopeOverrideProperties;
     @Value("${spring.application.name}")
     private String appName;
     @Value("${spring.application.servicename}")
@@ -116,8 +111,6 @@ public class ApiRoutesLoader extends OpenApiResource {
     private String contextPath;
     @Value("${server.port}")
     private String port;
-    @Value("${scopes.override.enabled:false}")
-    private boolean isOverrideScopeEnabled;
     @Value("${api_gateway_caching_ttl:10m}")
     private String timeToLive;
     @Value("${api_gateway_cachesize:50MB}")
@@ -137,6 +130,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
+     * @param scopeOverrideProperties     the scope-override configuration properties
      */
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
@@ -144,12 +138,14 @@ public class ApiRoutesLoader extends OpenApiResource {
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
                            SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
-                           ApiRoutesConfig apiRoutesConfig) {
+                           ApiRoutesConfig apiRoutesConfig,
+                           ScopeOverrideProperties scopeOverrideProperties) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
         this.apiRoutesConfig = apiRoutesConfig;
+        this.scopeOverrideProperties = scopeOverrideProperties;
     }
 
     /**
@@ -179,7 +175,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void prepareApiRoutes() throws URISyntaxException {
         // Load from configuration
-        LOGGER.debug("Scopes Map config: " + scopesMap);
+        LOGGER.debug("Scopes Map config: " + scopeOverrideProperties.getScopesMap());
         LOGGER.debug("Routes List: " + apiRoutesConfig.getRoutes());
         prepareStaticRoutes();
         // Load from Swagger Annotations
@@ -469,7 +465,8 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void enabledOverrideScope(RouteDefinition route, List<String> scopes) {
         String routeId = route.getId();
-        if (isOverrideScopeEnabled && scopesMap != null
+        Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
+        if (scopeOverrideProperties.getOverride().isEnabled() && scopesMap != null
                 && (scopesMap.get(routeId) != null || scopesMap.get(routeId.toLowerCase()) != null)) {
             List<String> scopesList = scopesMap.get(routeId) != null
                     ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());

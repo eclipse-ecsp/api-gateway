@@ -70,6 +70,13 @@ public class CorrelationIdFilter implements WebFilter, Ordered {
         // Add correlation ID to response header for client traceability
         exchange.getResponse().getHeaders().add(headerName, correlationId);
 
+        // add correlation ID to request headers for downstream services
+        exchange = exchange.mutate()
+                .request(exchange.getRequest().mutate()
+                        .header(headerName, correlationId)
+                        .build())
+                .build();
+                
         // Set MDC for logging in this thread
         MDC.put(headerName, correlationId);
 

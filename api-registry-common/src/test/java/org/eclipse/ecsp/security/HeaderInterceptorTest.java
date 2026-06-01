@@ -66,6 +66,14 @@ class HeaderInterceptorTest {
     }
 
     @Test
+    void shouldClearHeaderContextOnAfterCompletion() {
+        HeaderContext.setUser("user-1", java.util.Collections.emptySet(), java.util.Collections.emptySet());
+        Assertions.assertNotNull(HeaderContext.getUserDetails());
+        headerInterceptor.afterCompletion(new Request(), new Response(), new Object(), null);
+        Assertions.assertNull(HeaderContext.getUserDetails());
+    }
+
+    @Test
     void testPreHandle() {
         Assertions.assertTrue(headerInterceptor.preHandle(new Request(), new Response(), new Handler() {
             @Override

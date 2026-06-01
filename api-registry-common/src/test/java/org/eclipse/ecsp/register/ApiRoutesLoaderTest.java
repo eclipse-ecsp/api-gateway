@@ -32,6 +32,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.Assertions;
@@ -79,6 +80,7 @@ class ApiRoutesLoaderTest {
     SpringDocCustomizers springDocCustomizers = Mockito.mock(SpringDocCustomizers.class);
 
     ObjectFactory<OpenAPIService> openApiServiceObjectFactory = () -> openApiService;
+    ScopeOverrideProperties scopeOverrideProperties = new ScopeOverrideProperties();
 
     @InjectMocks
     private ApiRoutesLoader apiRoutesLoader;
@@ -108,9 +110,10 @@ class ApiRoutesLoaderTest {
         Mockito.when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
+        scopeOverrideProperties = new ScopeOverrideProperties();
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig);
+                springDocProviders, springDocCustomizers, apiRouteConfig, scopeOverrideProperties);
     }
 
     @Test
@@ -122,8 +125,8 @@ class ApiRoutesLoaderTest {
         Map<String, List<String>> scopeMap = new HashMap<>();
         apiRoutesLoader.getApiRoutes();
         scopeMap.put("test-controller-create", List.of("SelfManage", "IgniteSystem"));
-        apiRoutesLoader.setScopesMap(scopeMap);
-        Assertions.assertEquals(apiRoutesLoader.getScopesMap(), scopeMap);
+        scopeOverrideProperties.setScopesMap(scopeMap);
+        Assertions.assertEquals(scopeOverrideProperties.getScopesMap(), scopeMap);
         apiRoutesLoader.getApiRoutes();
     }
 
@@ -233,8 +236,8 @@ class ApiRoutesLoaderTest {
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
         operation.setSecurity(List.of(securityRequirement));
-        apiRoutesLoader.setScopesMap(Map.of("GET-route123", List.of("ABCScope")));
-        ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
+        scopeOverrideProperties.setScopesMap(Map.of("GET-route123", List.of("ABCScope")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
         @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
@@ -258,8 +261,8 @@ class ApiRoutesLoaderTest {
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
         operation.setSecurity(List.of(securityRequirement));
-        apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderMetadata", List.of("ABCScope")));
-        ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
+        scopeOverrideProperties.setScopesMap(Map.of("GET-testHeaderMetadata", List.of("ABCScope")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
         @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
@@ -289,8 +292,8 @@ class ApiRoutesLoaderTest {
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
         operation.setSecurity(List.of(securityRequirement));
-        apiRoutesLoader.setScopesMap(Map.of("GET-testHeaderOptionalMetadata", List.of("ABCScope")));
-        ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
+        scopeOverrideProperties.setScopesMap(Map.of("GET-testHeaderOptionalMetadata", List.of("ABCScope")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
         @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)
@@ -314,8 +317,8 @@ class ApiRoutesLoaderTest {
         SecurityRequirement securityRequirement = new SecurityRequirement();
         securityRequirement.put("filterName", List.of("ABCScope", "ABDScope"));
         operation.setSecurity(List.of(securityRequirement));
-        apiRoutesLoader.setScopesMap(Map.of("GET-testEmptyHeaders", List.of("ABCScope")));
-        ReflectionTestUtils.setField(apiRoutesLoader, "isOverrideScopeEnabled", true);
+        scopeOverrideProperties.setScopesMap(Map.of("GET-testEmptyHeaders", List.of("ABCScope")));
+        scopeOverrideProperties.getOverride().setEnabled(true);
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users", operation);
         @SuppressWarnings("unchecked")
         List<RouteDefinition> apiRotes = (List<RouteDefinition>)

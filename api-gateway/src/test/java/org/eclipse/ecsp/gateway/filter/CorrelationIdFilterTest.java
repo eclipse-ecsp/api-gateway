@@ -21,9 +21,11 @@ package org.eclipse.ecsp.gateway.filter;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -31,6 +33,7 @@ import reactor.test.StepVerifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -138,5 +141,44 @@ class CorrelationIdFilterTest {
     void testFilterOrder() {
         // Then: Filter should have highest precedence
         assertThat(filter.getOrder()).isEqualTo(Integer.MIN_VALUE);
+    }
+
+    @Test
+    void shouldPropagateExistingCorrelationIdToDownstreamRequestHeader() {
+        // Given: Request with existing correlation ID header
+        MockServerHttpRequest request = MockServerHttpRequest.get("/test")
+                .header(CORRELATION_ID_HEADER, TEST_CORRELATION_ID)
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        // When: Filter processes the request
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        // Then: Downstream request must carry the same correlation ID header
+        ArgumentCaptor<ServerWebExchange> captor = ArgumentCaptor.forClass(ServerWebExchange.class);
+        verify(chain).filter(captor.capture());
+        assertThat(captor.getValue().getRequest().getHeaders().getFirst(CORRELATION_ID_HEADER))
+                .isEqualTo(TEST_CORRELATION_ID);
+    }
+
+    @Test
+    void shouldPropagateGeneratedCorrelationIdToDownstreamRequestHeader() {
+        // Given: Request without correlation ID header
+        MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        // When: Filter processes the request
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        // Then: Downstream request must carry the generated correlation ID header
+        ArgumentCaptor<ServerWebExchange> captor = ArgumentCaptor.forClass(ServerWebExchange.class);
+        verify(chain).filter(captor.capture());
+        String downstreamCorrelationId = captor.getValue().getRequest().getHeaders().getFirst(CORRELATION_ID_HEADER);
+        assertThat(downstreamCorrelationId)
+                .isNotNull()
+                .isNotBlank()
+                .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
 }

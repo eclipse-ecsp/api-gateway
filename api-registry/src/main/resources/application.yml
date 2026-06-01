@@ -46,6 +46,9 @@ api:
     enabled: ${api_security_enabled:false}
   health:
     monitor: ${api_health_monitor:0 */1 * ? * *}
+  registry:
+    security:
+      enabled: ${api_security_enabled:false}
 
 api-registry:
   database:

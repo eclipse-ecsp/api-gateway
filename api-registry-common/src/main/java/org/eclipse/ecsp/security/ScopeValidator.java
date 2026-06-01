@@ -25,7 +25,6 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
@@ -40,17 +39,18 @@ import java.util.stream.Collectors;
 @Component
 @ConditionalOnProperty(value = "api.security.enabled", havingValue = "true", matchIfMissing = false)
 public class ScopeValidator {
-    /**
-     * Default constructor.
-     */
-    public ScopeValidator() {
-        // Default constructor
-    }
-
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ScopeValidator.class);
-    @Value("${scopes.override.enabled:false}")
-    private boolean isOverrideScopeEnabled;
+    private final ScopeOverrideProperties scopeOverrideProperties;
+
+    /**
+     * Constructor for ScopeValidator.
+     *
+     * @param scopeOverrideProperties the scope-override configuration properties
+     */
+    public ScopeValidator(ScopeOverrideProperties scopeOverrideProperties) {
+        this.scopeOverrideProperties = scopeOverrideProperties;
+    }
 
     /**
      * validate the scopes.
@@ -75,7 +75,7 @@ public class ScopeValidator {
         LOGGER.debug("Method Scope Set: {}", methodScopes);
         LOGGER.info("Override Scope Set: {}", HeaderContext.getUserDetails().getOverrideScopes());
 
-        if (isOverrideScopeEnabled) {
+        if (scopeOverrideProperties.getOverride().isEnabled()) {
             validateScope(HeaderContext.getUserDetails().getOverrideScopes(), methodScopes);
         } else {
             validateScope(HeaderContext.getUserDetails().getScope(), methodScopes);

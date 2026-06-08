@@ -22,6 +22,12 @@ import org.eclipse.ecsp.security.SecurityContext;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -29,16 +35,19 @@ import java.util.Optional;
 /**
  * Base class for token-propagation interceptors and filters.
  *
- * <p>Provides shared host-classification logic and token-retrieval from
- * {@link SecurityContext}. Subclasses implement the HTTP-client-specific
- * {@code intercept} / {@code filter} method.
+ * <p>Provides shared host-classification logic, token-retrieval from
+ * {@link SecurityContext}, and the concrete {@link #intercept} implementation of
+ * {@link org.springframework.http.client.ClientHttpRequestInterceptor}. Subclasses used
+ * for {@code RestTemplate} and {@code RestClient} inherit this behaviour without
+ * duplication; a reactive ({@code WebClient}) subclass may override it instead.
  *
  * <p><strong>Thread-safety note:</strong> {@link #resolveToken(URI)} reads from the
  * {@link SecurityContext} ThreadLocal. For {@code RestTemplate} and {@code RestClient}
  * interceptors this is always called on the same servlet thread as the original request,
  * so no additional synchronisation is needed.
  */
-public abstract class AbstractTokenPropagationInterceptor {
+public abstract class AbstractTokenPropagationInterceptor
+    implements ClientHttpRequestInterceptor {
 
     private static final IgniteLogger LOGGER =
         IgniteLoggerFactory.getLogger(AbstractTokenPropagationInterceptor.class);
@@ -52,6 +61,40 @@ public abstract class AbstractTokenPropagationInterceptor {
      */
     protected AbstractTokenPropagationInterceptor(ValidationConfigProperties config) {
         this.config = config;
+    }
+
+    /**
+     * Propagates the current thread's Bearer token to the outgoing request.
+     *
+     * <p>Skips propagation when:
+     * <ul>
+     *   <li>an {@code Authorization} header is already present on the request, or</li>
+     *   <li>no valid (non-expired) token is found in {@link SecurityContext}, or</li>
+     *   <li>{@link #shouldSkipPropagation(URI)} returns {@code true}.</li>
+     * </ul>
+     *
+     * @param request   the outgoing HTTP request
+     * @param body      the request body bytes
+     * @param execution the request execution chain
+     * @return the response from the downstream service
+     * @throws IOException if the execution fails
+     */
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body,
+                                        ClientHttpRequestExecution execution) throws IOException {
+        if (request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION) != null) {
+            LOGGER.debug("Request to {} already has Authorization header, skipping token propagation",
+                request.getURI());
+            return execution.execute(request, body);
+        }
+        Optional<String> token = resolveToken(request.getURI());
+        if (token.isEmpty() || shouldSkipPropagation(request.getURI())) {
+            LOGGER.debug("No token available or propagation skipped for request to {}", request.getURI());
+            return execution.execute(request, body);
+        }
+        LOGGER.debug("Propagating token to request to {}", request.getURI());
+        request.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token.get());
+        return execution.execute(request, body);
     }
 
     /**

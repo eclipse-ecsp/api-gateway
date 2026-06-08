@@ -19,28 +19,15 @@
 package org.eclipse.ecsp.restclient;
 
 import org.eclipse.ecsp.security.ValidationConfigProperties;
-import org.eclipse.ecsp.utils.logger.IgniteLogger;
-import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.client.ClientHttpRequestExecution;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.ClientHttpResponse;
-import java.io.IOException;
-import java.util.Optional;
 
 /**
- * {@link ClientHttpRequestInterceptor} for {@code RestTemplate} that propagates the
+ * {@link org.springframework.http.client.ClientHttpRequestInterceptor} for {@code RestTemplate} that propagates the
  * current thread's Bearer token to downstream service calls.
  *
- * <p>The token is read from {@link org.eclipse.ecsp.security.SecurityContext} on the same
- * servlet thread as the original request — no reactive or cross-thread concerns apply.
+ * <p>The {@code intercept} method is inherited from
+ * {@link AbstractTokenPropagationInterceptor}.
  */
-public class RestTemplateTokenInterceptor extends AbstractTokenPropagationInterceptor
-    implements ClientHttpRequestInterceptor {
-
-    private static final IgniteLogger LOGGER =
-        IgniteLoggerFactory.getLogger(RestTemplateTokenInterceptor.class);
+public class RestTemplateTokenInterceptor extends AbstractTokenPropagationInterceptor {
 
     /**
      * Constructs an interceptor with the given configuration.
@@ -49,23 +36,5 @@ public class RestTemplateTokenInterceptor extends AbstractTokenPropagationInterc
      */
     public RestTemplateTokenInterceptor(ValidationConfigProperties config) {
         super(config);
-    }
-
-    @Override
-    public ClientHttpResponse intercept(HttpRequest request, byte[] body,
-                                        ClientHttpRequestExecution execution) throws IOException {
-        if (request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION) != null) {
-            LOGGER.debug("Request to {} already has Authorization header, skipping token propagation",
-                request.getURI());
-            return execution.execute(request, body);
-        }
-        Optional<String> token = resolveToken(request.getURI());
-        if (token.isEmpty() || shouldSkipPropagation(request.getURI())) {
-            LOGGER.debug("No token available or propagation skipped for request to {}", request.getURI());
-            return execution.execute(request, body);
-        }
-        LOGGER.debug("Propagating token to request to {}", request.getURI());
-        request.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token.get());
-        return execution.execute(request, body);
     }
 }

@@ -22,8 +22,9 @@ import org.eclipse.ecsp.tokenvalidator.model.TokenClaim;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -71,7 +72,7 @@ public abstract class SecurityContext {
      * @param claims   the verified claims returned by the token validator
      */
     public static void set(String rawToken, List<TokenClaim> claims) {
-        Instant expiry = parseExpiry(claims);
+        LocalDateTime expiry = parseExpiry(claims);
         String userId = extractClaim(claims, USER_ID_CLAIM);
         if (userId == null) {
             userId = extractClaim(claims, SUB_CLAIM);
@@ -157,7 +158,7 @@ public abstract class SecurityContext {
         if (details == null || details.expiry() == null) {
             return true;
         }
-        return Instant.now().isAfter(details.expiry());
+        return LocalDateTime.now(ZoneOffset.UTC).isAfter(details.expiry());
     }
 
     /**
@@ -170,15 +171,16 @@ public abstract class SecurityContext {
         SECURITY_CONTEXT.remove();
     }
 
-    private static Instant parseExpiry(List<TokenClaim> claims) {
+    private static LocalDateTime parseExpiry(List<TokenClaim> claims) {
         for (TokenClaim claim : claims) {
             if (EXP_CLAIM.equals(claim.getName())) {
                 Object value = claim.getValue();
                 if (value instanceof Number num) {
-                    return Instant.ofEpochMilli(num.longValue() * MILLIS_PER_SECOND);
+                    return LocalDateTime.ofInstant(Instant.ofEpochMilli(num.longValue() * MILLIS_PER_SECOND),
+                        ZoneOffset.UTC);
                 }
-                if (value instanceof Date date) {
-                    return date.toInstant();
+                if (value instanceof LocalDateTime date) {
+                    return date;
                 }
                 LOGGER.warn("Unexpected type for 'exp' claim: {}", value == null ? "null" : value.getClass());
                 return null;
@@ -225,7 +227,7 @@ public abstract class SecurityContext {
 
         private final String rawToken;
         private final List<TokenClaim> claims;
-        private final Instant expiry;
+        private final LocalDateTime expiry;
         private final String userId;
         private final Set<String> scopes;
         private final String tenantId;
@@ -243,7 +245,7 @@ public abstract class SecurityContext {
          * @param accountId the account ID from the JWT
          */
         public SecurityDetails(String rawToken, List<TokenClaim> claims,
-                               Instant expiry, String userId, Set<String> scopes,
+                               LocalDateTime expiry, String userId, Set<String> scopes,
                                String tenantId, String accountId) {
             this.rawToken = rawToken;
             this.claims = claims;
@@ -277,7 +279,7 @@ public abstract class SecurityContext {
          *
          * @return the expiry instant, or {@code null} if the {@code exp} claim was absent
          */
-        public Instant expiry() {
+        public LocalDateTime expiry() {
             return expiry;
         }
 

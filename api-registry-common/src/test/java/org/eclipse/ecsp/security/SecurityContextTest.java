@@ -62,7 +62,7 @@ class SecurityContextTest {
 
     @Test
     void shouldParseExpiryFromExpClaim() {
-        long futureEpoch = Instant.now().plusSeconds(3600).getEpochSecond();
+        long futureEpoch = Instant.parse("2099-01-01T00:00:00Z").getEpochSecond();
         List<TokenClaim> claims = Collections.singletonList(new TokenClaim("exp", futureEpoch));
         SecurityContext.set("token", claims);
 
@@ -95,7 +95,7 @@ class SecurityContextTest {
 
     @Test
     void shouldDetectExpiredToken() {
-        long pastEpoch = Instant.now().minusSeconds(3600).getEpochSecond();
+        long pastEpoch = Instant.parse("2000-01-01T00:00:00Z").getEpochSecond();
         List<TokenClaim> claims = Collections.singletonList(new TokenClaim("exp", pastEpoch));
         SecurityContext.set("token", claims);
 

@@ -157,4 +157,78 @@ class SecurityContextTest {
     void shouldReturnTrueForIsTokenExpiredWhenNoContextSet() {
         Assertions.assertTrue(SecurityContext.isTokenExpired());
     }
+
+    @Test
+    void shouldExtractTenantId() {
+        List<TokenClaim> claims = Collections.singletonList(new TokenClaim("tenantId", "tenant-abc"));
+        SecurityContext.set("token", claims);
+
+        Optional<String> tenantId = SecurityContext.getTenantId();
+        Assertions.assertTrue(tenantId.isPresent());
+        Assertions.assertEquals("tenant-abc", tenantId.get());
+    }
+
+    @Test
+    void shouldReturnEmptyTenantIdWhenNoTenantIdClaim() {
+        List<TokenClaim> claims = Collections.emptyList();
+        SecurityContext.set("token", claims);
+
+        Assertions.assertFalse(SecurityContext.getTenantId().isPresent());
+    }
+
+    @Test
+    void shouldExtractAccountId() {
+        List<TokenClaim> claims = Collections.singletonList(new TokenClaim("accountId", "account-xyz"));
+        SecurityContext.set("token", claims);
+
+        Optional<String> accountId = SecurityContext.getAccountId();
+        Assertions.assertTrue(accountId.isPresent());
+        Assertions.assertEquals("account-xyz", accountId.get());
+    }
+
+    @Test
+    void shouldReturnEmptyAccountIdWhenNoAccountIdClaim() {
+        List<TokenClaim> claims = Collections.emptyList();
+        SecurityContext.set("token", claims);
+
+        Assertions.assertFalse(SecurityContext.getAccountId().isPresent());
+    }
+
+    @Test
+    void shouldExtractBothTenantIdAndAccountId() {
+        List<TokenClaim> claims = Arrays.asList(
+            new TokenClaim("tenantId", "tenant-42"),
+            new TokenClaim("accountId", "account-99")
+        );
+        SecurityContext.set("token", claims);
+
+        Assertions.assertEquals("tenant-42", SecurityContext.getTenantId().orElse(null));
+        Assertions.assertEquals("account-99", SecurityContext.getAccountId().orElse(null));
+    }
+
+    @Test
+    void shouldPreferUserIdClaimOverSubClaim() {
+        List<TokenClaim> claims = Arrays.asList(
+            new TokenClaim("sub", "sub-user"),
+            new TokenClaim("user_id", "explicit-user-id")
+        );
+        SecurityContext.set("token", claims);
+
+        Optional<String> userId = SecurityContext.getUserId();
+        Assertions.assertTrue(userId.isPresent());
+        Assertions.assertEquals("explicit-user-id", userId.get());
+    }
+
+    @Test
+    void shouldClearTenantIdAndAccountIdOnClear() {
+        List<TokenClaim> claims = Arrays.asList(
+            new TokenClaim("tenantId", "tenant-clear"),
+            new TokenClaim("accountId", "account-clear")
+        );
+        SecurityContext.set("token", claims);
+        SecurityContext.clear();
+
+        Assertions.assertFalse(SecurityContext.getTenantId().isPresent());
+        Assertions.assertFalse(SecurityContext.getAccountId().isPresent());
+    }
 }

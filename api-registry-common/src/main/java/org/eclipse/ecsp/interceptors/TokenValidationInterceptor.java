@@ -192,9 +192,8 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     private List<String> resolveEffectiveScopes(HandlerMethod handlerMethod, List<String> annotationScopes) {
         Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
         if (!scopeOverrideProperties.getOverride().isEnabled() || scopesMap == null) {
-            LOGGER.debug("Scope override not enabled or no scopesMap configured;" 
-                + " using annotation scopes for routeId {}: {}",
-                resolveRouteId(handlerMethod), annotationScopes);
+            LOGGER.debug("Scope override not enabled or no scopesMap configured; using annotation scopes: {}",
+                annotationScopes);
             return annotationScopes;
         }
         String routeId = resolveRouteId(handlerMethod);

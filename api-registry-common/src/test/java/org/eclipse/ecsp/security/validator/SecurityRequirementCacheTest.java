@@ -49,7 +49,7 @@ class SecurityRequirementCacheTest {
     }
 
     @Test
-    void shouldReturnFalseWhenAnnotationAbsent() throws Exception {
+    void shouldReturnFalseWhenAnnotationAbsent() {
         HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
         Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 

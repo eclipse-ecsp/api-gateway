@@ -49,6 +49,9 @@ public abstract class SecurityContext {
     private static final String EXP_CLAIM = "exp";
     private static final String SUB_CLAIM = "sub";
     private static final String SCOPE_CLAIM = "scope";
+    private static final String USER_ID_CLAIM = "user_id";
+    private static final String TENANT_ID_CLAIM = "tenantId";
+    private static final String ACCOUNT_ID_CLAIM = "accountId";
     private static final long MILLIS_PER_SECOND = 1000L;
 
     /**
@@ -69,9 +72,17 @@ public abstract class SecurityContext {
      */
     public static void set(String rawToken, List<TokenClaim> claims) {
         Instant expiry = parseExpiry(claims);
-        String userId = extractClaim(claims, SUB_CLAIM);
+        String userId = extractClaim(claims, USER_ID_CLAIM);
+        if (userId == null) {
+            userId = extractClaim(claims, SUB_CLAIM);
+        }
+        
         Set<String> scopes = parseScopes(claims);
-        SECURITY_CONTEXT.set(new SecurityDetails(rawToken, claims, expiry, userId, scopes));
+        String tenantId = extractClaim(claims, TENANT_ID_CLAIM);
+        String accountId = extractClaim(claims, ACCOUNT_ID_CLAIM);
+        LOGGER.debug("Setting security context for userId={}, tenantId={}, accountId={}, scopes={}",
+            userId, tenantId, accountId, scopes);
+        SECURITY_CONTEXT.set(new SecurityDetails(rawToken, claims, expiry, userId, scopes, tenantId, accountId));
     }
 
     /**
@@ -102,6 +113,26 @@ public abstract class SecurityContext {
     public static Optional<String> getUserId() {
         SecurityDetails details = SECURITY_CONTEXT.get();
         return details == null ? Optional.empty() : Optional.ofNullable(details.userId());
+    }
+
+    /**
+     * Returns the tenant ID from the validated JWT for the current thread.
+     *
+     * @return an {@link Optional} containing the tenant ID, or empty if not present
+     */
+    public static Optional<String> getTenantId() {
+        SecurityDetails details = SECURITY_CONTEXT.get();
+        return details == null ? Optional.empty() : Optional.ofNullable(details.tenantId());
+    }
+
+    /**
+     * Returns the account ID from the validated JWT for the current thread.
+     *
+     * @return an {@link Optional} containing the account ID, or empty if not present
+     */
+    public static Optional<String> getAccountId() {
+        SecurityDetails details = SECURITY_CONTEXT.get();
+        return details == null ? Optional.empty() : Optional.ofNullable(details.accountId());
     }
 
     /**
@@ -197,6 +228,8 @@ public abstract class SecurityContext {
         private final Instant expiry;
         private final String userId;
         private final Set<String> scopes;
+        private final String tenantId;
+        private final String accountId;
 
         /**
          * Constructs a {@code SecurityDetails} instance.
@@ -206,14 +239,19 @@ public abstract class SecurityContext {
          * @param expiry   the token expiry instant parsed from the {@code exp} claim
          * @param userId   the subject ({@code sub}) claim value
          * @param scopes   the raw scope strings from the JWT
+         * @param tenantId the tenant ID from the JWT
+         * @param accountId the account ID from the JWT
          */
         public SecurityDetails(String rawToken, List<TokenClaim> claims,
-                               Instant expiry, String userId, Set<String> scopes) {
+                               Instant expiry, String userId, Set<String> scopes,
+                               String tenantId, String accountId) {
             this.rawToken = rawToken;
             this.claims = claims;
             this.expiry = expiry;
             this.userId = userId;
             this.scopes = scopes;
+            this.tenantId = tenantId;
+            this.accountId = accountId;
         }
 
         /**
@@ -259,6 +297,24 @@ public abstract class SecurityContext {
          */
         public Set<String> scopes() {
             return scopes;
+        }
+
+        /**
+         * Returns the tenant ID from the JWT.
+         *
+         * @return the tenant ID, or {@code null} if not present
+         */
+        public String tenantId() {
+            return tenantId;
+        }
+
+        /**
+         * Returns the account ID from the JWT.
+         *
+         * @return the account ID, or {@code null} if not present
+         */
+        public String accountId() {
+            return accountId;
         }
     }
 }

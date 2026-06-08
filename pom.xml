@@ -152,7 +152,7 @@
         <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
         <tomcat.version>11.0.22</tomcat.version>
         <postgresql.version>42.7.11</postgresql.version>
-        <netty.version>4.2.13.Final</netty.version>
+        <netty.version>4.2.15.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <hibernate-core.version>7.1.8.Final</hibernate-core.version>

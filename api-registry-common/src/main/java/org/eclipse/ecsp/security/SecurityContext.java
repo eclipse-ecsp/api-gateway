@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -178,6 +179,10 @@ public abstract class SecurityContext {
                 if (value instanceof Number num) {
                     return LocalDateTime.ofInstant(Instant.ofEpochMilli(num.longValue() * MILLIS_PER_SECOND),
                         ZoneOffset.UTC);
+                }
+
+                if (value instanceof Date date) { // NOSONAR
+                    return LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC); 
                 }
                 if (value instanceof LocalDateTime date) {
                     return date;

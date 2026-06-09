@@ -144,7 +144,7 @@ class RestClientTokenInterceptorTest {
     }
 
     private void setValidToken(String token) {
-        long futureEpoch = Instant.now().plusSeconds(3600).getEpochSecond();
+        long futureEpoch = Instant.parse("2099-01-01T00:00:00Z").getEpochSecond();
         List<TokenClaim> claims = Arrays.asList(
             new TokenClaim("sub", "user-1"),
             new TokenClaim("exp", futureEpoch)
@@ -153,7 +153,7 @@ class RestClientTokenInterceptorTest {
     }
 
     private void setExpiredToken(String token) {
-        long pastEpoch = Instant.now().minusSeconds(3600).getEpochSecond();
+        long pastEpoch = Instant.parse("2000-01-01T00:00:00Z").getEpochSecond();
         List<TokenClaim> claims = Collections.singletonList(new TokenClaim("exp", pastEpoch));
         SecurityContext.set(token, claims);
     }

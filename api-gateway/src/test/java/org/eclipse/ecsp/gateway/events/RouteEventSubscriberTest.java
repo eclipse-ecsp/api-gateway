@@ -139,7 +139,7 @@ class RouteEventSubscriberTest {
     private RouteChangeEvent newEvent(RouteEventType type) {
         return new RouteChangeEvent(
                 UUID.randomUUID().toString(),
-                Instant.now(),
+                Instant.ofEpochMilli(System.currentTimeMillis()),
                 type,
                 List.of("service-1"),
                 List.of(),

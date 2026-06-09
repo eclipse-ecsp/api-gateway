@@ -106,13 +106,18 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
             return true;
         }
         if (!(handler instanceof HandlerMethod)) {
+            LOGGER.debug("Handler for endpoint {} is not a HandlerMethod, skipping token validation",
+                request.getRequestURI());
             return true;
         }
+
         HandlerMethod handlerMethod = (HandlerMethod) handler;
         if (!securityRequirementCache.isSecured(handlerMethod)) {
             LOGGER.debug("Endpoint {} is not secured, skipping token validation", request.getRequestURI());
             return true;
         }
+
+        LOGGER.debug("Validating token for endpoint {}", request.getRequestURI());
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
@@ -127,8 +132,9 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
                 LOGGER.warn("Token does not have required scopes for endpoint {}", request.getRequestURI());
                 return false;
             }
-            SecurityContext.set(token, claims);
             LOGGER.debug("Token validated successfully for endpoint {}", request.getRequestURI());
+            SecurityContext.set(token, claims);
+            LOGGER.debug("SecurityContext set for endpoint {}", request.getRequestURI());
             return true;
         } catch (TokenValidatorException ex) {
             LOGGER.warn("Token validation failed: {}, for the endpoint {}", ex.getMessage(), request.getRequestURI());
@@ -186,11 +192,15 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     private List<String> resolveEffectiveScopes(HandlerMethod handlerMethod, List<String> annotationScopes) {
         Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
         if (!scopeOverrideProperties.getOverride().isEnabled() || scopesMap == null) {
+            LOGGER.debug("Scope override not enabled or no scopesMap configured; using annotation scopes: {}",
+                annotationScopes);
             return annotationScopes;
         }
         String routeId = resolveRouteId(handlerMethod);
         List<String> overrideScopes = scopesMap.getOrDefault(routeId, scopesMap.get(routeId.toLowerCase()));
         if (overrideScopes == null) {
+            LOGGER.debug("No override scopes found for routeId {}; using annotation scopes: {}",
+                routeId, annotationScopes);
             return annotationScopes;
         }
         LOGGER.debug("Override scopes found for routeId {}: {}", routeId, overrideScopes);

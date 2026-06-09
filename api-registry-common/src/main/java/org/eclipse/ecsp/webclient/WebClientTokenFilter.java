@@ -59,13 +59,16 @@ public class WebClientTokenFilter implements ExchangeFilterFunction {
     public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction next) {
         // SYNC — token is captured on the calling (servlet) thread BEFORE any reactive operator.
         Optional<String> token = resolveToken(request.url());
-
         if (token.isEmpty()) {
+            LOGGER.debug("No token to propagate for request to {}; proceeding without Authorization header",
+                request.url());
             return next.exchange(request);
         }
         if (request.headers().getFirst(HttpHeaders.AUTHORIZATION) != null) {
+            LOGGER.debug("Request to {} already has Authorization header; skipping token propagation", request.url());
             return next.exchange(request);
         }
+        LOGGER.debug("Propagating token to {} with Authorization header", request.url());
         ClientRequest outbound = ClientRequest.from(request)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token.get())
             .build();
@@ -74,10 +77,12 @@ public class WebClientTokenFilter implements ExchangeFilterFunction {
 
     private Optional<String> resolveToken(URI targetUri) {
         if (shouldSkipPropagation(targetUri)) {
+            LOGGER.debug("Skipping token propagation to {}; host is excluded by configuration", targetUri);
             return Optional.empty();
         }
         Optional<String> token = SecurityContext.getToken();
         if (token.isEmpty()) {
+            LOGGER.debug("No token found in SecurityContext; skipping propagation to {}", targetUri);
             return Optional.empty();
         }
         if (SecurityContext.isTokenExpired()) {

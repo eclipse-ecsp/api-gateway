@@ -24,7 +24,6 @@ import org.eclipse.ecsp.security.HeaderContext;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.Arrays;
@@ -47,8 +46,8 @@ public class HeaderInterceptor implements HandlerInterceptor {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(HeaderInterceptor.class);
 
     @Override
-    public boolean preHandle(@NotNull HttpServletRequest request,
-                             @NotNull HttpServletResponse response, @NotNull Object handler) {
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response, Object handler) {
         if (!RegistryCommonConstants.HEALTH_URL.equals(request.getContextPath())
                 && !request.getContextPath().startsWith(RegistryCommonConstants.OPEN_API_URL)) {
             String scope = request.getHeader(RegistryCommonConstants.SCOPE);
@@ -80,9 +79,9 @@ public class HeaderInterceptor implements HandlerInterceptor {
      * @param ex       any exception thrown during handler execution, or {@code null}
      */
     @Override
-    public void afterCompletion(@NotNull HttpServletRequest request,
-                                @NotNull HttpServletResponse response,
-                                @NotNull Object handler, Exception ex) {
+    public void afterCompletion(HttpServletRequest request,
+                                HttpServletResponse response,
+                                Object handler, Exception ex) {
         HeaderContext.clear();
     }
 }

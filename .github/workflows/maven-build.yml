@@ -41,7 +41,6 @@ jobs:
 
   docker_push_api_registry:
     needs: sonar_analysis
-    if: false
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
@@ -49,10 +48,10 @@ jobs:
       maven_args: 'clean package --file pom.xml'
       java_version: '25'
       java_distribution: 'temurin'
+      push: false
 
   docker_push_api-gateway:
     needs: sonar_analysis
-    if: false
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
     secrets: inherit
     with:
@@ -60,6 +59,7 @@ jobs:
       maven_args: 'clean package --file pom.xml'
       java_version: '25'
       java_distribution: 'temurin'
+      push: false
   
   deploy-snapshot:
     uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@52c11f63f46f741e4f56c5dace97b44982a4372b

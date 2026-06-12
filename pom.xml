@@ -79,7 +79,7 @@
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
         <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
-        <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
+        <maven-war-plugin.version>3.5.1</maven-war-plugin.version>
 
         <!--Checkstyle plugin properties -->
         <checkstyle.version>11.0.0</checkstyle.version>
@@ -152,9 +152,9 @@
         <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
         <tomcat.version>11.0.22</tomcat.version>
         <postgresql.version>42.7.11</postgresql.version>
-        <netty.version>4.2.13.Final</netty.version>
+        <netty.version>4.2.15.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
-        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
         <hibernate-core.version>7.1.8.Final</hibernate-core.version>
     </properties>
 

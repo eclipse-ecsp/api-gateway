@@ -22,9 +22,9 @@
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec
         </jacoco.ut.execution.data.file>
         <sql.dao.version>1.2.3</sql.dao.version>
-        <nosql.dao.version>1.2.2</nosql.dao.version>
+        <nosql.dao.version>1.3.0</nosql.dao.version>
         <hypersistence.utils.hibernate.71.version>3.15.2</hypersistence.utils.hibernate.71.version>
-        <mongodb-driver.version>4.5.1</mongodb-driver.version>
+        <mongodb-driver.version>5.2.1</mongodb-driver.version>
         <testcontainers.version>2.0.4</testcontainers.version>
     </properties>
 

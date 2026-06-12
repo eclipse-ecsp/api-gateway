@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.security.validator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.ecsp.interceptors.SecurityRequirementCache;
@@ -42,7 +41,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.method.HandlerMethod;
-
+import tools.jackson.databind.ObjectMapper;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;

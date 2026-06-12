@@ -18,7 +18,7 @@
 
 package org.eclipse.ecsp.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.eclipse.ecsp.interceptors.SecurityRequirementCache;
 import org.eclipse.ecsp.interceptors.TokenValidationInterceptor;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
@@ -35,6 +35,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Auto-configuration that wires together the JWT token validation and token propagation
@@ -106,10 +109,12 @@ public class TokenValidationConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(ObjectMapper.class)
-    public ObjectMapper objectMapper() {
+    public ObjectMapper registryObjectMapper() {
         LOGGER.debug("Creating ObjectMapper bean");
-        ObjectMapper om = new ObjectMapper();
-        om.findAndRegisterModules();
-        return om;
+        return JsonMapper.builder()
+            .findAndAddModules()
+            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
     }
 }

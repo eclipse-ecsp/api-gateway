@@ -182,7 +182,7 @@ public abstract class SecurityContext {
                 }
 
                 if (value instanceof Date date) { // NOSONAR
-                    return LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC); 
+                    return LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC); //NOSONAR
                 }
                 if (value instanceof LocalDateTime date) {
                     return date;

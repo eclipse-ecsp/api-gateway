@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.interceptors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
@@ -31,11 +30,11 @@ import org.eclipse.ecsp.tokenvalidator.exception.TokenValidatorException;
 import org.eclipse.ecsp.tokenvalidator.model.TokenClaim;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -98,9 +97,9 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(@NotNull HttpServletRequest request,
-                             @NotNull HttpServletResponse response,
-                             @NotNull Object handler) throws IOException {
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) throws IOException {
         if (!config.getSecurity().isEnabled()) {
             LOGGER.debug("security not enabled, skipping token validation for endpoint {}", request.getRequestURI());
             return true;
@@ -169,9 +168,9 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
      * @param ex       any exception thrown during handler execution, or {@code null}
      */
     @Override
-    public void afterCompletion(@NotNull HttpServletRequest request,
-                                @NotNull HttpServletResponse response,
-                                @NotNull Object handler, Exception ex) {
+    public void afterCompletion(HttpServletRequest request,
+                                HttpServletResponse response,
+                                Object handler, Exception ex) {
         LOGGER.debug("Clearing SecurityContext for the api: {}", request.getRequestURI());                       
         SecurityContext.clear();
     }

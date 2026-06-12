@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -217,6 +218,24 @@ class SecurityContextTest {
         Optional<String> userId = SecurityContext.getUserId();
         Assertions.assertTrue(userId.isPresent());
         Assertions.assertEquals("explicit-user-id", userId.get());
+    }
+
+    @Test
+    void shouldParseExpiryFromDateExpClaimWhenNotExpired() {
+        Date futureDate = Date.from(Instant.parse("2099-01-01T00:00:00Z"));
+        List<TokenClaim> claims = Collections.singletonList(new TokenClaim("exp", futureDate));
+        SecurityContext.set("token", claims);
+
+        Assertions.assertFalse(SecurityContext.isTokenExpired());
+    }
+
+    @Test
+    void shouldDetectExpiredTokenWithDateExpClaim() {
+        Date pastDate = Date.from(Instant.parse("2000-01-01T00:00:00Z"));
+        List<TokenClaim> claims = Collections.singletonList(new TokenClaim("exp", pastDate));
+        SecurityContext.set("token", claims);
+
+        Assertions.assertTrue(SecurityContext.isTokenExpired());
     }
 
     @Test

@@ -18,6 +18,7 @@
 
 package org.eclipse.ecsp.registry.events.data;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -37,6 +38,7 @@ import java.util.List;
 @Getter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RouteChangeEventData extends AbstractEventData {
     private static final long serialVersionUID = 1L;
 

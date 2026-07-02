@@ -34,13 +34,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 /**
  * SHA-256 based implementation of {@link ChecksumService}.
@@ -65,15 +68,31 @@ public class Sha256ChecksumService implements ChecksumService {
     private static final String FIELD_ID = "id";
     private static final String FIELD_SERVICE = "service";
     private static final String FIELD_CONTEXT_PATH = "contextPath";
-
-    private static final Set<String> DEFAULT_FIELDS =
-            Set.of(FIELD_PREDICATES, FIELD_FILTERS, FIELD_URI, FIELD_ACTIVE);
+    private static final String FIELD_CACHE_KEY = "cacheKey";
+    private static final String FIELD_CACHE_SIZE = "cacheSize";
+    private static final String FIELD_CACHE_TTL = "cacheTtl";
 
     private static final Set<String> ALL_FIELDS =
             Set.of(FIELD_PREDICATES, FIELD_FILTERS, FIELD_URI, FIELD_ACTIVE,
-                    FIELD_ORDER, FIELD_METADATA, FIELD_ID, FIELD_SERVICE, FIELD_CONTEXT_PATH);
+                    FIELD_ORDER, FIELD_METADATA, FIELD_ID, FIELD_SERVICE, FIELD_CONTEXT_PATH,
+                    FIELD_CACHE_KEY, FIELD_CACHE_SIZE, FIELD_CACHE_TTL);
 
     private static final String WILDCARD = "*";
+
+    private static final Map<String, Function<RouteDefinition, Object>> FIELD_EXTRACTORS;
+
+    static {
+        Map<String, Function<RouteDefinition, Object>> map = new HashMap<>();
+        map.put(FIELD_ORDER,        r -> String.valueOf(r.getOrder()));
+        map.put(FIELD_ID,           r -> Objects.toString(r.getId(), ""));
+        map.put(FIELD_SERVICE,      r -> Objects.toString(r.getService(), ""));
+        map.put(FIELD_CONTEXT_PATH, r -> Objects.toString(r.getContextPath(), ""));
+        map.put(FIELD_CACHE_KEY,    r -> Objects.toString(r.getCacheKey(), ""));
+        map.put(FIELD_CACHE_SIZE,   r -> Objects.toString(r.getCacheSize(), ""));
+        map.put(FIELD_CACHE_TTL,    r -> Objects.toString(r.getCacheTtl(), ""));
+        map.put(FIELD_ACTIVE,       r -> Boolean.TRUE.toString());
+        FIELD_EXTRACTORS = Map.copyOf(map);
+    }
 
     private final ChecksumProperties properties;
     private final ObjectMapper objectMapper;
@@ -146,13 +165,22 @@ public class Sha256ChecksumService implements ChecksumService {
      */
     private Set<String> getEffectiveFields() {
         List<String> configured = properties.getChecksum().getIncludeFields();
-        if (configured == null || configured.isEmpty()) {
-            return DEFAULT_FIELDS;
-        }
-        if (configured.size() == 1 && WILDCARD.equals(configured.get(0))) {
+        if (isWildcardOrEmpty(configured)) {
             return ALL_FIELDS;
         }
         return new HashSet<>(configured);
+    }
+
+    /**
+     * Returns {@code true} when the configured field list is absent, empty, or contains only
+     * the wildcard token {@code "*"}, meaning all fields should be included.
+     *
+     * @param fields configured include-fields list; may be {@code null}
+     * @return {@code true} if all fields should be included
+     */
+    private boolean isWildcardOrEmpty(List<String> fields) {
+        return fields == null || fields.isEmpty()
+                || (fields.size() == 1 && WILDCARD.equals(fields.get(0)));
     }
 
     /**
@@ -164,16 +192,13 @@ public class Sha256ChecksumService implements ChecksumService {
      */
     private Object getFieldValue(RouteDefinition route, String field) {
         switch (field) {
-            case FIELD_PREDICATES:   return normalizePredicates(route.getPredicates());
-            case FIELD_FILTERS:      return normalizeFilters(route.getFilters());
-            case FIELD_URI:          return normalizeUri(route.getUri());
-            case FIELD_METADATA:     return normalizeMetadata(route.getMetadata());
-            case FIELD_ORDER:        return String.valueOf(route.getOrder());
-            case FIELD_ID:           return route.getId() != null ? route.getId() : "";
-            case FIELD_SERVICE:      return route.getService() != null ? route.getService() : "";
-            case FIELD_CONTEXT_PATH: return route.getContextPath() != null ? route.getContextPath() : "";
-            case FIELD_ACTIVE:       return Boolean.TRUE.toString();
-            default:                 return "";
+            case FIELD_PREDICATES: return normalizePredicates(route.getPredicates());
+            case FIELD_FILTERS:    return normalizeFilters(route.getFilters());
+            case FIELD_URI:        return normalizeUri(route.getUri());
+            case FIELD_METADATA:   return normalizeMetadata(route.getMetadata());
+            default:
+                Function<RouteDefinition, Object> extractor = FIELD_EXTRACTORS.get(field);
+                return extractor != null ? extractor.apply(route) : "";
         }
     }
 

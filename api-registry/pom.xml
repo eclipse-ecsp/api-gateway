@@ -114,6 +114,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.eclipse.ecsp</groupId>
             <artifactId>utils</artifactId>
             <version>${ecsp.utils.version}</version>

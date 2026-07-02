@@ -206,7 +206,7 @@ public class ApiRouteService {
         Optional<String> newChecksumOpt = checksumService.compute(model);
         RouteChangeType changeType = resolveChangeType(existing, newChecksumOpt);
 
-        if (changeType == RouteChangeType.UNCHANGED  && existing.isPresent()) {
+        if (changeType == RouteChangeType.UNCHANGED && existing.isPresent()) {
             logUnchanged(model, existing.get().getChecksum());
             incrementMetric(RouteChangeType.UNCHANGED);
             return ApiRouteUtil.convert(existing.get());
@@ -324,6 +324,11 @@ public class ApiRouteService {
                                     RouteChangeType changeType,
                                     String currentChecksum,
                                     String previousChecksum) {
+        if (changeType == RouteChangeType.UNCHANGED) {
+            LOGGER.debug("{} | routeId={} | changeType=UNCHANGED | skippingEvent=true",
+                    RegistryConstants.LOG_EVENT_ROUTE_CHANGE, entity.getId());
+            return;
+        }
         if (eventPublisher != null && entity.getService() != null) {
             RouteChangeEventData eventData = new RouteChangeEventData(
                     List.of(entity.getService()), List.of(),

@@ -357,13 +357,13 @@ class Sha256ChecksumServiceTest {
     }
 
     /**
-     * Test purpose          - Verify empty include-fields list uses default fields.
+     * Test purpose          - Verify empty include-fields list uses all fields.
      * Test data             - Empty include-fields; routes differing in 'order' only.
-     * Test expected result  - Checksums are equal (order not in default fields).
+     * Test expected result  - Checksums differ (order is included in all fields).
      * Test type             - Positive.
      */
     @Test
-    void shouldUseDefaultFieldsWhenIncludeFieldsEmpty() {
+    void shouldUseAllFieldsWhenIncludeFieldsEmpty() {
         properties.getChecksum().setIncludeFields(new ArrayList<>());
 
         RouteDefinition route1 = buildRoute("r", "lb://svc", 1);
@@ -372,17 +372,17 @@ class Sha256ChecksumServiceTest {
         Optional<String> cs1 = checksumService.compute(route1);
         Optional<String> cs2 = checksumService.compute(route2);
 
-        Assertions.assertEquals(cs1, cs2);
+        Assertions.assertNotEquals(cs1, cs2);
     }
 
     /**
-     * Test purpose          - Verify 'active' is included in the default field set.
-     * Test data             - Two routes with identical payload; checksum computed with default fields.
-     * Test expected result  - Checksum is present and deterministic (active=true is constant).
+     * Test purpose          - Verify checksum is present and deterministic with all fields included.
+     * Test data             - Two calls for identical route; empty include-fields (all fields).
+     * Test expected result  - Checksum is present and both calls produce the same value.
      * Test type             - Positive.
      */
     @Test
-    void shouldIncludeActiveInDefaultFields() {
+    void shouldProduceDeterministicChecksumWithAllFields() {
         RouteDefinition route = buildRoute("r", "lb://svc", 0);
 
         Optional<String> cs1 = checksumService.compute(route);

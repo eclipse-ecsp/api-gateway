@@ -10,7 +10,7 @@
  * <p>Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and\
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  *
  * <p>SPDX-License-Identifier: Apache-2.0
@@ -18,7 +18,10 @@
 
 package org.eclipse.ecsp.registry.service;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.registry.config.ChecksumProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
@@ -31,6 +34,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -47,10 +52,32 @@ class ApiRouteServiceTest {
     @Mock
     private EventPublisherContext routeEventPublisher;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter counter;
+
+    private ChecksumProperties checksumPropertiesEnabled;
+    private ChecksumProperties checksumPropertiesDisabled;
+
+    @Mock
+    private ChecksumService checksumService;
+
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
-        apiRouteService = new ApiRouteService(apiRouteRepo, Optional.of(routeEventPublisher));
+        Mockito.when(meterRegistry.counter(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(counter);
+        checksumPropertiesEnabled = new ChecksumProperties();
+        checksumPropertiesEnabled.setEnabled(true);
+        checksumPropertiesDisabled = new ChecksumProperties();
+        checksumPropertiesDisabled.setEnabled(false);
+        Mockito.when(checksumService.compute(Mockito.any()))
+                .thenReturn(Optional.of("abc123checksum"));
+        apiRouteService = new ApiRouteService(
+                apiRouteRepo, Optional.of(routeEventPublisher),
+                checksumPropertiesEnabled, checksumService, meterRegistry);
     }
 
     @Test
@@ -68,12 +95,8 @@ class ApiRouteServiceTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.createOrUpdate(null));
         RouteDefinition rd = new RouteDefinition();
-        try {
-            apiRouteService.createOrUpdate(rd);
-            Assertions.fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException ex) {
-            Assertions.assertTrue(true, "Expected illegal argument: " + ex.getMessage());
-        }
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> apiRouteService.createOrUpdate(rd));
     }
 
     @Test
@@ -109,43 +132,37 @@ class ApiRouteServiceTest {
 
     @Test
     void testCreateOrUpdatePublishesEvent() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         apiRouteEntity.setService("test-service");
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setService("test-service");
         Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
-        // Act
         apiRouteService.createOrUpdate(routeDefinition);
 
-        // Assert
         Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
     }
 
     @Test
     void testDeletePublishesEvent() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
-        // Act
         apiRouteService.delete("routeId");
 
-        // Assert
         Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
     }
 
     @Test
     void testCreateOrUpdateWithoutEventPublisher() {
-        // Arrange - create service without event publisher
-        ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
+        ApiRouteService serviceWithoutPublisher = new ApiRouteService(
+                apiRouteRepo, Optional.empty(),
+                checksumPropertiesEnabled, checksumService, meterRegistry);
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
-        // Act & Assert - should not throw exception
         Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.createOrUpdate(routeDefinition));
     }
 
@@ -157,17 +174,14 @@ class ApiRouteServiceTest {
      */
     @Test
     void testCreateOrUpdateNullServiceNoEventPublished() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         apiRouteEntity.setService(null);
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setService(null);
         Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
-        // Act
         apiRouteService.createOrUpdate(routeDefinition);
 
-        // Assert
         Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
     }
 
@@ -179,15 +193,12 @@ class ApiRouteServiceTest {
      */
     @Test
     void testDeleteNullServiceNoEventPublished() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService(null);
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
-        // Act
         apiRouteService.delete("routeId");
 
-        // Assert
         Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
     }
 
@@ -199,10 +210,8 @@ class ApiRouteServiceTest {
      */
     @Test
     void testReadRouteNotFoundThrowsException() {
-        // Arrange
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
-        // Act & Assert
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.read("nonExistentId"));
     }
@@ -215,10 +224,8 @@ class ApiRouteServiceTest {
      */
     @Test
     void testDeleteRouteNotFoundThrowsException() {
-        // Arrange
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
-        // Act & Assert
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.delete("nonExistentId"));
     }
@@ -231,17 +238,14 @@ class ApiRouteServiceTest {
      */
     @Test
     void testCreateOrUpdateWithApiDocs() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setApiDocs(true);
         Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
-        // Act
         apiRouteService.createOrUpdate(routeDefinition);
 
-        // Assert
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.argThat(entity -> 
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.argThat(entity ->
             Boolean.TRUE.equals(entity.getApiDocs())
         ));
     }
@@ -254,16 +258,13 @@ class ApiRouteServiceTest {
      */
     @Test
     void testCreateOrUpdateWithApiDocsFalse() {
-        // Arrange
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setApiDocs(false);
         Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
-        // Act
         apiRouteService.createOrUpdate(routeDefinition);
 
-        // Assert
         Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
     }
 
@@ -275,13 +276,10 @@ class ApiRouteServiceTest {
      */
     @Test
     void testListEmptyRepository() {
-        // Arrange
-        Mockito.when(apiRouteRepo.findAll()).thenReturn(java.util.Collections.emptyList());
+        Mockito.when(apiRouteRepo.findAll()).thenReturn(Collections.emptyList());
 
-        // Act
-        java.util.List<RouteDefinition> result = apiRouteService.list();
+        List<RouteDefinition> result = apiRouteService.list();
 
-        // Assert
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.isEmpty());
     }
@@ -294,15 +292,174 @@ class ApiRouteServiceTest {
      */
     @Test
     void testDeleteWithoutEventPublisher() {
-        // Arrange
-        ApiRouteService serviceWithoutPublisher = new ApiRouteService(apiRouteRepo, Optional.empty());
+        ApiRouteService serviceWithoutPublisher = new ApiRouteService(
+                apiRouteRepo, Optional.empty(),
+                checksumPropertiesEnabled, checksumService, meterRegistry);
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
         Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
-        // Act & Assert
         Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.delete("routeId"));
     }
 
+    /**
+     * Test purpose          - Verify UNCHANGED route skips DB write and returns existing entity.
+     * Test data             - Existing entity with matching checksum.
+     * Test expected result  - Repository save NOT called; existing route returned.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateUnchangedRouteSkipsDbWrite() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum("abc123checksum");
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
 
+        RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
+
+        Mockito.verify(apiRouteRepo, Mockito.never()).save(Mockito.any());
+        Assertions.assertNotNull(result);
+    }
+
+    /**
+     * Test purpose          - Verify UPDATED route triggers DB write when checksum differs.
+     * Test data             - Existing entity with different checksum.
+     * Test expected result  - Repository save called once.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateUpdatedRouteWritesToDb() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum("old-checksum");
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify NEW route (no existing entity) triggers DB write.
+     * Test data             - No existing entity in repository.
+     * Test expected result  - Repository save called once.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateNewRouteWritesToDb() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity saved = RegistryTestUtil.getApiRouteEntity();
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
+
+        RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
+
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        Assertions.assertNotNull(result);
+    }
+
+    /**
+     * Test purpose          - Verify checksum failure treats route as UPDATED (FR-07).
+     * Test data             - Existing entity; checksum computation returns empty.
+     * Test expected result  - Repository save called; route registered.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateChecksumFailureTreatedAsUpdated() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum("old-checksum");
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.empty());
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+
+        Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(routeDefinition));
+
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify null stored checksum (post-migration first write) treated as UPDATED.
+     * Test data             - Existing entity with null checksum.
+     * Test expected result  - Repository save called; route registered.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateNullStoredChecksumTreatedAsUpdated() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum(null);
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+
+        Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(routeDefinition));
+
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify change-detection disabled path saves unconditionally (FR-08).
+     * Test data             - Change-detection disabled; route definition provided.
+     * Test expected result  - Repository save called regardless of checksum.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateChangeDetectionDisabledSavesUnconditionally() {
+        ApiRouteService serviceDisabled = new ApiRouteService(
+                apiRouteRepo, Optional.of(routeEventPublisher),
+                checksumPropertiesDisabled, checksumService, meterRegistry);
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity saved = RegistryTestUtil.getApiRouteEntity();
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
+        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
+
+        serviceDisabled.createOrUpdate(routeDefinition);
+
+        Mockito.verify(checksumService, Mockito.never()).compute(Mockito.any());
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify delete with a stored checksum emits DELETED event with checksum.
+     * Test data             - Entity with a known checksum.
+     * Test expected result  - Event published; repository delete called.
+     * Test type             - Positive.
+     */
+    @Test
+    void testDeleteWithStoredChecksumPublishesEvent() {
+        ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
+        apiRouteEntity.setId("route-1");
+        apiRouteEntity.setService("svc");
+        apiRouteEntity.setChecksum("stored-checksum");
+        Mockito.when(apiRouteRepo.findById("route-1")).thenReturn(Optional.of(apiRouteEntity));
+
+        apiRouteService.delete("route-1");
+
+        Mockito.verify(apiRouteRepo, Mockito.times(1)).delete(apiRouteEntity);
+        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
+    }
+
+    /**
+     * Test purpose          - Verify UNCHANGED route increments the 'unchanged' metric counter.
+     * Test data             - Existing entity with matching checksum; meterRegistry mocked.
+     * Test expected result  - Counter incremented for 'unchanged' change type.
+     * Test type             - Positive.
+     */
+    @Test
+    void testUnchangedRouteIncrementsMetric() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum("abc123checksum");
+        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
+
+        apiRouteService.createOrUpdate(routeDefinition);
+
+        Mockito.verify(counter, Mockito.times(1)).increment();
+    }
 }

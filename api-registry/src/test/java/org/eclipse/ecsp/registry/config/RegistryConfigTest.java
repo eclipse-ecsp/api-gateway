@@ -18,6 +18,10 @@
 
 package org.eclipse.ecsp.registry.config;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
 import org.springframework.boot.actuate.endpoint.EndpointId;
@@ -25,6 +29,7 @@ import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,10 +39,14 @@ import static org.mockito.Mockito.when;
 class RegistryConfigTest {
 
     @Test
-    void objectMapperBuilderCustomizerReturnsCustomizer() {
-        RegistryConfig config = new RegistryConfig();
-        
-        assertNotNull(config.objectMapperBuilderCustomizer());
+    void objectMapperHasExpectedFeaturesEnabled() {
+        JacksonConfig config = new JacksonConfig();
+        ObjectMapper mapper = config.objectMapper();
+
+        assertNotNull(mapper);
+        assertTrue(mapper.isEnabled(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS));
+        assertTrue(mapper.isEnabled(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION));
+        assertTrue(mapper.isEnabled(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES));
     }
 
     @Test

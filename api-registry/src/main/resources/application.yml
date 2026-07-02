@@ -49,6 +49,11 @@ api:
   registry:
     security:
       enabled: ${api_security_enabled:false}
+    change-detection:
+      enabled: ${api_registry_change_detection_enabled:true}
+      checksum:
+        algorithm: ${api_registry_change_detection_algorithm:SHA-256}
+        include-fields: []
 
 api-registry:
   database:

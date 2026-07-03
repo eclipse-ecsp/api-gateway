@@ -154,10 +154,12 @@ public class ApiRouteService {
         String previousChecksum = entity.getChecksum();
         String correlationId = UUID.randomUUID().toString();
 
+        RouteDefinition route = entity.getRoute();
+        Object predicates = route != null ? route.getPredicates() : null;
         LOGGER.info("{} | eventId={} | routeId={} | service={} | changeType=DELETED"
                         + " | previousChecksum={} | predicates={} | api-gateway-url={}",
                 RegistryConstants.LOG_EVENT_ROUTE_CHANGE, correlationId, entity.getId(),
-                entity.getService(), previousChecksum, entity.getRoute().getPredicates(), apiGatewayUrl);
+                entity.getService(), previousChecksum, predicates, apiGatewayUrl);
 
         apiRouteRepo.delete(entity);
         incrementMetric(RouteChangeType.DELETED);

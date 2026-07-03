@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   check_licences:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-licences-analysis.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     name: Analyse Licences
     with:
       java_version: '25'

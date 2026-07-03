@@ -970,19 +970,17 @@ class JwtAuthValidatorTest {
         claimsWithList.put("roles", Arrays.asList("user", "admin", "moderator"));
 
         // Test validateScope method with List claim
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle List properly and return valid scope
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle List claims properly: " + e.getMessage());
-        }
+        // Should handle List properly and return valid scope
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
     }
 
     @Test
@@ -1415,19 +1413,17 @@ class JwtAuthValidatorTest {
         };
 
         // Test validateScope method with string scope
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle string scope properly
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle string scopes properly: " + e.getMessage());
-        }
+        // Should handle string scope properly
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
     }
 
     @Test
@@ -1450,20 +1446,18 @@ class JwtAuthValidatorTest {
         };
 
         // Test validateScope method with comma-separated scope
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle comma-separated scope properly
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-            Assertions.assertTrue(result.contains("AdminAccess"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle comma-separated scopes properly: " + e.getMessage());
-        }
+        // Should handle comma-separated scope properly
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
+        Assertions.assertTrue(result.contains("AdminAccess"));
     }
 
     @Test
@@ -1513,17 +1507,16 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with String[] input
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
-            String result = (String) getTokenHeaderValueMethod.invoke(null, claimsWithStringArray, "roles");
+            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithStringArray, "roles");
+        });
 
-            // Should join array with commas
-            Assertions.assertNotNull(result);
-            Assertions.assertEquals("admin,user,moderator", result);
-        } catch (Exception e) {
-            Assertions.fail("Should handle String array properly: " + e.getMessage());
-        }
+        // Should join array with commas
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("admin,user,moderator", result);
     }
 
     @Test
@@ -1539,19 +1532,18 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with Set input
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
-            String result = (String) getTokenHeaderValueMethod.invoke(null, claimsWithSet, "permissions");
+            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithSet, "permissions");
+        });
 
-            // Should join set with commas
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("read"));
-            Assertions.assertTrue(result.contains("write"));
-            Assertions.assertTrue(result.contains("delete"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle Set properly: " + e.getMessage());
-        }
+        // Should join set with commas
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("read"));
+        Assertions.assertTrue(result.contains("write"));
+        Assertions.assertTrue(result.contains("delete"));
     }
 
     @Test
@@ -1570,7 +1562,8 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with other types (Integer, Boolean, etc.)
+        Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
 
@@ -1580,9 +1573,7 @@ class JwtAuthValidatorTest {
             // Should convert to string
             Assertions.assertEquals("12345", userIdResult);
             Assertions.assertEquals("true", isActiveResult);
-        } catch (Exception e) {
-            Assertions.fail("Should handle other types properly: " + e.getMessage());
-        }
+        });
     }
 
     @Test

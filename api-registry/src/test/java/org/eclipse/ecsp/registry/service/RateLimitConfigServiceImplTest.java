@@ -184,14 +184,11 @@ class RateLimitConfigServiceImplTest {
         final List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Either routeId or service should be present, not both"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Either routeId or service should be present, not both"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -206,14 +203,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Either routeId or service should be present"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Either routeId or service should be present"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -224,14 +218,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("must be positive integers"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive integers"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -241,13 +232,10 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -257,13 +245,10 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("must be positive integers"));
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive integers"));
     }
 
     @Test
@@ -273,15 +258,12 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try { 
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason()
-                .contains("Burst capacity (" + BURST_CAPACITY_100 + ") must be greater than "
-                + "or equal to replenish rate (" + REPLENISH_RATE_200 + ") for routeId route1."));
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason()
+            .contains("Burst capacity (" + BURST_CAPACITY_100 + ") must be greater than "
+            + "or equal to replenish rate (" + REPLENISH_RATE_200 + ") for routeId route1."));
     }
 
     @Test
@@ -291,14 +273,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("exceeds maximum limit"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -308,14 +287,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("exceeds maximum limit"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -326,14 +302,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("must be positive"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -344,14 +317,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("must be positive and less than"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive and less than"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -362,14 +332,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Key resolver must be specified"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Key resolver must be specified"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -380,14 +347,11 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Collections.singletonList(dto);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Invalid key resolver"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Invalid key resolver"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -416,15 +380,12 @@ class RateLimitConfigServiceImplTest {
         final List<RateLimitConfigDto> dtos = Arrays.asList(dto1, dto2);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Duplicate routeId entries found"));
-            assertTrue(exception.getReason().contains("route1"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Duplicate routeId entries found"));
+        assertTrue(exception.getReason().contains("route1"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -435,15 +396,12 @@ class RateLimitConfigServiceImplTest {
         List<RateLimitConfigDto> dtos = Arrays.asList(dto1, dto2);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Duplicate service entries found"));
-            assertTrue(exception.getReason().contains("service1"));
-            verify(rateLimitConfigRepository, never()).saveAll(anyList());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.addOrUpdateRateLimitConfigs(dtos));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Duplicate service entries found"));
+        assertTrue(exception.getReason().contains("service1"));
+        verify(rateLimitConfigRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -532,14 +490,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Rate limit configuration not found"));
-            verify(rateLimitConfigRepository, never()).save(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Rate limit configuration not found"));
+        verify(rateLimitConfigRepository, never()).save(any());
     }
 
     @Test
@@ -549,14 +504,11 @@ class RateLimitConfigServiceImplTest {
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Id cannot be blank"));
-            verify(rateLimitConfigRepository, never()).findById(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Id cannot be blank"));
+        verify(rateLimitConfigRepository, never()).findById(any());
     }
 
     @Test
@@ -565,13 +517,10 @@ class RateLimitConfigServiceImplTest {
         RateLimitConfigDto updateDto = createValidRouteDto("route1", REPLENISH_RATE_150, BURST_CAPACITY_300);
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(null, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            verify(rateLimitConfigRepository, never()).findById(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(null, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(rateLimitConfigRepository, never()).findById(any());
     }
 
     @Test
@@ -590,14 +539,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Either routeId or service should be present, not both"));
-            verify(rateLimitConfigRepository, never()).save(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Either routeId or service should be present, not both"));
+        verify(rateLimitConfigRepository, never()).save(any());
     }
 
     @Test
@@ -610,14 +556,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("must be positive integers"));
-            verify(rateLimitConfigRepository, never()).save(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("must be positive integers"));
+        verify(rateLimitConfigRepository, never()).save(any());
     }
 
     @Test
@@ -631,14 +574,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("exceeds maximum limit"));
-            verify(rateLimitConfigRepository, never()).save(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("exceeds maximum limit"));
+        verify(rateLimitConfigRepository, never()).save(any());
     }
 
     @Test
@@ -652,14 +592,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.of(existingEntity));
 
         // Act & Assert
-        try {
-            rateLimitConfigService.updateRateLimitConfig(id, updateDto);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Invalid key resolver"));
-            verify(rateLimitConfigRepository, never()).save(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.updateRateLimitConfig(id, updateDto));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Invalid key resolver"));
+        verify(rateLimitConfigRepository, never()).save(any());
     }
 
     // ==================== getRateLimitConfigs Tests ====================
@@ -748,14 +685,11 @@ class RateLimitConfigServiceImplTest {
         when(rateLimitConfigRepository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert
-        try {
-            rateLimitConfigService.deleteRateLimitConfig(id);
-            Assertions.fail("Expected ResponseStatusException was not thrown");
-        } catch (ResponseStatusException exception) {
-            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Rate limit configuration not found"));
-            verify(rateLimitConfigRepository, never()).delete(any());
-        }
+        ResponseStatusException exception = Assertions.assertThrows(ResponseStatusException.class,
+                () -> rateLimitConfigService.deleteRateLimitConfig(id));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Rate limit configuration not found"));
+        verify(rateLimitConfigRepository, never()).delete(any());
     }
 
     // ==================== Helper Methods ====================

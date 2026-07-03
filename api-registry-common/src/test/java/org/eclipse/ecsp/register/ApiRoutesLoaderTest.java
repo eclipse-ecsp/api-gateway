@@ -416,12 +416,8 @@ class ApiRoutesLoaderTest {
         ReflectionTestUtils.setField(apiRoutesLoader, "contextPath", null);
         
         // Set required fields for route creation
-        try {
-            ReflectionTestUtils.setField(apiRoutesLoader, "serviceUrl", 
-                    new java.net.URI("http://test-service:8080/"));
-        } catch (java.net.URISyntaxException e) {
-            Assertions.fail("Failed to set serviceUrl: " + e.getMessage());
-        }
+        Assertions.assertDoesNotThrow(() -> ReflectionTestUtils.setField(apiRoutesLoader, "serviceUrl",
+                new java.net.URI("http://test-service:8080/")));
         ReflectionTestUtils.setField(apiRoutesLoader, "appName", "test-app");
         
         // Get initial route count

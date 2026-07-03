@@ -40,7 +40,7 @@ jobs:
       pull-requests: write
       contents: read
 
-  docker_push_api_registry:
+  build_image_api_registry:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     with:
@@ -54,7 +54,7 @@ jobs:
       DOCKER_API_TOKEN: ${{ secrets.DOCKER_API_TOKEN }}
     
 
-  docker_push_api-gateway:
+  build_image_api_gateway:
     needs: sonar_analysis
     uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     with:

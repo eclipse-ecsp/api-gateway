@@ -155,9 +155,9 @@ public class ApiRouteService {
         String correlationId = UUID.randomUUID().toString();
 
         LOGGER.info("{} | eventId={} | routeId={} | service={} | changeType=DELETED"
-                        + " | previousChecksum={} | api-gateway-url={}",
+                        + " | previousChecksum={} | predicates={} | api-gateway-url={}",
                 RegistryConstants.LOG_EVENT_ROUTE_CHANGE, correlationId, entity.getId(),
-                entity.getService(), previousChecksum, apiGatewayUrl);
+                entity.getService(), previousChecksum, entity.getRoute().getPredicates(), apiGatewayUrl);
 
         apiRouteRepo.delete(entity);
         incrementMetric(RouteChangeType.DELETED);
@@ -273,9 +273,9 @@ public class ApiRouteService {
                     entity.getService(), currentChecksum, model.getPredicates(), apiGatewayUrl);
         } else {
             LOGGER.info("{} | eventId={} | routeId={} | service={} | changeType=UPDATED"
-                            + " | previousChecksum={} | currentChecksum={} | api-gateway-url={}",
+                            + " | previousChecksum={} | currentChecksum={} | predicates={} | api-gateway-url={}",
                     RegistryConstants.LOG_EVENT_ROUTE_CHANGE, correlationId, entity.getId(),
-                    entity.getService(), previousChecksum, currentChecksum, apiGatewayUrl);
+                    entity.getService(), previousChecksum, currentChecksum,  model.getPredicates(), apiGatewayUrl);
         }
     }
 
@@ -286,7 +286,7 @@ public class ApiRouteService {
      * @param existingChecksum checksum stored in the repository
      */
     private void logUnchanged(RouteDefinition model, String existingChecksum) {
-        LOGGER.debug("{} | routeId={} | service={} | changeType=UNCHANGED"
+        LOGGER.info("{} | routeId={} | service={} | changeType=UNCHANGED"
                         + " | checksum={} | skippingWrite=true",
                 RegistryConstants.LOG_EVENT_ROUTE_CHANGE,
                 model.getId(), model.getService(), existingChecksum);

@@ -48,7 +48,7 @@ api:
     monitor: ${api_health_monitor:0 */1 * ? * *}
   registry:
     security:
-      enabled: ${api_security_enabled:false}
+      enabled: ${api_registry_security_enabled:false}
     change-detection:
       enabled: ${api_registry_change_detection_enabled:true}
       checksum:

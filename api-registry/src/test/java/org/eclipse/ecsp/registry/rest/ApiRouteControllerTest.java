@@ -30,6 +30,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.List;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class for ApiRouteController.
@@ -51,29 +53,29 @@ class ApiRouteControllerTest {
     @Test
     void testCreate() {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
-        Mockito.when(apiRouteService.createOrUpdate(Mockito.any())).thenReturn(routeDefinition);
+        when(apiRouteService.createOrUpdate(Mockito.any())).thenReturn(routeDefinition);
         Assertions.assertNotNull(apiRouteController.create(routeDefinition));
-        Mockito.verify(apiRouteService, Mockito.atLeastOnce()).createOrUpdate(Mockito.any());
+        verify(apiRouteService, Mockito.atLeastOnce()).createOrUpdate(Mockito.any());
     }
 
     @Test
     void testList() {
         Mockito.doReturn(List.of()).when(apiRouteService).list();
         Assertions.assertNotNull(apiRouteController.list());
-        Mockito.verify(apiRouteService, Mockito.atLeastOnce()).list();
+        verify(apiRouteService, Mockito.atLeastOnce()).list();
     }
 
     @Test
     void testGet() {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
-        Mockito.when(apiRouteService.read(Mockito.any())).thenReturn(routeDefinition);
+        when(apiRouteService.read(Mockito.any())).thenReturn(routeDefinition);
         Assertions.assertNotNull(apiRouteController.get("routeId"));
-        Mockito.verify(apiRouteService, Mockito.atLeastOnce()).read(Mockito.anyString());
+        verify(apiRouteService, Mockito.atLeastOnce()).read(Mockito.anyString());
     }
 
     @Test
     void testDelete() {
         apiRouteController.delete("routeId");
-        Mockito.verify(apiRouteService, Mockito.atLeastOnce()).delete(Mockito.anyString());
+        verify(apiRouteService, Mockito.atLeastOnce()).delete(Mockito.anyString());
     }
 }

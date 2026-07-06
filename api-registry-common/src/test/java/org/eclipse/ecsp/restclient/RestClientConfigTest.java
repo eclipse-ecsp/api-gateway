@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -34,6 +33,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClient;
 import java.util.List;
 import java.util.Optional;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link RestClientConfig}.
@@ -111,14 +111,14 @@ class RestClientConfigTest {
     void shouldCreateFallbackRestClientWithInterceptor() {
         ValidationConfigProperties config = new ValidationConfigProperties();
         RestClientTokenInterceptor interceptor = new RestClientTokenInterceptor(config);
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(interceptor);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(interceptor);
         RestClient client = restClientConfig.registryRestClient(tokenInterceptorProvider);
         Assertions.assertNotNull(client);
     }
 
     @Test
     void shouldCreateFallbackRestClientWithoutInterceptor() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestClient client = restClientConfig.registryRestClient(tokenInterceptorProvider);
         Assertions.assertNotNull(client);
     }

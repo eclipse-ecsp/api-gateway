@@ -41,6 +41,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+
 /**
  * Tests for {@link WebClientTokenFilter}.
  */
@@ -60,7 +64,7 @@ class WebClientTokenFilterTest {
     void beforeEach() {
         config = new ValidationConfigProperties();
         underTest = new WebClientTokenFilter(config);
-        Mockito.when(exchangeFunction.exchange(Mockito.any())).thenReturn(Mono.just(clientResponse));
+        when(exchangeFunction.exchange(Mockito.any())).thenReturn(Mono.just(clientResponse));
     }
 
     @AfterEach
@@ -78,7 +82,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertEquals("Bearer valid-token",
             captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }
@@ -94,7 +98,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertEquals("Bearer existing-token",
             captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }
@@ -109,7 +113,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertNull(captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }
 
@@ -124,7 +128,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertNull(captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }
 
@@ -140,7 +144,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertNull(captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }
 
@@ -156,7 +160,7 @@ class WebClientTokenFilterTest {
         underTest.filter(request, exchangeFunction).block();
 
         ArgumentCaptor<ClientRequest> captor = ArgumentCaptor.forClass(ClientRequest.class);
-        Mockito.verify(exchangeFunction).exchange(captor.capture());
+        verify(exchangeFunction).exchange(captor.capture());
         Assertions.assertEquals("Bearer valid-token",
             captor.getValue().headers().getFirst(HttpHeaders.AUTHORIZATION));
     }

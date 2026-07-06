@@ -37,6 +37,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class for ApiRouteService.
@@ -67,13 +70,13 @@ class ApiRouteServiceTest {
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(meterRegistry.counter(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(meterRegistry.counter(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(counter);
         checksumPropertiesEnabled = new ChecksumProperties();
         checksumPropertiesEnabled.setEnabled(true);
         checksumPropertiesDisabled = new ChecksumProperties();
         checksumPropertiesDisabled.setEnabled(false);
-        Mockito.when(checksumService.compute(Mockito.any()))
+        when(checksumService.compute(Mockito.any()))
                 .thenReturn(Optional.of("abc123checksum"));
         apiRouteService = new ApiRouteService(
                 apiRouteRepo, Optional.of(routeEventPublisher),
@@ -84,9 +87,9 @@ class ApiRouteServiceTest {
     void testCreateOrUpdate() {
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
         apiRouteService.createOrUpdate(routeDefinition);
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
         Assertions.assertNotNull(apiRouteService.createOrUpdate(routeDefinition));
     }
 
@@ -106,9 +109,9 @@ class ApiRouteServiceTest {
 
     @Test
     void testRead() {
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
         apiRouteService.read("routeId");
-        Mockito.verify(apiRouteRepo, Mockito.atLeastOnce()).findById(Mockito.anyString());
+        verify(apiRouteRepo, Mockito.atLeastOnce()).findById(Mockito.anyString());
     }
 
     @Test
@@ -119,9 +122,9 @@ class ApiRouteServiceTest {
 
     @Test
     void testDelete() {
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(new ApiRouteEntity()));
         apiRouteService.delete("routeId");
-        Mockito.verify(apiRouteRepo, Mockito.atLeastOnce()).findById(Mockito.anyString());
+        verify(apiRouteRepo, Mockito.atLeastOnce()).findById(Mockito.anyString());
     }
 
     @Test
@@ -136,22 +139,22 @@ class ApiRouteServiceTest {
         apiRouteEntity.setService("test-service");
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setService("test-service");
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
+        verify(routeEventPublisher, times(1)).publishEvent(Mockito.any());
     }
 
     @Test
     void testDeletePublishesEvent() {
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
         apiRouteService.delete("routeId");
 
-        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
+        verify(routeEventPublisher, times(1)).publishEvent(Mockito.any());
     }
 
     @Test
@@ -161,7 +164,7 @@ class ApiRouteServiceTest {
                 checksumPropertiesEnabled, checksumService, meterRegistry);
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
         Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.createOrUpdate(routeDefinition));
     }
@@ -178,11 +181,11 @@ class ApiRouteServiceTest {
         apiRouteEntity.setService(null);
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setService(null);
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+        verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
     }
 
     /**
@@ -195,11 +198,11 @@ class ApiRouteServiceTest {
     void testDeleteNullServiceNoEventPublished() {
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService(null);
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
         apiRouteService.delete("routeId");
 
-        Mockito.verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+        verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
     }
 
     /**
@@ -210,7 +213,7 @@ class ApiRouteServiceTest {
      */
     @Test
     void testReadRouteNotFoundThrowsException() {
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.read("nonExistentId"));
@@ -224,7 +227,7 @@ class ApiRouteServiceTest {
      */
     @Test
     void testDeleteRouteNotFoundThrowsException() {
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> apiRouteService.delete("nonExistentId"));
@@ -241,11 +244,11 @@ class ApiRouteServiceTest {
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setApiDocs(true);
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.argThat(entity ->
+        verify(apiRouteRepo, times(1)).save(Mockito.argThat(entity ->
             Boolean.TRUE.equals(entity.getApiDocs())
         ));
     }
@@ -261,11 +264,11 @@ class ApiRouteServiceTest {
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         routeDefinition.setApiDocs(false);
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 
     /**
@@ -276,7 +279,7 @@ class ApiRouteServiceTest {
      */
     @Test
     void testListEmptyRepository() {
-        Mockito.when(apiRouteRepo.findAll()).thenReturn(Collections.emptyList());
+        when(apiRouteRepo.findAll()).thenReturn(Collections.emptyList());
 
         List<RouteDefinition> result = apiRouteService.list();
 
@@ -297,7 +300,7 @@ class ApiRouteServiceTest {
                 checksumPropertiesEnabled, checksumService, meterRegistry);
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
-        Mockito.when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
+        when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
 
         Assertions.assertDoesNotThrow(() -> serviceWithoutPublisher.delete("routeId"));
     }
@@ -313,12 +316,12 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum("abc123checksum");
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
 
         RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(apiRouteRepo, Mockito.never()).save(Mockito.any());
+        verify(apiRouteRepo, Mockito.never()).save(Mockito.any());
         Assertions.assertNotNull(result);
     }
 
@@ -333,13 +336,13 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum("old-checksum");
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 
     /**
@@ -352,13 +355,13 @@ class ApiRouteServiceTest {
     void testCreateOrUpdateNewRouteWritesToDb() {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity saved = RegistryTestUtil.getApiRouteEntity();
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
 
         RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
         Assertions.assertNotNull(result);
     }
 
@@ -373,13 +376,13 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum("old-checksum");
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.empty());
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.empty());
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
 
         Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(routeDefinition));
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 
     /**
@@ -393,13 +396,13 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum(null);
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("new-checksum"));
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(existing);
 
         Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(routeDefinition));
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 
     /**
@@ -415,13 +418,13 @@ class ApiRouteServiceTest {
                 checksumPropertiesDisabled, checksumService, meterRegistry);
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity saved = RegistryTestUtil.getApiRouteEntity();
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
-        Mockito.when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
+        when(apiRouteRepo.save(Mockito.any())).thenReturn(saved);
 
         serviceDisabled.createOrUpdate(routeDefinition);
 
-        Mockito.verify(checksumService, Mockito.never()).compute(Mockito.any());
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).save(Mockito.any());
+        verify(checksumService, Mockito.never()).compute(Mockito.any());
+        verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 
     /**
@@ -436,12 +439,12 @@ class ApiRouteServiceTest {
         apiRouteEntity.setId("route-1");
         apiRouteEntity.setService("svc");
         apiRouteEntity.setChecksum("stored-checksum");
-        Mockito.when(apiRouteRepo.findById("route-1")).thenReturn(Optional.of(apiRouteEntity));
+        when(apiRouteRepo.findById("route-1")).thenReturn(Optional.of(apiRouteEntity));
 
         apiRouteService.delete("route-1");
 
-        Mockito.verify(apiRouteRepo, Mockito.times(1)).delete(apiRouteEntity);
-        Mockito.verify(routeEventPublisher, Mockito.times(1)).publishEvent(Mockito.any());
+        verify(apiRouteRepo, times(1)).delete(apiRouteEntity);
+        verify(routeEventPublisher, times(1)).publishEvent(Mockito.any());
     }
 
     /**
@@ -455,11 +458,11 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum("abc123checksum");
-        Mockito.when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
-        Mockito.when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        Mockito.verify(counter, Mockito.times(1)).increment();
+        verify(counter, times(1)).increment();
     }
 }

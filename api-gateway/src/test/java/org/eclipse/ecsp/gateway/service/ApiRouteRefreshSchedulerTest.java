@@ -26,6 +26,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import static org.mockito.Mockito.verify;
+
 /**
  * Test class for {@link ApiRoutesRefreshScheduler} functionality.
  */
@@ -46,6 +48,6 @@ class ApiRouteRefreshSchedulerTest {
     @Test
     void testReload() {
         apiRoutesRefreshScheduler.reload();
-        Mockito.verify(routeRefreshService, Mockito.atLeastOnce()).refreshRoutes();
+        verify(routeRefreshService, Mockito.atLeastOnce()).refreshRoutes();
     }
 }

@@ -26,12 +26,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import static org.mockito.Mockito.when;
 
 /**
  * Test cases for ScopeValidator.
@@ -55,8 +55,8 @@ class ScopeValidatorTest {
     private void quickSetup(String methodName, Set<String> userScopes, Set<String> overrideScopes)
             throws NoSuchMethodException {
         Method method = TestValidator.class.getDeclaredMethod(methodName);
-        Mockito.when(joinPoint.getSignature()).thenReturn(signature);
-        Mockito.when(signature.getMethod()).thenReturn(method);
+        when(joinPoint.getSignature()).thenReturn(signature);
+        when(signature.getMethod()).thenReturn(method);
         HeaderContext.setUser("userId", userScopes, overrideScopes);
     }
 
@@ -64,15 +64,15 @@ class ScopeValidatorTest {
     void testValidateScopeWithNullMethod() throws Throwable {
         quickSetup("validScope", new HashSet<>(List.of("SelfManage", "IgniteSystem")),
                 new HashSet<>(List.of("SELF_MANAGE")));
-        Mockito.when(signature.getMethod()).thenReturn(null);
+        when(signature.getMethod()).thenReturn(null);
         scopeValidator.validate(joinPoint);
     }
 
     @Test
     void testValidateScopeWithNullSignature() throws Throwable {
         Method method = TestValidator.class.getDeclaredMethod("emptyAnnotation");
-        Mockito.when(joinPoint.getSignature()).thenReturn(signature);
-        Mockito.when(signature.getMethod()).thenReturn(method);
+        when(joinPoint.getSignature()).thenReturn(signature);
+        when(signature.getMethod()).thenReturn(method);
         scopeValidator.validate(joinPoint);
     }
 

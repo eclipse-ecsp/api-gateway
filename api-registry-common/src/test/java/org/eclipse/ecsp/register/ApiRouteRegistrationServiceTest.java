@@ -29,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.List;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class for ApiRouteRegistrationService.
@@ -53,9 +55,9 @@ class ApiRouteRegistrationServiceTest {
     void testRegister() throws Exception {
         List<RouteDefinition> routeDefinitionList = new ArrayList<>();
         routeDefinitionList.add(RegistryCommonTestUtil.getRouteDefination());
-        Mockito.when(apiRoutesLoader.getApiRoutes()).thenReturn(routeDefinitionList);
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(routeDefinitionList);
         apiRouteRegistrationService.register();
-        Mockito.verify(restTemplate, Mockito.atLeastOnce())
+        verify(restTemplate, Mockito.atLeastOnce())
                 .postForEntity(Mockito.anyString(), Mockito.any(), Mockito.any());
     }
 }

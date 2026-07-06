@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -34,6 +33,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.Collections;
 import java.util.List;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * API GatewayController test class.
@@ -64,12 +66,12 @@ class ApiGatewayControllerTest {
     @Test
     void testReload() {
         apiGatewayController.reload();
-        Mockito.verify(igniteRouteLocator, Mockito.times(1)).refreshRoutes();
+        verify(igniteRouteLocator, times(1)).refreshRoutes();
     }
 
     @Test
     void testGetApiDocs() {
-        Mockito.when(igniteRouteLocator.getApiDocRoutes()).thenReturn(Collections.emptySet());
+        when(igniteRouteLocator.getApiDocRoutes()).thenReturn(Collections.emptySet());
         Flux<ApiService> apiDocs = apiGatewayController.getApiDocs();
         List<ApiService> apiServiceList = apiDocs.collectList().block();
         Assertions.assertNotNull(apiServiceList, "ApiService list should not be null");
@@ -79,7 +81,7 @@ class ApiGatewayControllerTest {
     @Test
     void testGetApiDocsForStatic() {
         ReflectionTestUtils.setField(apiGatewayController, "registeredServices", "device-shadow");
-        Mockito.when(igniteRouteLocator.getApiDocRoutes()).thenReturn(null);
+        when(igniteRouteLocator.getApiDocRoutes()).thenReturn(null);
         Flux<ApiService> apiDocs = apiGatewayController.getApiDocs();
         List<ApiService> apiServiceList = apiDocs.collectList().block();
         Assertions.assertNotNull(apiServiceList, "ApiService list should not be null");

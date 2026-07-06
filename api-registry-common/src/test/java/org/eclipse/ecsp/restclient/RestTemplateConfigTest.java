@@ -25,12 +25,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link RestTemplateConfig}.
@@ -50,14 +50,14 @@ class RestTemplateConfigTest {
 
     @Test
     void restTemplateTest() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, 5000, 5000, tokenInterceptorProvider);
         Assertions.assertNotNull(restTemplate);
     }
 
     @Test
     void shouldConfigureConnectTimeoutWhenSpecified() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, 3000L, 7000L, tokenInterceptorProvider);
         SimpleClientHttpRequestFactory factory = (SimpleClientHttpRequestFactory) restTemplate.getRequestFactory();
         Assertions.assertEquals(3000, ReflectionTestUtils.getField(factory, "connectTimeout"));
@@ -65,7 +65,7 @@ class RestTemplateConfigTest {
 
     @Test
     void shouldConfigureReadTimeoutWhenSpecified() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, 3000L, 7000L, tokenInterceptorProvider);
         SimpleClientHttpRequestFactory factory = (SimpleClientHttpRequestFactory) restTemplate.getRequestFactory();
         Assertions.assertEquals(7000, ReflectionTestUtils.getField(factory, "readTimeout"));
@@ -73,7 +73,7 @@ class RestTemplateConfigTest {
 
     @Test
     void shouldUseDefaultTimeoutsWhenNotSpecified() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, 5000L, 5000L, tokenInterceptorProvider);
         SimpleClientHttpRequestFactory factory = (SimpleClientHttpRequestFactory) restTemplate.getRequestFactory();
         Assertions.assertEquals(5000, ReflectionTestUtils.getField(factory, "connectTimeout"));
@@ -84,14 +84,14 @@ class RestTemplateConfigTest {
     void shouldAddTokenInterceptorWhenAvailable() {
         ValidationConfigProperties config = new ValidationConfigProperties();
         RestTemplateTokenInterceptor interceptor = new RestTemplateTokenInterceptor(config);
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(interceptor);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(interceptor);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(true, 5000L, 5000L, tokenInterceptorProvider);
         Assertions.assertTrue(restTemplate.getInterceptors().contains(interceptor));
     }
 
     @Test
     void shouldNotSetCustomErrorHandlerWhenHandleErrorFalse() {
-        Mockito.when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
+        when(tokenInterceptorProvider.getIfAvailable()).thenReturn(null);
         RestTemplate restTemplate = restTemplateConfig.registryRestTemplate(false, 5000L, 5000L, tokenInterceptorProvider);
         Assertions.assertFalse(restTemplate.getErrorHandler() instanceof RestTemplateErrorHandler);
     }

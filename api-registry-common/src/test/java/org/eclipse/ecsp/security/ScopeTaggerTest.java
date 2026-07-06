@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.security;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirementEntry;
 import io.swagger.v3.oas.models.Operation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,11 @@ class ScopeTaggerTest {
             @Override
             public Class<? extends Annotation> annotationType() {
                 return SecurityRequirement.class;
+            }
+
+            @Override
+            public SecurityRequirementEntry[] combine() {
+                return new SecurityRequirementEntry[]{};
             }
         };
     }

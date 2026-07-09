@@ -81,7 +81,7 @@
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
 
         <!--Checkstyle plugin properties -->
-        <checkstyle.version>11.0.0</checkstyle.version>
+        <checkstyle.version>13.7.0</checkstyle.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <checkstyle.suppressions.location>checkstyle-suppressions.xml</checkstyle.suppressions.location>

@@ -10,7 +10,7 @@ on:
 
 jobs:
   maven_build:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-maven-run.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     name: Maven Build
     with:
       java_version: '25'
@@ -22,7 +22,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   sonar_analysis:
     needs: maven_build
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@main
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-sonar-analysis.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     with:
       java_version: '25'
       java_distribution: 'temurin'
@@ -30,8 +30,9 @@ jobs:
       token: ${{ secrets.SONAR_TOKEN }}
   dependencies_update:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@main
-    secrets: inherit
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-dependencies-update.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
+    secrets:
+      ECSP_BOT_PAT: ${{ secrets.ECSP_BOT_PAT }}
     with:
       java_version: '25'
       java_distribution: 'temurin'
@@ -39,32 +40,41 @@ jobs:
       pull-requests: write
       contents: read
 
-  docker_push_api_registry:
+  build_image_api_registry:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
-    secrets: inherit
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     with:
       context_path: ./api-registry
       maven_args: 'clean package --file pom.xml'
       java_version: '25'
       java_distribution: 'temurin'
       push: false
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_API_TOKEN: ${{ secrets.DOCKER_API_TOKEN }}
+    
 
-  docker_push_api-gateway:
+  build_image_api_gateway:
     needs: sonar_analysis
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@main
-    secrets: inherit
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-docker-push.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     with:
       context_path: ./api-gateway
       maven_args: 'clean package --file pom.xml'
       java_version: '25'
       java_distribution: 'temurin'
       push: false
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_API_TOKEN: ${{ secrets.DOCKER_API_TOKEN }}
   
   deploy-snapshot:
-    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@52c11f63f46f741e4f56c5dace97b44982a4372b
-    secrets: inherit
+    uses: eclipse-ecsp/.github/.github/workflows/workflow-publish-artifacts.yml@cd37031cbafcac029ce6cd8b98dba5c41e9531d6
     needs: sonar_analysis
     with:
       java_version: '25'
       java_distribution: 'temurin'
+    secrets:
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      CENTRAL_SONATYPE_TOKEN_USERNAME: ${{ secrets.CENTRAL_SONATYPE_TOKEN_USERNAME }}
+      CENTRAL_SONATYPE_TOKEN_PASSWORD: ${{ secrets.CENTRAL_SONATYPE_TOKEN_PASSWORD }}

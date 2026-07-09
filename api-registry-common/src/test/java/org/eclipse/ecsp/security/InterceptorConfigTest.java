@@ -28,6 +28,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import java.util.Optional;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * InterceptorConfigTest.
@@ -47,8 +49,8 @@ class InterceptorConfigTest {
 
     @Test
     void testAddInterceptors() {
-        InterceptorRegistry mocked = Mockito.mock(InterceptorRegistry.class);
+        InterceptorRegistry mocked = mock(InterceptorRegistry.class);
         interceptorConfig.addInterceptors(mocked);
-        Mockito.verify(mocked, Mockito.atLeastOnce()).addInterceptor(headerInterceptor);
+        verify(mocked, Mockito.atLeastOnce()).addInterceptor(headerInterceptor);
     }
 }

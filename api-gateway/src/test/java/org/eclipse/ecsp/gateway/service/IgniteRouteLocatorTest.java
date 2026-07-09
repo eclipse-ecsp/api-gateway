@@ -163,11 +163,7 @@ class IgniteRouteLocatorTest {
                 new ArrayList<>()
         );
 
-        try {
-            igniteRouteLocator.init();
-        } catch (final Exception e) {
-            Assertions.fail("Init should not throw exception", e);
-        }        
+        Assertions.assertDoesNotThrow(() -> igniteRouteLocator.init());
     }
 
     @Test
@@ -197,11 +193,7 @@ class IgniteRouteLocatorTest {
         igniteRouteLocator.setOverrideFilterConfig(overrideConfig);
         ReflectionTestUtils.setField(igniteRouteLocator, "isFilterOverrideEnabled", true);
 
-        try {
-            igniteRouteLocator.init();
-        } catch (final Exception e) {
-            Assertions.fail("Init should not throw exception", e);
-        }
+        Assertions.assertDoesNotThrow(() -> igniteRouteLocator.init());
     }
 
     @Test
@@ -443,11 +435,7 @@ class IgniteRouteLocatorTest {
         igniteRouteLocator.setOverrideFilterConfig(overrideConfig);
         ReflectionTestUtils.setField(igniteRouteLocator, "isFilterOverrideEnabled", true);
 
-        try {
-            igniteRouteLocator.init();
-        } catch (final Exception e) {
-            Assertions.fail("Init should not throw exception", e);
-        }        
+        Assertions.assertDoesNotThrow(() -> igniteRouteLocator.init());
     }
 
     @Test

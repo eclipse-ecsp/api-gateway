@@ -69,6 +69,14 @@ public class ApiRouteEntity implements IgniteEntity {
     @Column(columnDefinition = "jsonb")
     private RouteDefinition route;
 
+    /**
+     * Digest-based checksum of the serialised route attributes at last save.
+     * The algorithm is configurable (e.g. SHA-256, SHA-512).
+     * {@code null} on legacy rows created before the change-detection feature was enabled.
+     */
+    @Column(name = "checksum", length = 128, nullable = true)
+    private String checksum;
+
     @Override
     public Version getSchemaVersion() {
         return schemaVersion;

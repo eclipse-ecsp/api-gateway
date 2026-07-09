@@ -84,6 +84,10 @@ import java.util.Set;
 import java.util.function.Function;
 
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -119,11 +123,11 @@ class JwtAuthValidatorTest {
     @Setter
     Map<String, TokenHeaderValidationConfig> tokenHeaderValidationConfig;
 
-    static Route route = Mockito.mock(Route.class);
+    static Route route = mock(Route.class);
     ServerWebExchangeImpl serverWebExchangeImpl = new ServerWebExchangeImpl();
     InvalidServerWebExchangeImplMock invalidServerWebExchangeImplMock = new InvalidServerWebExchangeImplMock();
     GatewayFilterChain gatewayFilterChain = exchange -> {
-        GatewayFilterChain chain = Mockito.mock(GatewayFilterChain.class);
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
         return chain.filter(exchange);
     };
 
@@ -299,15 +303,15 @@ class JwtAuthValidatorTest {
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
 
-        ServerWebExchangeImpl mockedExchange = Mockito.spy(serverWebExchangeImpl);
-        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
-        Mockito.when(mockedExchange.getRequest()).thenReturn(mockedRequest);
+        ServerWebExchangeImpl mockedExchange = spy(serverWebExchangeImpl);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
+        when(mockedExchange.getRequest()).thenReturn(mockedRequest);
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", JwtTestTokenGenerator.createInvalidToken());
         doReturn(headers).when(mockedRequest).getHeaders();
         
         // Mock the path properly
-        org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+        org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
         when(mockPath.value()).thenReturn("/test-path");
         when(mockedRequest.getPath()).thenReturn(mockPath);
         when(mockedRequest.getId()).thenReturn("test-request-id");
@@ -325,7 +329,7 @@ class JwtAuthValidatorTest {
         Assertions.assertDoesNotThrow(() -> publicKeyService.refreshPublicKeys());
 
         // Verify that refresh is called on the service
-        Mockito.verify(publicKeyService, Mockito.atLeastOnce()).refreshPublicKeys();
+        verify(publicKeyService, Mockito.atLeastOnce()).refreshPublicKeys();
     }
 
     @Test
@@ -446,14 +450,14 @@ class JwtAuthValidatorTest {
     void testRequestBodyFilter() {
         requestBodyValidator.apply(new Config());
         when(route.getMetadata()).thenReturn(null);
-        GatewayFilterChain mockedGatewayFilterChain = Mockito.mock(GatewayFilterChain.class);
+        GatewayFilterChain mockedGatewayFilterChain = mock(GatewayFilterChain.class);
         requestBodyFilter.filter(serverWebExchangeImpl, mockedGatewayFilterChain);
-        Mockito.verify(mockedGatewayFilterChain, Mockito.times(1)).filter(serverWebExchangeImpl);
+        verify(mockedGatewayFilterChain, times(1)).filter(serverWebExchangeImpl);
 
         serverWebExchangeImpl.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
 
         Map<String, Object> metadataMap = new HashMap<>();
-        SchemaValidator schemaValidator = Mockito.mock(SchemaValidator.class);
+        SchemaValidator schemaValidator = mock(SchemaValidator.class);
         metadataMap.put(GatewayConstants.SCHEMA_VALIDATOR, schemaValidator);
         when(route.getMetadata()).thenReturn(metadataMap);
         try {
@@ -462,7 +466,7 @@ class JwtAuthValidatorTest {
             Assertions.assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
             Assertions.assertEquals("Invalid request payload", ex.getMessage());
         }
-        Mockito.verify(mockedGatewayFilterChain, Mockito.times(1)).filter(serverWebExchangeImpl);
+        verify(mockedGatewayFilterChain, times(1)).filter(serverWebExchangeImpl);
         try {
             requestBodyFilter.filter(serverWebExchangeImpl, mockedGatewayFilterChain);
         } catch (ApiGatewayException ex) {
@@ -471,7 +475,7 @@ class JwtAuthValidatorTest {
         }
         when(route.getMetadata()).thenThrow(new RuntimeException("Mocked Exception"));
         try {
-            requestBodyFilter.filter(Mockito.mock(ServerWebExchange.class), mockedGatewayFilterChain);
+            requestBodyFilter.filter(mock(ServerWebExchange.class), mockedGatewayFilterChain);
         } catch (Exception ex) {
             // Log exception appropriately in real implementation
             System.err.println("Exception in test: " + ex.getMessage());
@@ -625,7 +629,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpRequest getRequest() {
-            ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+            ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
             HttpHeaders headers = new HttpHeaders();
             if (validToken) {
                 headers.set("Authorization", JwtTestTokenGenerator.createDefaultToken());
@@ -637,11 +641,11 @@ class JwtAuthValidatorTest {
             when(mockRequest.getHeaders()).thenReturn(headers);
             when(mockRequest.getId()).thenReturn("test-request-id");
             // Mock the path's value() method to return a proper value
-            org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+            org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
             when(mockPath.value()).thenReturn("/test-path");
             when(mockPath.toString()).thenReturn("/test-path");
             when(mockRequest.getPath()).thenReturn(mockPath);
-            ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
+            ServerHttpRequest.Builder mockBuilder = mock(ServerHttpRequest.Builder.class);
             // Mock the mutate() method to return a proper builder
             when(mockRequest.mutate()).thenReturn(mockBuilder);
 
@@ -655,7 +659,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            return Mockito.mock(ServerHttpResponse.class);
+            return mock(ServerHttpResponse.class);
         }
 
         @Override
@@ -688,12 +692,12 @@ class JwtAuthValidatorTest {
 
         @Override
         public LocaleContext getLocaleContext() {
-            return Mockito.mock(LocaleContext.class);
+            return mock(LocaleContext.class);
         }
 
         @Override
         public ApplicationContext getApplicationContext() {
-            return Mockito.mock(ApplicationContext.class);
+            return mock(ApplicationContext.class);
         }
 
         @Override
@@ -735,13 +739,13 @@ class JwtAuthValidatorTest {
     static class InvalidServerWebExchangeImplMock implements ServerWebExchange {
         @Override
         public ServerHttpRequest getRequest() {
-            ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+            ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
             HttpHeaders headers = new HttpHeaders();
             // No Authorization header to simulate invalid token scenario
             when(mockRequest.getHeaders()).thenReturn(headers);
             
             // Mock the path properly
-            org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+            org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
             when(mockPath.value()).thenReturn("/test-path");
             when(mockRequest.getPath()).thenReturn(mockPath);
             when(mockRequest.getId()).thenReturn("test-request-id");
@@ -751,7 +755,7 @@ class JwtAuthValidatorTest {
 
         @Override
         public ServerHttpResponse getResponse() {
-            return Mockito.mock(ServerHttpResponse.class);
+            return mock(ServerHttpResponse.class);
         }
 
         @Override
@@ -782,12 +786,12 @@ class JwtAuthValidatorTest {
 
         @Override
         public LocaleContext getLocaleContext() {
-            return Mockito.mock(LocaleContext.class);
+            return mock(LocaleContext.class);
         }
 
         @Override
         public ApplicationContext getApplicationContext() {
-            return Mockito.mock(ApplicationContext.class);
+            return mock(ApplicationContext.class);
         }
 
         @Override
@@ -844,18 +848,18 @@ class JwtAuthValidatorTest {
         ServerWebExchangeImpl expiredTokenExchange = new ServerWebExchangeImpl() {
             @Override
             public ServerHttpRequest getRequest() {
-                ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+                ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
 
 
                 HttpHeaders headers = new HttpHeaders();
                 // Create an expired token
                 String expiredToken = JwtTestTokenGenerator.createExpiredToken();
                 headers.set("Authorization", "Bearer " + expiredToken);
-                ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
+                ServerHttpRequest.Builder mockBuilder = mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
                 // Mock the path's value() method to return a proper value
-                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
                 when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
@@ -888,15 +892,15 @@ class JwtAuthValidatorTest {
         ServerWebExchangeImpl tokenWithoutKidExchange = new ServerWebExchangeImpl() {
             @Override
             public ServerHttpRequest getRequest() {
-                ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+                ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.set("Authorization", "Bearer " + BEARER_TOKEN_WITHOUT_KID);
-                ServerHttpRequest.Builder mockBuilder = Mockito.mock(ServerHttpRequest.Builder.class);
+                ServerHttpRequest.Builder mockBuilder = mock(ServerHttpRequest.Builder.class);
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
                 // Mock the path's value() method to return a proper value
-                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
                 when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
@@ -970,19 +974,17 @@ class JwtAuthValidatorTest {
         claimsWithList.put("roles", Arrays.asList("user", "admin", "moderator"));
 
         // Test validateScope method with List claim
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle List properly and return valid scope
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle List claims properly: " + e.getMessage());
-        }
+        // Should handle List properly and return valid scope
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
     }
 
     @Test
@@ -1160,13 +1162,13 @@ class JwtAuthValidatorTest {
         ServerWebExchangeImpl missingHeaderExchange = new ServerWebExchangeImpl() {
             @Override
             public ServerHttpRequest getRequest() {
-                ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+                ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
                 HttpHeaders headers = new HttpHeaders();
                 // No Authorization header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
                 // Mock the path's value() method to return a proper value
-                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
                 when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
@@ -1193,13 +1195,13 @@ class JwtAuthValidatorTest {
         ServerWebExchangeImpl emptyHeaderExchange = new ServerWebExchangeImpl() {
             @Override
             public ServerHttpRequest getRequest() {
-                ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+                ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
                 HttpHeaders headers = new HttpHeaders();
                 headers.set("Authorization", ""); // Empty header
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
                 // Mock the path's value() method to return a proper value
-                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
                 when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
@@ -1226,13 +1228,13 @@ class JwtAuthValidatorTest {
         ServerWebExchangeImpl nonBearerExchange = new ServerWebExchangeImpl() {
             @Override
             public ServerHttpRequest getRequest() {
-                ServerHttpRequest mockRequest = Mockito.mock(ServerHttpRequest.class);
+                ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
                 HttpHeaders headers = new HttpHeaders();
                 headers.set("Authorization", "Basic somebasictoken"); // Non-Bearer token
                 when(mockRequest.getHeaders()).thenReturn(headers);
                 when(mockRequest.getId()).thenReturn("test-request-id");
                 // Mock the path's value() method to return a proper value
-                org.springframework.http.server.RequestPath mockPath = Mockito.mock(org.springframework.http.server.RequestPath.class);
+                org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
                 when(mockPath.value()).thenReturn("/test-path");
                 when(mockPath.toString()).thenReturn("/test-path");
                 when(mockRequest.getPath()).thenReturn(mockPath);
@@ -1415,19 +1417,17 @@ class JwtAuthValidatorTest {
         };
 
         // Test validateScope method with string scope
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle string scope properly
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle string scopes properly: " + e.getMessage());
-        }
+        // Should handle string scope properly
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
     }
 
     @Test
@@ -1450,20 +1450,18 @@ class JwtAuthValidatorTest {
         };
 
         // Test validateScope method with comma-separated scope
-        try {
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
                 String.class, String.class);
             validateScopeMethod.setAccessible(true);
-            String result = (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
                 "requestId", "requestPath");
+        });
 
-            // Should handle comma-separated scope properly
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("SelfManage"));
-            Assertions.assertTrue(result.contains("AdminAccess"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle comma-separated scopes properly: " + e.getMessage());
-        }
+        // Should handle comma-separated scope properly
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("SelfManage"));
+        Assertions.assertTrue(result.contains("AdminAccess"));
     }
 
     @Test
@@ -1513,17 +1511,16 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with String[] input
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
-            String result = (String) getTokenHeaderValueMethod.invoke(null, claimsWithStringArray, "roles");
+            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithStringArray, "roles");
+        });
 
-            // Should join array with commas
-            Assertions.assertNotNull(result);
-            Assertions.assertEquals("admin,user,moderator", result);
-        } catch (Exception e) {
-            Assertions.fail("Should handle String array properly: " + e.getMessage());
-        }
+        // Should join array with commas
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("admin,user,moderator", result);
     }
 
     @Test
@@ -1539,19 +1536,18 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with Set input
+        String result = Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
-            String result = (String) getTokenHeaderValueMethod.invoke(null, claimsWithSet, "permissions");
+            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithSet, "permissions");
+        });
 
-            // Should join set with commas
-            Assertions.assertNotNull(result);
-            Assertions.assertTrue(result.contains("read"));
-            Assertions.assertTrue(result.contains("write"));
-            Assertions.assertTrue(result.contains("delete"));
-        } catch (Exception e) {
-            Assertions.fail("Should handle Set properly: " + e.getMessage());
-        }
+        // Should join set with commas
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("read"));
+        Assertions.assertTrue(result.contains("write"));
+        Assertions.assertTrue(result.contains("delete"));
     }
 
     @Test
@@ -1570,7 +1566,8 @@ class JwtAuthValidatorTest {
             }
         };
 
-        try {
+        // Test getTokenHeaderValue with other types (Integer, Boolean, etc.)
+        Assertions.assertDoesNotThrow(() -> {
             Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
             getTokenHeaderValueMethod.setAccessible(true);
 
@@ -1580,9 +1577,7 @@ class JwtAuthValidatorTest {
             // Should convert to string
             Assertions.assertEquals("12345", userIdResult);
             Assertions.assertEquals("true", isActiveResult);
-        } catch (Exception e) {
-            Assertions.fail("Should handle other types properly: " + e.getMessage());
-        }
+        });
     }
 
     @Test

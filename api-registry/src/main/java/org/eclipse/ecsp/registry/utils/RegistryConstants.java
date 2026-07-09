@@ -63,4 +63,25 @@ public class RegistryConstants {
      * REGISTRY_EVENT_ENABLED.
      */
     public static final String REGISTRY_EVENT_ENABLED = REGISTRY_EVENT_PREFIX + ".enabled";
+
+    /**
+     * Configuration key prefix for change-detection properties.
+     */
+    public static final String CHANGE_DETECTION_PREFIX = "api.registry.change-detection";
+
+    /**
+     * Configuration key for the checksum include-fields list.
+     */
+    public static final String CHECKSUM_INCLUDE_FIELDS_KEY =
+            "api.registry.change-detection.checksum.include-fields";
+
+    /**
+     * Log event marker used in all route change detection log entries.
+     */
+    public static final String LOG_EVENT_ROUTE_CHANGE = "API_ROUTE_CHANGE";
+
+    /**
+     * Log event marker used when checksum computation fails.
+     */
+    public static final String LOG_EVENT_CHECKSUM_FAILURE = "API_ROUTE_CHECKSUM_FAILURE";
 }

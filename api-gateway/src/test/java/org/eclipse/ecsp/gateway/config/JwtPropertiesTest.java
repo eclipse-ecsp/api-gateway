@@ -268,12 +268,10 @@ class JwtPropertiesTest {
         assertNull(nullProperties.getTokenHeaderValidationConfig());
 
         // Setting null values should work
-        try {
+        Assertions.assertDoesNotThrow(() -> {
             nullProperties.setTokenClaimToHeaderMapping(null);
             nullProperties.setKeySources(null);
             nullProperties.setTokenHeaderValidationConfig(null);
-        } catch (Exception e) {
-            Assertions.fail("should not throw error", e);
-        }
+        });
     }
 }

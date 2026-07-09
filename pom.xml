@@ -4,7 +4,7 @@
 
     <groupId>org.eclipse.ecsp</groupId>
     <artifactId>api-gateway-parent</artifactId>
-    <version>1.6.2-SNAPSHOT</version>
+    <version>1.7.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -63,12 +63,12 @@
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.21.2</jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <lombok.version>1.18.42</lombok.version>
-        <spring-boot.version>4.0.7</spring-boot.version>
-        <spring-cloud.version>2025.1.1</spring-cloud.version>
-        <spring-cloud-resilience4j.version>3.3.1</spring-cloud-resilience4j.version>
-        <spring-cloud-starter-gateway.version>5.0.1</spring-cloud-starter-gateway.version>
-        <springdoc.version>3.0.1</springdoc.version>
+        <lombok.version>1.18.46</lombok.version>
+        <spring-boot.version>4.1.0</spring-boot.version>
+        <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <spring-cloud-resilience4j.version>5.0.2</spring-cloud-resilience4j.version>
+        <spring-cloud-starter-gateway.version>5.0.2</spring-cloud-starter-gateway.version>
+        <springdoc.version>3.0.3</springdoc.version>
         <!-- maven-plugin dependant versions ordered by artifactId -->
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
@@ -77,9 +77,8 @@
         <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
         <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
-        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+        <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
-        <maven-war-plugin.version>3.5.1</maven-war-plugin.version>
 
         <!--Checkstyle plugin properties -->
         <checkstyle.version>11.0.0</checkstyle.version>
@@ -149,8 +148,8 @@
         <skipSource>false</skipSource>
         <skipGpgSign>true</skipGpgSign>
         <skipMavenPublishing>true</skipMavenPublishing>
-        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-        <tomcat.version>11.0.22</tomcat.version>
+        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+        <tomcat.version>11.0.23</tomcat.version>
         <postgresql.version>42.7.11</postgresql.version>
         <netty.version>4.2.15.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
@@ -495,11 +494,6 @@
                     <configuration>
                         <preparationGoals>package docker:push</preparationGoals>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-war-plugin</artifactId>
-                    <version>${maven-war-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.sonarsource.scanner.maven</groupId>

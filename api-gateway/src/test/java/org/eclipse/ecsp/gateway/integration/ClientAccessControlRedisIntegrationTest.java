@@ -149,15 +149,13 @@ class ClientAccessControlRedisIntegrationTest {
                 .build();
 
         // Act - Publish event to Redis channel
-        try {
+        Assertions.assertDoesNotThrow(() -> {
             String eventJson = objectMapper.writeValueAsString(event);
             Mono<Long> subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
             
             // Assert
             assertThat(subscribers.block()).isGreaterThanOrEqualTo(0);
-        } catch (Exception e) {
-            Assertions.fail("Failed to publish event: " + e.getMessage());
-        }
+        });
     }
 
     @Test
@@ -185,30 +183,26 @@ class ClientAccessControlRedisIntegrationTest {
                 .build();
 
         // Act & Assert
-        try {
+        Assertions.assertDoesNotThrow(() -> {
             String eventJson = objectMapper.writeValueAsString(event);
             Mono<Long> subscribers = redisTemplate.convertAndSend(REDIS_CHANNEL, eventJson);
             
             assertThat(subscribers.block()).isGreaterThanOrEqualTo(0);
-        } catch (Exception e) {
-            Assertions.fail("Failed to publish event: " + e.getMessage());
-        }
+        });
     }
 
     @Test
     @Order(5)
     @DisplayName("Redis health check should respond with PONG")
     void testRedisHealthCheck() {
-        try {
+        Assertions.assertDoesNotThrow(() -> {
             String pingResult = redisTemplate.getConnectionFactory()
                     .getReactiveConnection()
                     .ping()
                     .block();
             
             assertThat(pingResult).isEqualTo("PONG");
-        } catch (Exception e) {
-            Assertions.fail("Redis health check failed: " + e.getMessage());
-        }
+        });
     }
 
     @Test

@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.config;
 
-import io.netty.channel.ChannelOption;
 import org.eclipse.ecsp.restclient.RestClientTokenInterceptor;
 import org.eclipse.ecsp.security.ValidationConfigProperties;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
@@ -32,10 +31,7 @@ import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.client.RestClient;
-import reactor.netty.http.client.HttpClient;
-import java.time.Duration;
 import java.util.Optional;
 
 /**

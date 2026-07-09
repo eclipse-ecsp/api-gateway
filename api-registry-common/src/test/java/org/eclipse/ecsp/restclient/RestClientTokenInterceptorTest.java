@@ -38,6 +38,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link RestClientTokenInterceptor}.
@@ -63,7 +64,7 @@ class RestClientTokenInterceptorTest {
         config = new ValidationConfigProperties();
         underTest = new RestClientTokenInterceptor(config);
         headers = new HttpHeaders();
-        Mockito.when(httpRequest.getHeaders()).thenReturn(headers);
+        when(httpRequest.getHeaders()).thenReturn(headers);
     }
 
     @AfterEach
@@ -74,8 +75,8 @@ class RestClientTokenInterceptorTest {
     @Test
     void shouldAddAuthHeaderWhenTokenPresent() throws Exception {
         setValidToken("valid-token");
-        Mockito.when(httpRequest.getURI()).thenReturn(URI.create("http://internal-svc/api"));
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(httpRequest.getURI()).thenReturn(URI.create("http://internal-svc/api"));
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         ClientHttpResponse result = underTest.intercept(httpRequest, new byte[0], execution);
 
@@ -87,7 +88,7 @@ class RestClientTokenInterceptorTest {
     void shouldSkipWhenAuthHeaderAlreadyPresent() throws Exception {
         setValidToken("valid-token");
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer existing-token");
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         underTest.intercept(httpRequest, new byte[0], execution);
 
@@ -97,8 +98,8 @@ class RestClientTokenInterceptorTest {
     @Test
     void shouldSkipWhenTokenExpired() throws Exception {
         setExpiredToken("expired-token");
-        Mockito.when(httpRequest.getURI()).thenReturn(URI.create("http://internal-svc/api"));
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(httpRequest.getURI()).thenReturn(URI.create("http://internal-svc/api"));
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         underTest.intercept(httpRequest, new byte[0], execution);
 
@@ -109,8 +110,8 @@ class RestClientTokenInterceptorTest {
     void shouldSkipWhenHostIsExcluded() throws Exception {
         setValidToken("valid-token");
         config.getTokenPropagation().setExcludeHosts(Collections.singletonList("external-api.com"));
-        Mockito.when(httpRequest.getURI()).thenReturn(URI.create("http://external-api.com/resource"));
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(httpRequest.getURI()).thenReturn(URI.create("http://external-api.com/resource"));
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         underTest.intercept(httpRequest, new byte[0], execution);
 
@@ -122,8 +123,8 @@ class RestClientTokenInterceptorTest {
         setValidToken("valid-token");
         config.getTokenPropagation().setAllowExternalHosts(false);
         config.getTokenPropagation().setIncludeHosts(Collections.singletonList("internal.svc"));
-        Mockito.when(httpRequest.getURI()).thenReturn(URI.create("http://unknown-external.com/resource"));
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(httpRequest.getURI()).thenReturn(URI.create("http://unknown-external.com/resource"));
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         underTest.intercept(httpRequest, new byte[0], execution);
 
@@ -135,8 +136,8 @@ class RestClientTokenInterceptorTest {
         setValidToken("valid-token");
         config.getTokenPropagation().setAllowExternalHosts(false);
         config.getTokenPropagation().setIncludeHosts(Collections.singletonList("internal.svc"));
-        Mockito.when(httpRequest.getURI()).thenReturn(URI.create("http://internal.svc/resource"));
-        Mockito.when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
+        when(httpRequest.getURI()).thenReturn(URI.create("http://internal.svc/resource"));
+        when(execution.execute(Mockito.any(), Mockito.any())).thenReturn(httpResponse);
 
         underTest.intercept(httpRequest, new byte[0], execution);
 

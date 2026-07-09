@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
 import org.springframework.boot.actuate.endpoint.EndpointId;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,10 +35,11 @@ import static org.mockito.Mockito.when;
 class RegistryConfigTest {
 
     @Test
-    void objectMapperBuilderCustomizerReturnsCustomizer() {
-        RegistryConfig config = new RegistryConfig();
-        
-        assertNotNull(config.objectMapperBuilderCustomizer());
+    void objectMapperHasExpectedFeaturesEnabled() {
+        JacksonConfig config = new JacksonConfig();
+        JsonMapperBuilderCustomizer customizer = config.jacksonCustomizer();
+
+        assertNotNull(customizer);
     }
 
     @Test

@@ -18,11 +18,11 @@
 
 package org.eclipse.ecsp.registry.config;
 
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.boot.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Jackson ObjectMapper configuration for JSON serialization/deserialization.
@@ -44,17 +44,15 @@ public class JacksonConfig {
      * Configure Jackson ObjectMapper bean.
      *
      * <p>Enables:
-      * - JavaTimeModule for java.time.* types (LocalDateTime, Instant)
+     * - JavaTimeModule for java.time.* types (LocalDateTime, Instant)
      * - Proper timezone handling (UTC)
      * - JSONB column serialization support
      *
-     * @return Configured Jackson2ObjectMapperBuilderCustomizer instance
+     * @return configured {@link ObjectMapper} instance
      */
     @Bean
-    public Jackson2ObjectMapperBuilderCustomizer objectMapper() {
-        return builder -> {
-            builder.modules(new JavaTimeModule());
-            builder.featuresToEnable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        };
+    public JsonMapperBuilderCustomizer jacksonCustomizer() {
+        return builder -> builder.enable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION);
     }
+
 }

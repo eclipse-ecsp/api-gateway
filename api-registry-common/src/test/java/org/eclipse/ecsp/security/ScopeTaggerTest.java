@@ -19,24 +19,24 @@
 package org.eclipse.ecsp.security;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirementEntry;
 import io.swagger.v3.oas.models.Operation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.method.HandlerMethod;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link ScopeTagger#customize(Operation, HandlerMethod)}.
@@ -102,6 +102,11 @@ class ScopeTaggerTest {
             public Class<? extends Annotation> annotationType() {
                 return SecurityRequirement.class;
             }
+
+            @Override
+            public SecurityRequirementEntry[] combine() {
+                return new SecurityRequirementEntry[]{};
+            }
         };
     }
 
@@ -116,7 +121,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_NoAnnotation_AddsSecurityWarning() {
         Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
@@ -131,7 +136,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_EmptyScopes_AddsScopeEmptyLabel() {
         Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation(/* empty */));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
@@ -149,7 +154,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_WithScopes_OverrideDisabled_DoesNotChangeSecurity() {
         Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(false);
 
@@ -170,7 +175,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_OverrideEnabled_NoMatchingRouteId_DoesNotChangeScopes() {
         final Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(Map.of("some-other-controller-otherOp", List.of("NewScope")));
@@ -193,7 +198,7 @@ class ScopeTaggerTest {
     void testCustomize_OverrideEnabled_ExactRouteIdMatch_ReplacesScopes() {
         // routeId = "test-controller-myOp"
         final Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(
@@ -217,7 +222,7 @@ class ScopeTaggerTest {
         // operationId contains uppercase → routeId = "test-controller-MYOP"
         // lowercase  → "test-controller-myop"
         final Operation operation = buildOperation("MYOP");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(Map.of("test-controller-myop", List.of("SelfManage")));
@@ -240,7 +245,7 @@ class ScopeTaggerTest {
     void testCustomize_OverrideEnabled_NullSecurity_NoNpeAndLabelAdded() {
         Operation operation = buildOperation("myOp");
         operation.setSecurity(null);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(Map.of("test-controller-myOp", List.of("SelfManage")));
@@ -265,7 +270,7 @@ class ScopeTaggerTest {
         sr2.addList("AnotherFilter", "AnotherScope");
         operation.addSecurityItem(sr2);
 
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(
@@ -287,7 +292,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_OperationIdWithUnderscores_NormalisedToDashes() {
         Operation operation = buildOperation("my_op_name");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("SomeScope"));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
@@ -304,7 +309,7 @@ class ScopeTaggerTest {
         Operation operation = buildOperation("myOp");
         operation.setSummary(null);
         operation.setDescription(null);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("SomeScope"));
 
         Operation result = scopeTagger.customize(operation, handlerMethod);
@@ -319,7 +324,7 @@ class ScopeTaggerTest {
     @Test
     void testCustomize_OverrideEnabled_NullScopesMap_NoOverrideApplied() {
         final Operation operation = buildOperation("myOp");
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(true);
         scopeOverrideProperties.setScopesMap(null);

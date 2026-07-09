@@ -39,12 +39,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for InMemoryPublicKeyCache.
@@ -223,11 +223,7 @@ class InMemoryPublicKeyCacheTest {
         String nonExistentKey = "non-existent-key";
 
         // When & Then
-        try {
-            cache.remove(nonExistentKey);
-        } catch (Exception e) {
-            fail("Should not throw exception when removing non-existent key: " + e.getMessage());
-        }
+        assertDoesNotThrow(() -> cache.remove(nonExistentKey));
         assertEquals(0, cache.size());
     }
 
@@ -287,12 +283,10 @@ class InMemoryPublicKeyCacheTest {
     @Test
     void putWhenNullKeyThenHandlesCorrectly() {
         // When & Then
-        try {
+        assertDoesNotThrow(() -> {
             PublicKeyInfo testPublicKeyInfo1 = createTestPublicKeyInfo("test-key", this.testPublicKey1);
             cache.put(null, testPublicKeyInfo1);
-        } catch (NullPointerException e) {
-            fail("Should not throw exception for null key: " + e.getMessage());
-        }
+        });
     }
 
     /**
@@ -305,11 +299,7 @@ class InMemoryPublicKeyCacheTest {
         String keyId = "test-key";
 
         // When & Then
-        try {
-            cache.put(keyId, null);
-        } catch (NullPointerException e) {
-            fail("Should not throw exception for null value: " + e.getMessage());
-        }
+        assertDoesNotThrow(() -> cache.put(keyId, null));
 
 
         Optional<PublicKeyInfo> result = cache.get(keyId);
@@ -635,19 +625,17 @@ class InMemoryPublicKeyCacheTest {
 
         // When & Then
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = cache.entrySet();
-        int count = 0;
-        try {
+        AtomicInteger count = new AtomicInteger(0);
+        assertDoesNotThrow(() -> {
             for (Map.Entry<String, PublicKeyInfo> entry : entrySet) {
                 assertNotNull(entry.getKey());
                 assertNotNull(entry.getValue());
                 assertTrue(entry.getKey().startsWith("key"));
-                count++;
+                count.incrementAndGet();
             }
-        } catch (Exception e) {
-            fail("Should not throw exception during iteration: " + e.getMessage());
-        }
+        });
         
-        assertEquals(FIVE, count);
+        assertEquals(FIVE, count.get());
     }
 
     /**
@@ -670,7 +658,7 @@ class InMemoryPublicKeyCacheTest {
 
         // When & Then
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = cache.entrySet();
-        try {
+        assertDoesNotThrow(() -> {
             for (Map.Entry<String, PublicKeyInfo> entry : entrySet) {
                 // Modify cache during iteration - ConcurrentHashMap should handle this
                 if ("key1".equals(entry.getKey())) {
@@ -680,9 +668,7 @@ class InMemoryPublicKeyCacheTest {
                     cache.put("key3", testPublicKeyInfo3);
                 }
             }
-        } catch (Exception e) {
-            fail("Should handle concurrent modification gracefully: " + e.getMessage());
-        }
+        });
     }
 
     /**

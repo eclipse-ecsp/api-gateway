@@ -1,10 +1,5 @@
 server:
   port: 7000
-  servlet:
-    encoding:
-      enabled: true
-      force: true
-      charset: UTF-8
   type: servlet
 
 springdoc:
@@ -18,6 +13,11 @@ openapi:
     exclude: ""
 
 spring:
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
   application:
     name: ${spring_application_name:api-registry}
     servicename: ${spring_application_servicename:api-registry-int-svc}
@@ -48,7 +48,12 @@ api:
     monitor: ${api_health_monitor:0 */1 * ? * *}
   registry:
     security:
-      enabled: ${api_security_enabled:false}
+      enabled: ${api_registry_security_enabled:false}
+    change-detection:
+      enabled: ${api_registry_change_detection_enabled:true}
+      checksum:
+        algorithm: ${api_registry_change_detection_algorithm:SHA-256}
+        include-fields: []
 
 api-registry:
   database:

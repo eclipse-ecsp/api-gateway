@@ -47,6 +47,8 @@ import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link TokenValidationInterceptor}.
@@ -111,7 +113,7 @@ class TokenValidationInterceptorTest {
 
     @Test
     void shouldReturnTrueWhenCacheReportsNotSecured() throws Exception {
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(false);
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(false);
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 
@@ -121,58 +123,58 @@ class TokenValidationInterceptorTest {
 
     @Test
     void shouldReturn401WhenAuthorizationHeaderMissing() throws Exception {
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
-        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 
         Assertions.assertFalse(result);
-        Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Test
     void shouldReturn401WhenAuthorizationHeaderMalformed() throws Exception {
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
-        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic dXNlcjpwYXNz");
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic dXNlcjpwYXNz");
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 
         Assertions.assertFalse(result);
-        Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Test
     void shouldReturn401WhenTokenValidationFails() throws Exception {
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
-        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer bad-token");
-        Mockito.when(tokenValidator.validate("bad-token"))
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer bad-token");
+        when(tokenValidator.validate("bad-token"))
             .thenThrow(new InvalidSignatureException("invalid signature"));
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 
         Assertions.assertFalse(result);
-        Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Test
     void shouldReturn401WhenTokenExpired() throws Exception {
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
-        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer expired-token");
-        Mockito.when(tokenValidator.validate("expired-token"))
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer expired-token");
+        when(tokenValidator.validate("expired-token"))
             .thenThrow(new TokenExpiredException("token is expired"));
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 
         Assertions.assertFalse(result);
-        Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     @Test
     void shouldStoreClaimsInSecurityContextWhenTokenIsValid() throws Exception {
         List<TokenClaim> claims = Collections.singletonList(new TokenClaim("sub", "user-42"));
-        Mockito.when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
-        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer valid-token");
-        Mockito.when(tokenValidator.validate("valid-token")).thenReturn(claims);
+        when(securityRequirementCache.isSecured(handlerMethod)).thenReturn(true);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer valid-token");
+        when(tokenValidator.validate("valid-token")).thenReturn(claims);
 
         boolean result = underTest.preHandle(request, response, handlerMethod);
 

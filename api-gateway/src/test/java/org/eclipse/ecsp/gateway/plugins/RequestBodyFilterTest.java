@@ -45,6 +45,8 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.test.StepVerifier;
 import java.util.Map;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
@@ -59,7 +61,7 @@ class RequestBodyFilterTest {
     void setUp() {
         requestBodyValidatorConfig = new Config();
         requestBodyFilter = new RequestBodyFilter(requestBodyValidatorConfig, true);
-        gatewayFilterChain = Mockito.mock(GatewayFilterChain.class);
+        gatewayFilterChain = mock(GatewayFilterChain.class);
     }
 
     @Test
@@ -78,7 +80,7 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "$schema": "http://json-schema.org/draft-04/schema#",
@@ -116,7 +118,7 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "$schema": "http://json-schema.org/draft-04/schema#",
@@ -156,13 +158,13 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         when(route.getMetadata()).thenReturn(null);
         attributes.put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, route);
 
         StepVerifier.create(requestBodyFilter.filter(request, gatewayFilterChain))
                 .expectComplete();
-        Mockito.verify(gatewayFilterChain, atLeastOnce()).filter(Mockito.any());
+        verify(gatewayFilterChain, atLeastOnce()).filter(Mockito.any());
     }
 
     @Test
@@ -193,7 +195,7 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "$schema": "http://json-schema.org/draft-04/schema#",
@@ -229,7 +231,7 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "$schema": "http://json-schema.org/draft-04/schema#",
@@ -268,7 +270,7 @@ class RequestBodyFilterTest {
         request.mutate();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "$schema": "http://json-schema.org/draft-04/schema#",
@@ -310,7 +312,7 @@ class RequestBodyFilterTest {
         ).build();
         Map<String, Object> attributes = request.getAttributes();
         attributes.put(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR, body);
-        Route route = Mockito.mock(Route.class);
+        Route route = mock(Route.class);
         JsonNode schema = ObjectMapperUtil.getObjectMapper().readTree("""
                 {
                   "type": "object",

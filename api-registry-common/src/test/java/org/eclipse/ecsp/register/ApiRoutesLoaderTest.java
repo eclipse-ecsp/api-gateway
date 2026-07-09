@@ -40,7 +40,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mockito;
 import org.springdoc.core.customizers.SpringDocCustomizers;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.properties.SpringDocConfigProperties;
@@ -61,6 +60,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class for ApiRoutesLoader.
@@ -69,15 +70,15 @@ import java.util.Optional;
 @ContextConfiguration(classes = ApiRoutesConfig.class)
 class ApiRoutesLoaderTest {
 
-    GroupedOpenApi groupedOpenApi = Mockito.mock(GroupedOpenApi.class);
-    ObjectFactory<?> objectFactory = Mockito.mock(ObjectFactory.class);
-    OpenAPIService openApiService = Mockito.mock(OpenAPIService.class);
-    AbstractRequestService abstractRequestService = Mockito.mock(AbstractRequestService.class);
-    GenericResponseService genericResponseService = Mockito.mock(GenericResponseService.class);
-    OperationService operationService = Mockito.mock(OperationService.class);
-    SpringDocConfigProperties springDocConfigProperties = Mockito.mock(SpringDocConfigProperties.class);
-    SpringDocProviders springDocProviders = Mockito.mock(SpringDocProviders.class);
-    SpringDocCustomizers springDocCustomizers = Mockito.mock(SpringDocCustomizers.class);
+    GroupedOpenApi groupedOpenApi = mock(GroupedOpenApi.class);
+    ObjectFactory<?> objectFactory = mock(ObjectFactory.class);
+    OpenAPIService openApiService = mock(OpenAPIService.class);
+    AbstractRequestService abstractRequestService = mock(AbstractRequestService.class);
+    GenericResponseService genericResponseService = mock(GenericResponseService.class);
+    OperationService operationService = mock(OperationService.class);
+    SpringDocConfigProperties springDocConfigProperties = mock(SpringDocConfigProperties.class);
+    SpringDocProviders springDocProviders = mock(SpringDocProviders.class);
+    SpringDocCustomizers springDocCustomizers = mock(SpringDocCustomizers.class);
 
     ObjectFactory<OpenAPIService> openApiServiceObjectFactory = () -> openApiService;
     ScopeOverrideProperties scopeOverrideProperties = new ScopeOverrideProperties();
@@ -103,11 +104,11 @@ class ApiRoutesLoaderTest {
     void before() {
         SpringDocConfigProperties.ApiDocs apiDocs = new SpringDocConfigProperties.ApiDocs();
         apiDocs.setVersion(SpringDocConfigProperties.ApiDocs.OpenApiVersion.OPENAPI_3_0);
-        Mockito.when(springDocConfigProperties.getApiDocs()).thenReturn(apiDocs);
+        when(springDocConfigProperties.getApiDocs()).thenReturn(apiDocs);
         OpenAPI openApi = getOpenApiObj();
-        Mockito.when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
-        Mockito.when(openApiService.getContext()).thenReturn(Mockito.mock(ApplicationContext.class));
-        Mockito.when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
+        when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
+        when(openApiService.getContext()).thenReturn(mock(ApplicationContext.class));
+        when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
         scopeOverrideProperties = new ScopeOverrideProperties();
@@ -416,12 +417,8 @@ class ApiRoutesLoaderTest {
         ReflectionTestUtils.setField(apiRoutesLoader, "contextPath", null);
         
         // Set required fields for route creation
-        try {
-            ReflectionTestUtils.setField(apiRoutesLoader, "serviceUrl", 
-                    new java.net.URI("http://test-service:8080/"));
-        } catch (java.net.URISyntaxException e) {
-            Assertions.fail("Failed to set serviceUrl: " + e.getMessage());
-        }
+        Assertions.assertDoesNotThrow(() -> ReflectionTestUtils.setField(apiRoutesLoader, "serviceUrl",
+                new java.net.URI("http://test-service:8080/")));
         ReflectionTestUtils.setField(apiRoutesLoader, "appName", "test-app");
         
         // Get initial route count

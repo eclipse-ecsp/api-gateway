@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.registry.config;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -34,15 +33,12 @@ import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
-import org.springframework.boot.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDateTime;
-
-import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
 
 /**
  * RegistryConfig.
@@ -57,17 +53,6 @@ public class RegistryConfig {
     }
 
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RegistryConfig.class);
-
-    /**
-     * objectMapperBuilderCustomizer to customize ObjectMapper.
-     *
-     * @return Jackson2ObjectMapperBuilderCustomizer.
-     */
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer objectMapperBuilderCustomizer() {
-        return builder -> builder.featuresToEnable(INCLUDE_SOURCE_IN_LOCATION, 
-            MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES);
-    }
 
     /**
      * configuration for nosql database.

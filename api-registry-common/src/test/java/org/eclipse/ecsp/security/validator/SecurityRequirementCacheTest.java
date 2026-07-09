@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.method.HandlerMethod;
 import java.lang.reflect.Method;
@@ -34,6 +33,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link SecurityRequirementCache}.
@@ -50,8 +53,8 @@ class SecurityRequirementCacheTest {
 
     @Test
     void shouldReturnFalseWhenAnnotationAbsent() {
-        HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
+        HandlerMethod handlerMethod = mock(HandlerMethod.class);
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 
         boolean result = underTest.isSecured(handlerMethod);
 
@@ -63,8 +66,8 @@ class SecurityRequirementCacheTest {
         Method method = SampleController.class.getMethod("securedEndpoint");
         SecurityRequirement annotation = method.getAnnotation(SecurityRequirement.class);
 
-        HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(annotation);
+        HandlerMethod handlerMethod = mock(HandlerMethod.class);
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(annotation);
 
         boolean result = underTest.isSecured(handlerMethod);
 
@@ -73,20 +76,20 @@ class SecurityRequirementCacheTest {
 
     @Test
     void shouldReturnCachedResultOnSecondCall() {
-        HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
+        HandlerMethod handlerMethod = mock(HandlerMethod.class);
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 
         underTest.isSecured(handlerMethod);
         underTest.isSecured(handlerMethod);
 
         // getMethodAnnotation should be called exactly once due to caching
-        Mockito.verify(handlerMethod, Mockito.times(1)).getMethodAnnotation(SecurityRequirement.class);
+        verify(handlerMethod, times(1)).getMethodAnnotation(SecurityRequirement.class);
     }
 
     @Test
     void shouldHandleConcurrentFirstCalls() throws Exception {
-        HandlerMethod handlerMethod = Mockito.mock(HandlerMethod.class);
-        Mockito.when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
+        HandlerMethod handlerMethod = mock(HandlerMethod.class);
+        when(handlerMethod.getMethodAnnotation(SecurityRequirement.class)).thenReturn(null);
 
         int threadCount = 10;
         CountDownLatch startLatch = new CountDownLatch(1);

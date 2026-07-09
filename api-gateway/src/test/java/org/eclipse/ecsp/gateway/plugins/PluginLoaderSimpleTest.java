@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.gateway.plugins;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -35,12 +34,12 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Simple test class for {@link PluginLoader}.
@@ -71,22 +70,14 @@ class PluginLoaderSimpleTest {
     void initializeWithPluginDisabledDoesNotThrowException() {
         TestPropertyValues.of("plugin.enabled=false", "plugin.path=/some/path").applyTo(applicationContext);
 
-        try {
-            pluginLoader.postProcessBeanFactory(null);
-        } catch (Exception e) {
-            fail("Initialize should not throw exception when plugins are disabled", e);
-        }
+        assertDoesNotThrow(() -> pluginLoader.postProcessBeanFactory(null));
     }
 
     @Test
     void initializeWithPluginEnabledButNoPathDoesNotThrowException() {
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=").applyTo(applicationContext);
 
-        try {
-            pluginLoader.postProcessBeanFactory(null);
-        } catch (Exception e) {
-            fail("Initialize should not throw exception when plugins are disabled", e);
-        }
+        assertDoesNotThrow(() -> pluginLoader.postProcessBeanFactory(null));
     }
 
     @Test
@@ -95,11 +86,7 @@ class PluginLoaderSimpleTest {
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
 
-        try {
-            pluginLoader.postProcessBeanFactory(null);
-        } catch (Exception e) {
-            fail("Initialize should not throw exception when plugins are disabled", e);
-        }
+        assertDoesNotThrow(() -> pluginLoader.postProcessBeanFactory(null));
 
         assertNotNull(applicationContext.getClassLoader());
     }
@@ -221,11 +208,7 @@ class PluginLoaderSimpleTest {
 
     @Test
     void destroyWithoutClassLoaderHandlesGracefully() {
-        try {
-            pluginLoader.destroy();
-        } catch (final Exception e) {
-            Assertions.fail("Destroy should not throw exception", e);
-        }
+        assertDoesNotThrow(() -> pluginLoader.destroy());
     }
 
     @Test
@@ -234,12 +217,10 @@ class PluginLoaderSimpleTest {
         
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
 
-        try {
+        assertDoesNotThrow(() -> {
             pluginLoader.postProcessBeanFactory(null);
             pluginLoader.destroy();
-        } catch (final Exception e) {
-            Assertions.fail("Destroy should not throw exception", e);
-        }
+        });
         
         // Should complete without exception
     }
@@ -251,14 +232,12 @@ class PluginLoaderSimpleTest {
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=" + jarFile.getParent()).applyTo(applicationContext);
 
         // Call multiple times
-        try {
+        assertDoesNotThrow(() -> {
             pluginLoader.postProcessBeanFactory(null);
             pluginLoader.postProcessBeanFactory(null);
             pluginLoader.postProcessBeanFactory(null);
             // Should not throw exception
-        } catch (final Exception e) {
-            Assertions.fail("Destroy should not throw exception", e);
-        }
+        });
         
     }
 
@@ -267,11 +246,7 @@ class PluginLoaderSimpleTest {
         TestPropertyValues.of("plugin.enabled=true", "plugin.path=/nonexistent/path/to/jars", 
                 "plugin.classes=com.example.Plugin").applyTo(applicationContext);
 
-        try {
-            pluginLoader.postProcessBeanFactory(null);
-        } catch (final Exception e) {
-            Assertions.fail("Initialize should not throw exception", e);
-        }
+        assertDoesNotThrow(() -> pluginLoader.postProcessBeanFactory(null));
     }
 
     @Test

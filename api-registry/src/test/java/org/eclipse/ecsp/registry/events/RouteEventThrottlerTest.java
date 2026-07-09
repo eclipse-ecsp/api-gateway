@@ -39,7 +39,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -390,9 +392,9 @@ class RouteEventThrottlerTest {
     void testShutdownInterruptedExceptionHandledGracefully() throws Exception {
         // Arrange - replace the real scheduler with a mock that throws InterruptedException
         ScheduledExecutorService mockScheduler =
-                Mockito.mock(ScheduledExecutorService.class);
+                mock(ScheduledExecutorService.class);
         Mockito.doNothing().when(mockScheduler).shutdown();
-        Mockito.doThrow(new InterruptedException("Test interrupt"))
+        doThrow(new InterruptedException("Test interrupt"))
             .when(mockScheduler).awaitTermination(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any(java.util.concurrent.TimeUnit.class));
@@ -406,6 +408,6 @@ class RouteEventThrottlerTest {
         assertThat(Thread.currentThread().isInterrupted()).isTrue();
         // Clear the interrupt flag to avoid affecting other tests
         Thread.interrupted();
-        org.mockito.Mockito.verify(mockScheduler).shutdownNow();
+        verify(mockScheduler).shutdownNow();
     }
 }

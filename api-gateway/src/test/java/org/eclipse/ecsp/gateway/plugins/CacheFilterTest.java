@@ -54,6 +54,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
@@ -133,7 +134,7 @@ class CacheFilterTest {
             GatewayFilterChain chain = mock(GatewayFilterChain.class);
             cacheFilter.apply(config).filter(serverWebExchange, chain);
         }
-        Mockito.verify(cache, atLeastOnce()).get(Mockito.any());
+        verify(cache, atLeastOnce()).get(Mockito.any());
 
     }
 
@@ -195,7 +196,7 @@ class CacheFilterTest {
         when(httpHeaders.getFirst(GatewayConstants.ACCOUNT_ID)).thenReturn("accountId");
         when(httpHeaders.getFirst(GatewayConstants.TENANT_ID)).thenReturn("tenantId");
         when(httpHeaders.getFirst(GatewayConstants.USER_ID)).thenReturn("userId");
-        Mockito.when(cache.getName()).thenReturn("Default");
+        when(cache.getName()).thenReturn("Default");
         when(cache.get(any())).thenReturn(
                 () -> "[{httpStatus=OK, headers={transfer-encoding=[chunked], "
                         + "Vary=[Origin, Access-Control-Request-Method, Access-Control-Request-Headers, "
@@ -235,7 +236,7 @@ class CacheFilterTest {
             GatewayFilterChain chain = mock(GatewayFilterChain.class);
             cacheFilter.apply(config).filter(serverWebExchange, chain);
         }
-        Mockito.verify(cache, atLeastOnce()).get(Mockito.any());
+        verify(cache, atLeastOnce()).get(Mockito.any());
     }
 
     @Test
@@ -375,9 +376,9 @@ class CacheFilterTest {
         when(mockedExchange.getResponse()).thenReturn(response);
         when(response.getHeaders()).thenReturn(new HttpHeaders());
         when(response.writeWith(Mockito.any())).thenReturn(Mono.empty().then());
-        DataBufferFactory mockedBufferFacory = Mockito.mock(DataBufferFactory.class);
+        DataBufferFactory mockedBufferFacory = mock(DataBufferFactory.class);
         when(response.bufferFactory()).thenReturn(mockedBufferFacory);
-        doReturn(Mockito.mock(DataBuffer.class)).when(mockedBufferFacory).wrap(Mockito.any(byte[].class));
+        doReturn(mock(DataBuffer.class)).when(mockedBufferFacory).wrap(Mockito.any(byte[].class));
 
         return mockedExchange;
     }
@@ -396,11 +397,11 @@ class CacheFilterTest {
         headers.add(HttpHeaders.CONTENT_ENCODING, "gzip");
         cachedResponse.setHeaders(headers);
         cachedResponse.setBody("hello".getBytes());
-        ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
+        ValueWrapper mockedCache = mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
         ReflectionTestUtils.invokeMethod(cacheFilterInstance, "getCachedResponse",
                 mockExchange("key", "GET"), mockedCache);
-        Mockito.verify(mockedCache, atLeastOnce()).get();
+        verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
@@ -418,7 +419,7 @@ class CacheFilterTest {
         headers.add(HttpHeaders.CONTENT_ENCODING, "gzip");
         cachedResponse.setHeaders(headers);
         cachedResponse.setBody("not-valid-gzip-content".getBytes());
-        ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
+        ValueWrapper mockedCache = mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
         // Should handle gracefully when decompression fails (returns null body string)
         try {
@@ -428,7 +429,7 @@ class CacheFilterTest {
             // NullPointerException expected when decompression returns null
             LOGGER.debug("Expected exception when decompression returns null: {}", e.getMessage());
         }
-        Mockito.verify(mockedCache, atLeastOnce()).get();
+        verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
@@ -440,13 +441,13 @@ class CacheFilterTest {
         headers.add(HttpHeaders.CONTENT_ENCODING, "gzip");
         cachedResponse.setHeaders(headers);
         cachedResponse.setBody("hello".getBytes());
-        ValueWrapper mockedCache = Mockito.mock(ValueWrapper.class);
+        ValueWrapper mockedCache = mock(ValueWrapper.class);
         doReturn(cachedResponse).when(mockedCache).get();
         ReflectionTestUtils.invokeMethod(cacheFilterInstance,
                 "getCachedResponse",
                 mockExchange("key", "GET"),
                 mockedCache);
-        Mockito.verify(mockedCache, atLeastOnce()).get();
+        verify(mockedCache, atLeastOnce()).get();
     }
 
     @Test
@@ -456,33 +457,33 @@ class CacheFilterTest {
         headers.set("accountId", "igniteAccount");
         headers.set("tenantId", "ignite");
         headers.set("user-id", "user123");
-        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users")).when(mockedRequest).getURI();
         ReflectionTestUtils.invokeMethod(cacheFilterInstance, "prepareCachedRequestKey",
                 mockedRequest, "accountId-tenantId-userId", "routeId123");
-        Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
+        verify(mockedRequest, atLeastOnce()).getHeaders();
     }
 
     @Test
     void testPrepareRequestKeyNoHeaders() {
         CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
-        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();
         ReflectionTestUtils.invokeMethod(cacheFilterInstance,
                 "prepareCachedRequestKey",
                 mockedRequest, "accountId-tenantId-userId", "routeId123");
-        Mockito.verify(mockedRequest, atLeastOnce()).getHeaders();
+        verify(mockedRequest, atLeastOnce()).getHeaders();
     }
 
     @Test
     void testPrepareRequestKeyWithoutHeaders() {
         CacheFilter cacheFilterInstance = new CacheFilter(cacheManager);
         HttpHeaders headers = new HttpHeaders();
-        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();
@@ -522,7 +523,7 @@ class CacheFilterTest {
         headers.set(GatewayConstants.ACCOUNT_ID, "igniteAccount");
         headers.set(GatewayConstants.TENANT_ID, "ignite");
         headers.set(GatewayConstants.USER_ID, "user123");
-        ServerHttpRequest mockedRequest = Mockito.mock(ServerHttpRequest.class);
+        ServerHttpRequest mockedRequest = mock(ServerHttpRequest.class);
         doReturn(headers).when(mockedRequest).getHeaders();
         doReturn(URI.create("http://localhost:8080/v2/users"))
                 .when(mockedRequest).getURI();

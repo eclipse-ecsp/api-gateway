@@ -468,7 +468,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
     private void validateDuplicateRoutes(List<RateLimitConfigDto> config) {
         // validate for duplicate routeIds
         List<String> routeIds = config.stream()
-            .map(RateLimitConfigDto::getRouteId)
+            .map(dto -> dto.getRouteId())
             .filter(StringUtils::isNotBlank)
             .collect(Collectors.groupingBy(r -> r, Collectors.counting()))
             .entrySet()
@@ -493,7 +493,7 @@ public class RateLimitConfigServiceImpl implements RateLimitConfigService {
     private void validateDuplicateServices(List<RateLimitConfigDto> config) {
         // check for duplicate service entries
         List<String> services = config.stream()
-            .map(RateLimitConfigDto::getService)
+            .map(dto -> dto.getService())
             .filter(StringUtils::isNotBlank)
             .collect(Collectors.groupingBy(s -> s, Collectors.counting()))
             .entrySet()

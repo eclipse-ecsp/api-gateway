@@ -37,6 +37,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -185,7 +186,7 @@ class ApiRouteServiceTest {
 
         apiRouteService.createOrUpdate(routeDefinition);
 
-        verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+        verify(routeEventPublisher, never()).publishEvent(Mockito.any());
     }
 
     /**
@@ -202,7 +203,7 @@ class ApiRouteServiceTest {
 
         apiRouteService.delete("routeId");
 
-        verify(routeEventPublisher, Mockito.never()).publishEvent(Mockito.any());
+        verify(routeEventPublisher, never()).publishEvent(Mockito.any());
     }
 
     /**
@@ -321,7 +322,7 @@ class ApiRouteServiceTest {
 
         RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
 
-        verify(apiRouteRepo, Mockito.never()).save(Mockito.any());
+        verify(apiRouteRepo, never()).save(Mockito.any());
         Assertions.assertNotNull(result);
     }
 
@@ -423,7 +424,7 @@ class ApiRouteServiceTest {
 
         serviceDisabled.createOrUpdate(routeDefinition);
 
-        verify(checksumService, Mockito.never()).compute(Mockito.any());
+        verify(checksumService, never()).compute(Mockito.any());
         verify(apiRouteRepo, times(1)).save(Mockito.any());
     }
 

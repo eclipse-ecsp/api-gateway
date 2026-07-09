@@ -46,18 +46,19 @@ import java.util.TreeMap;
 import java.util.function.Function;
 
 /**
- * SHA-256 based implementation of {@link ChecksumService}.
+ * Configurable digest-based implementation of {@link ChecksumService}.
  *
- * <p>Produces a deterministic, 64-character lowercase hex checksum by normalising
+ * <p>Produces a deterministic lowercase hex checksum by normalising
  * selected {@link RouteDefinition} fields into a canonical JSON representation
- * before hashing. The effective field set is governed by
- * {@link ChecksumProperties.Checksum} {@code includeFields}.
+ * before hashing with the algorithm specified via
+ * {@link ChecksumProperties.Checksum} {@code algorithm} (e.g. {@code SHA-256}, {@code SHA-512}).
+ * The effective field set is governed by {@link ChecksumProperties.Checksum} {@code includeFields}.
  */
 @Service
-public class Sha256ChecksumService implements ChecksumService {
+public class RouteChecksumService implements ChecksumService {
 
     private static final IgniteLogger LOGGER =
-            IgniteLoggerFactory.getLogger(Sha256ChecksumService.class);
+            IgniteLoggerFactory.getLogger(RouteChecksumService.class);
 
     private static final String FIELD_PREDICATES = "predicates";
     private static final String FIELD_FILTERS = "filters";
@@ -103,7 +104,7 @@ public class Sha256ChecksumService implements ChecksumService {
      * @param properties   checksum configuration properties
      * @param objectMapper Jackson ObjectMapper used for canonical JSON serialisation
      */
-    public Sha256ChecksumService(ChecksumProperties properties, ObjectMapper objectMapper) {
+    public RouteChecksumService(ChecksumProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
     }

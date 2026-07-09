@@ -35,6 +35,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.Optional;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,7 +71,7 @@ class ApiRoutesHealthMonitorTest {
         // Scenario 1: No API routes found
         when(apiRouteRepo.findAll()).thenReturn(new ArrayList<>());
         apiRoutesHealthMonitor.healthCheck();
-        verify(restTemplate, Mockito.never()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
+        verify(restTemplate, never()).getForEntity(Mockito.anyString(), Mockito.eq(String.class));
 
         // Scenario 2: API routes found, health check succeeds
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();

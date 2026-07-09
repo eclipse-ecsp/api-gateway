@@ -30,6 +30,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.List;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +61,7 @@ class ApiRouteControllerTest {
 
     @Test
     void testList() {
-        Mockito.doReturn(List.of()).when(apiRouteService).list();
+        doReturn(List.of()).when(apiRouteService).list();
         Assertions.assertNotNull(apiRouteController.list());
         verify(apiRouteService, Mockito.atLeastOnce()).list();
     }

@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -393,7 +394,7 @@ class RouteEventThrottlerTest {
         ScheduledExecutorService mockScheduler =
                 mock(ScheduledExecutorService.class);
         Mockito.doNothing().when(mockScheduler).shutdown();
-        Mockito.doThrow(new InterruptedException("Test interrupt"))
+        doThrow(new InterruptedException("Test interrupt"))
             .when(mockScheduler).awaitTermination(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any(java.util.concurrent.TimeUnit.class));

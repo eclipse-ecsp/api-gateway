@@ -37,12 +37,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Unit tests for {@link Sha256ChecksumService}.
+ * Unit tests for {@link RouteChecksumService}.
  */
 @ExtendWith(SpringExtension.class)
-class Sha256ChecksumServiceTest {
+class RouteChecksumServiceTest {
 
-    private Sha256ChecksumService checksumService;
+    private RouteChecksumService checksumService;
     private ChecksumProperties properties;
     private ObjectMapper objectMapper;
 
@@ -51,7 +51,7 @@ class Sha256ChecksumServiceTest {
         MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
         properties = new ChecksumProperties();
-        checksumService = new Sha256ChecksumService(properties, objectMapper);
+        checksumService = new RouteChecksumService(properties, objectMapper);
     }
 
     /**

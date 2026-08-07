@@ -26,8 +26,10 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.server.ServerWebExchange;
 
 /**
  * GatewayUtils.
@@ -118,5 +120,15 @@ public class GatewayUtils {
      */
     public static String getLogMessage(String routeId, String requestPath, String requestId) {
         return String.format("RouteId: %s, RequestPath: %s, RequestId: %s", routeId, requestPath, requestId);
+    }
+
+    /**
+     * return uri from the request.
+     *
+     * @param exchange server web exhange.
+     * @return request uri
+     */
+    public static String getRouteUri(ServerWebExchange exchange) {
+        return exchange.getAttributeOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR, "unknown");
     }
 }

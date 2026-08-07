@@ -31,6 +31,7 @@ import org.eclipse.ecsp.gateway.metrics.GatewayRequestMetricsFilter;
 import org.eclipse.ecsp.gateway.metrics.HttpClientObservationConvention;
 import org.eclipse.ecsp.gateway.metrics.HttpServerObservationConvention;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
@@ -140,10 +141,7 @@ public class GatewayMetricsConfig {
         return (exchange -> {
             LOGGER.debug("apply route URI in gateway metrics", exchange.getRequest().getPath());
             // Use route URI/pattern instead of high-cardinality raw request paths
-            Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-            
-            String uriValue = route != null ? route.getUri().toString() : "UNKNOWN";
-            return Tags.of(Tags.of("requestUrl", uriValue));
+            return Tags.of(Tags.of("requestUrl", GatewayUtils.getRouteUri(exchange)));
         });
     }
 

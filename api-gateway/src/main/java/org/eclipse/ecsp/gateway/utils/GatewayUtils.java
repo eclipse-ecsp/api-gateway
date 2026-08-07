@@ -129,6 +129,8 @@ public class GatewayUtils {
      * @return request uri
      */
     public static String getRouteUri(ServerWebExchange exchange) {
-        return exchange.getAttributeOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR, GatewayConstants.UNKNOWN);
+        return exchange.getAttributeOrDefault(
+            ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR,
+            GatewayConstants.UNKNOWN);
     }
 }

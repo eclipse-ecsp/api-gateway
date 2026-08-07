@@ -99,7 +99,9 @@ public class HttpServerObservationConvention extends DefaultServerRequestObserva
                         .get(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR);
             
             if (routeUri == null) {
-                routeUri = (String) context.getAttributes().getOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR, GatewayConstants.UNKNOWN);
+                routeUri = (String) context.getAttributes()
+                    .getOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR, 
+                            GatewayConstants.UNKNOWN);
             }
             url = KeyValue.of("uri", routeUri);
             

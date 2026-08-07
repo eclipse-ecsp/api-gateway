@@ -10,6 +10,8 @@ server:
 spring:
   application:
     name: api-gateway
+  #codec:
+  #  max-in-memory-size: ${spring_codec_max-in-memory-size:20MB}
   main:
     web-application-type: reactive
   servlet:
@@ -17,6 +19,10 @@ spring:
       enabled: true
       force: true
       charset: UTF-8
+  http:
+    codecs:
+      max-in-memory-size: ${spring_codec_max-in-memory-size:10MB}
+    
   # data:
   #   redis:
   #     cluster:

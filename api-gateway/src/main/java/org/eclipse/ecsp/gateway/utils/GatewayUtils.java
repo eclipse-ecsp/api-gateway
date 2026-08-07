@@ -123,12 +123,12 @@ public class GatewayUtils {
     }
 
     /**
-     * return uri from the request.
+     * return uri from the request, unknown if attribute not available.
      *
      * @param exchange server web exhange.
      * @return request uri
      */
     public static String getRouteUri(ServerWebExchange exchange) {
-        return exchange.getAttributeOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR, "unknown");
+        return exchange.getAttributeOrDefault(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR, GatewayConstants.UNKNOWN);
     }
 }

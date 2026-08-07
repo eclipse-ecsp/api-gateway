@@ -22,6 +22,7 @@ import io.micrometer.common.KeyValues;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.jetbrains.annotations.NotNull;
@@ -63,7 +64,7 @@ public class ApiGatewayObservationConvention extends DefaultGatewayObservationCo
         
         String uriValue = route != null ? route.getUri().toString() : "UNKNOWN";
         keyValues = keyValues
-                .and("requestUrl", uriValue);
+                .and("requestUrl", GatewayUtils.getRouteUri(context.getServerWebExchange()));
                 
         if (route != null && !CollectionUtils.isEmpty(route.getMetadata())
                 && route.getMetadata().containsKey(GatewayConstants.SERVICE_NAME)) {

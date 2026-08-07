@@ -95,12 +95,15 @@ public class HttpServerObservationConvention extends DefaultServerRequestObserva
     protected KeyValue requestUrl(ServerRequestObservationContext context) {
         KeyValue url = uri(context);
         if (url.getValue().equals(GatewayConstants.UNKNOWN)) {
-            Route route = (Route) context.getAttributes().get(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-            if (route != null) {
-                url = KeyValue.of("uri", route.getUri().toString());
-            } else {
-                url = KeyValue.of("uri", GatewayConstants.UNKNOWN);
+            String routeUri = (String) context.getAttributes()
+                        .get(ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ATTR);
+            
+            if (routeUri == null) {
+                routeUri = (String) context.getAttributes().getOrDefault(
+                        ServerWebExchangeUtils.GATEWAY_PREDICATE_MATCHED_PATH_ROUTE_ID_ATTR, GatewayConstants.UNKNOWN);
             }
+            url = KeyValue.of("uri", routeUri);
+            
         }
         LOGGER.debug("appended to http request url to metrics: {}", url.getValue());
         return url;

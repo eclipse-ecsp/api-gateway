@@ -155,6 +155,11 @@ public class RateLimitRouteCustomizer implements RouteCustomizer {
     private String getKeyResolverBeanName(RateLimit rateLimit) {
         String originalResolverName = rateLimit.getKeyResolver();
         
+        if (StringUtils.isBlank(originalResolverName)) {
+            LOGGER.error("KeyResolver name is missing or empty in RateLimit configuration");
+            return null;
+        }
+
         // First, try the original name as-is (handles cases like customKeyResolver)
         if (validateIfKeyResolverExists(originalResolverName)) {
             return originalResolverName;

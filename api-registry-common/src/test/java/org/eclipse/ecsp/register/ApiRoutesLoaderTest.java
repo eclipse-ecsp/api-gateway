@@ -107,7 +107,8 @@ class ApiRoutesLoaderTest {
         when(springDocConfigProperties.getApiDocs()).thenReturn(apiDocs);
         OpenAPI openApi = getOpenApiObj();
         when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
-        when(openApiService.getContext()).thenReturn(mock(ApplicationContext.class));
+        ApplicationContext mockedApplicationContext = mock(ApplicationContext.class);
+        when(openApiService.getContext()).thenReturn(mockedApplicationContext);
         when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());

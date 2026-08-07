@@ -68,6 +68,12 @@ public class JwtProperties {
     private Set<String> scopePrefixes;
 
     /**
+     * Specifies the JWT claims used to extract authorization scopes.
+     * Default is a list containing only "scope".
+     */
+    private List<String> scopeClaims;
+
+    /**
      * Retry configuration for JWKS fetching.
      */
     private RetryConfig retry = new RetryConfig();

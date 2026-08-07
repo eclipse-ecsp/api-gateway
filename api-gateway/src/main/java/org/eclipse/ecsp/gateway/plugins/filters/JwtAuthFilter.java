@@ -97,6 +97,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     private final PublicKeyService publicKeyService;
     Map<String, String> tokenClaimToHeaderMapping;
     private Set<String> tokenScopePrefixes;
+    private final JwtProperties jwtProperties;
 
     /**
      * Constructor to initialize the JwtAuthFilter.
@@ -108,6 +109,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     public JwtAuthFilter(JwtAuthFilter.Config config,
                          PublicKeyService publicKeyService,
                          JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
         this.tokenHeaderValidationConfig = jwtProperties.getTokenHeaderValidationConfig();
         this.publicKeyService = publicKeyService;
         if (config != null && config.getScope() != null) {
@@ -491,27 +493,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                                           final Claims claims, 
                                           String requestId, 
                                           String requestPath) {
-        Set<String> userScopes = new HashSet<>();
-        Object scopeObj = claims.get(GatewayConstants.SCOPE);
-        if (scopeObj != null) {
-            LOGGER.debug("Token scope found, type: {}, value: {}, {}", 
-                    scopeObj.getClass().getSimpleName(), scopeObj, 
-                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
-
-            if (scopeObj instanceof List<?>) {
-                // scopes are in the form of List
-                @SuppressWarnings("unchecked")
-                HashSet<String> scopeSet = new HashSet<>((List<String>) scopeObj);
-                userScopes = scopeSet;
-            } else if (scopeObj instanceof String scopeStr) {
-                String delimiter = scopeStr.contains(",") ? "," : StringUtils.SPACE;
-                userScopes = new HashSet<>(Arrays.asList(scopeStr.split(delimiter)));
-            }
-        } else {
-            LOGGER.debug("No scope claim found in token for {}", 
-                    GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
-        }
-
+        Set<String> userScopes = org.eclipse.ecsp.gateway.utils.ScopeExtractorUtils
+                .extractScopes(claims, jwtProperties);
         LOGGER.debug("Extracted user scopes: {}, configured route scopes: {}, {}", 
                 userScopes, routeScopes, GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));
         return userScopes;

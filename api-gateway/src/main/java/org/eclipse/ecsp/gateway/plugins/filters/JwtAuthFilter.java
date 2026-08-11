@@ -203,19 +203,24 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         // Validate JWT
         LOGGER.debug("Token format validation passed for request: {}, requestId: {}", 
                 requestPath, requestId);
-        Claims claims = validateToken(token, requestId, requestPath, routeId);
+        ValidatedTokenResult validatedTokenResult = validateToken(token, requestId, requestPath, routeId);
+        Claims claims = validatedTokenResult.getClaims();
+        PublicKeyInfo publicKeyInfo = validatedTokenResult.getPublicKeyInfo();
         LOGGER.debug("Token validated, validating claims... for request: {}, requestId: {},"
                 + " token claims: {}", requestPath, requestId, claims);
 
+        boolean skipClaimValidation = publicKeyInfo != null && publicKeyInfo.isSkipClaimValidation();
+        boolean skipAuthz = publicKeyInfo != null && publicKeyInfo.isSkipAuthz();
+
         //validate token headers
-        validateTokenHeaders(claims, requestId, requestPath, routeId);
+        validateTokenHeaders(claims, skipClaimValidation, requestId, requestPath, routeId);
 
         LOGGER.debug("Token claims validated for request: {}, requestId: {}, validating route scopes",
                 requestPath, requestId);
 
         // Validate user scopes against target route scope
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-        String scope = validateScope(route, claims, requestId, requestPath);
+        String scope = validateScope(route, claims, skipAuthz, requestId, requestPath);
 
         LOGGER.debug("Scope validated for {}, scope: {},"
                         + " appending scope and override-scope headers to request",
@@ -251,11 +256,18 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         return chain.filter(exchange.mutate().request(builder.build()).build());
     }
 
-    private void validateTokenHeaders(Claims claims, String requestId, String requestPath, String routeId) {
+    private void validateTokenHeaders(Claims claims, boolean skipClaimValidation,
+                                       String requestId, String requestPath, String routeId) {
         try {
             LOGGER.debug("Starting token header validation for request: {}, requestId: {}", 
                     requestPath, requestId);
             
+            if (skipClaimValidation) {
+                LOGGER.debug("Skipping token header validation (skip-claim-validation=true). {}",
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+                return;
+            }
+
             //Header Validation
             if (!CollectionUtils.isEmpty(tokenHeaderValidationConfig)) {
                 for (Entry<String, TokenHeaderValidationConfig> entry : tokenHeaderValidationConfig.entrySet()) {
@@ -327,7 +339,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         }
     }
 
-    private Claims validateToken(final String token, String requestId, String requestPath, String routeId) {
+    private ValidatedTokenResult validateToken(final String token, String requestId,
+                                                String requestPath, String routeId) {
         LOGGER.debug("Starting JWT token validation for request: {}, requestId: {}", requestPath, requestId);
 
         try {
@@ -355,7 +368,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             PublicKeyInfo publicKeyInfo = getValidationKey(metadata, requestPath, requestId, routeId);
 
             // Validate token signature and claims
-            return validateTokenSignature(token, publicKeyInfo, metadata, requestPath, requestId, routeId);
+            Claims claims = validateTokenSignature(token, publicKeyInfo, metadata, requestPath, requestId, routeId);
+            return new ValidatedTokenResult(claims, publicKeyInfo);
 
         } catch (SecurityException
                  | MalformedJwtException
@@ -426,6 +440,27 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     }
 
     /**
+     * Container holding validation result including claims and public key info.
+     */
+    private static class ValidatedTokenResult {
+        private final Claims claims;
+        private final PublicKeyInfo publicKeyInfo;
+
+        ValidatedTokenResult(Claims claims, PublicKeyInfo publicKeyInfo) {
+            this.claims = claims;
+            this.publicKeyInfo = publicKeyInfo;
+        }
+
+        public Claims getClaims() {
+            return claims;
+        }
+
+        public PublicKeyInfo getPublicKeyInfo() {
+            return publicKeyInfo;
+        }
+    }
+
+    /**
      * Inner class to hold token metadata.
      */
     private static class TokenMetadata {
@@ -438,8 +473,8 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         }
     }
 
-    private String validateScope(final Route route, final Claims claims, String requestId, 
-                                String requestPath) {
+    private String validateScope(final Route route, final Claims claims, boolean skipAuthz,
+                                String requestId, String requestPath) {
         if (route == null || claims == null) {
             LOGGER.error("Scope validation failed - Invalid route or claims. {}", 
                     GatewayUtils.getLogMessage("", requestPath, requestId));
@@ -452,7 +487,11 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         Set<String> userScopes = extractUserScopes(route, claims, requestId, requestPath);
 
         boolean valid = false;
-        if (routeScopes.isEmpty()) {
+        if (skipAuthz) {
+            LOGGER.debug("Scope validation skipped (skip-authz=true) for route: {}, requestPath: {}, "
+                    + "requestId: {}", route.getId(), requestPath, requestId);
+            valid = true;
+        } else if (routeScopes.isEmpty()) {
             // Scope validation is not defined for the route
             LOGGER.debug("No route scopes configured, scope validation passed. {}", 
                     GatewayUtils.getLogMessage(route.getId(), requestPath, requestId));

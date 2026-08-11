@@ -387,19 +387,18 @@ class JwtAuthValidatorTest {
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "SelfManage");
         Method privateMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
-                String.class,
-                String.class);
+                boolean.class, String.class, String.class);
         privateMethod.setAccessible(true);
 
-        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         List<String> scopesList = Arrays.asList("SelfManage", "IgniteSystem");
         claims.put("scope", scopesList);
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         if (result != null) {
             Assertions.assertTrue(Strings.CS.contains(result, "SelfManage"));
         }
         claims.setScope(String.join(",", scopesList));
-        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         if (resultString != null) {
             Assertions.assertTrue(Strings.CS.contains(resultString, "SelfManage"));
         }
@@ -976,10 +975,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with List claim
         String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class);
+                boolean.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
             return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
-                "requestId", "requestPath");
+                false, "requestId", "requestPath");
         });
 
         // Should handle List properly and return valid scope
@@ -1419,10 +1418,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with string scope
         String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class);
+                boolean.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
             return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
-                "requestId", "requestPath");
+                false, "requestId", "requestPath");
         });
 
         // Should handle string scope properly
@@ -1452,10 +1451,10 @@ class JwtAuthValidatorTest {
         // Test validateScope method with comma-separated scope
         String result = Assertions.assertDoesNotThrow(() -> {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                String.class, String.class);
+                boolean.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
             return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
-                "requestId", "requestPath");
+                false, "requestId", "requestPath");
         });
 
         // Should handle comma-separated scope properly
@@ -1486,12 +1485,12 @@ class JwtAuthValidatorTest {
         // Test validateScope method with null scope
         try {
             Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
-                String.class, String.class);
+                boolean.class, String.class, String.class);
             validateScopeMethod.setAccessible(true);
 
             // Should throw exception due to insufficient scope
             Assertions.assertThrows(Exception.class, () ->
-                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, "requestId", "requestPath"));
+                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, false, "requestId", "requestPath"));
         } catch (Exception ex) {
             // Expected to fail due to missing scope
             LOGGER.debug("Expected exception for missing scope: {}", ex.getMessage());       
@@ -1628,7 +1627,7 @@ class JwtAuthValidatorTest {
         claims.put("aud", "test-audience");
 
         // Test validateScope method - should succeed after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         
         // Verify that prefixes were removed and scopes matched
         Assertions.assertNotNull(result);
@@ -1653,7 +1652,7 @@ class JwtAuthValidatorTest {
         claims.put("aud", "test-audience");
 
         // Test validateScope method - should succeed as ReadAccess matches after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         
         // Verify that prefixes were removed correctly
         Assertions.assertNotNull(result);
@@ -1678,7 +1677,7 @@ class JwtAuthValidatorTest {
         claims.put("aud", "test-audience");
 
         // Test validateScope method - should succeed after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         
         // Verify that prefixes were removed correctly
         Assertions.assertNotNull(result);
@@ -1704,7 +1703,7 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method - should fail as no scope matches after prefix removal
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         });
         
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -1727,7 +1726,7 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method - should fail as no valid scopes remain
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         });
         
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -1750,7 +1749,7 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method - should fail as prefixes don't match configured ones
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         });
         
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -1776,7 +1775,7 @@ class JwtAuthValidatorTest {
 
         // Test validateScope method - should fail as prefixes are not removed when config is null
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
+            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
         });
         
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -1799,14 +1798,127 @@ class JwtAuthValidatorTest {
         claims.put("scope", Arrays.asList("DirectScope", "OtherScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
-
-        // Test validateScope method - should succeed as direct match works
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, "requestId", "requestPath");
         
+        // Test validateScope method - should succeed as direct match works
+        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
+        
+        // Verify result contains the correctly extracted scopes
         Assertions.assertNotNull(result);
         Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
-        Assertions.assertTrue(resultScopes.contains("DirectScope"), "Should contain DirectScope");
-        Assertions.assertTrue(resultScopes.contains("OtherScope"), "Should contain OtherScope");
+        Assertions.assertTrue(resultScopes.contains("DirectScope"));
+        Assertions.assertTrue(resultScopes.contains("OtherScope"));
+    }
+
+    @Test
+    void testSkipAuthzWhenConfiguredTrue() {
+        // Setup configuration with a required scope that the token DOES NOT have
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("RequiredAdminScope");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims that don't match the required scope
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", "OnlyUserScope");
+
+        // Use validateScope with skipAuthz=true
+        String result = Assertions.assertDoesNotThrow(() -> {
+            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
+                boolean.class, String.class, String.class);
+            validateScopeMethod.setAccessible(true);
+            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claims, true, "requestId", "requestPath");
+        });
+
+        // Should return the original claims without throwing an exception
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.contains("OnlyUserScope"));
+    }
+
+    @Test
+    void testSkipAuthzWhenConfiguredFalse() throws Exception {
+        // Setup configuration with a required scope that the token DOES NOT have
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("RequiredAdminScope");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // Create claims that don't match the required scope
+        ClaimImpl claims = new ClaimImpl();
+        claims.put("scope", "OnlyUserScope");
+
+        Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
+            boolean.class, String.class, String.class);
+        validateScopeMethod.setAccessible(true);
+
+        // Use validateScope with skipAuthz=false, should fail
+        Exception exception = Assertions.assertThrows(Exception.class, () -> 
+            validateScopeMethod.invoke(jwtAuthFilter, route, claims, false, "requestId", "requestPath")
+        );
+
+        // The cause should be the ApiGatewayException (UNAUTHORIZED)
+        Assertions.assertNotNull(exception.getCause());
+        Assertions.assertTrue(exception.getCause() instanceof ApiGatewayException);
+        ApiGatewayException gatewayException = (ApiGatewayException) exception.getCause();
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, gatewayException.getStatusCode());
+        Assertions.assertTrue(gatewayException.getMessage().contains("Token verification failed"));
+    }
+
+    @Test
+    void testSkipClaimValidationWhenConfiguredTrue() {
+        // Setup TokenHeaderValidationConfig to require a specific header
+        TokenHeaderValidationConfig requiredHeaderConfig = new TokenHeaderValidationConfig();
+        requiredHeaderConfig.setRequired(true);
+        tokenHeaderValidationConfig.put("required-header", requiredHeaderConfig);
+        when(jwtProperties.getTokenHeaderValidationConfig()).thenReturn(tokenHeaderValidationConfig);
+
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // ClaimImpl missing the 'required-header'
+        ClaimImpl claims = new ClaimImpl();
+
+        // Use validateTokenHeaders with skipClaimValidation=true, should pass without exceptions
+        Assertions.assertDoesNotThrow(() -> {
+            Method validateHeadersMethod = JwtAuthFilter.class.getDeclaredMethod("validateTokenHeaders", Claims.class, 
+                boolean.class, String.class, String.class, String.class);
+            validateHeadersMethod.setAccessible(true);
+            validateHeadersMethod.invoke(jwtAuthFilter, claims, true, "requestId", "requestPath", "routeId");
+        });
+    }
+
+    @Test
+    void testSkipClaimValidationWhenConfiguredFalse() throws Exception {
+        // Setup TokenHeaderValidationConfig to require a specific header
+        TokenHeaderValidationConfig requiredHeaderConfig = new TokenHeaderValidationConfig();
+        requiredHeaderConfig.setRequired(true);
+        tokenHeaderValidationConfig.put("required-header", requiredHeaderConfig);
+        when(jwtProperties.getTokenHeaderValidationConfig()).thenReturn(tokenHeaderValidationConfig);
+
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        // ClaimImpl missing the 'required-header'
+        ClaimImpl claims = new ClaimImpl();
+
+        Method validateHeadersMethod = JwtAuthFilter.class.getDeclaredMethod("validateTokenHeaders", Claims.class, 
+            boolean.class, String.class, String.class, String.class);
+        validateHeadersMethod.setAccessible(true);
+
+        // Use validateTokenHeaders with skipClaimValidation=false, should fail
+        Exception exception = Assertions.assertThrows(Exception.class, () -> 
+            validateHeadersMethod.invoke(jwtAuthFilter, claims, false, "requestId", "requestPath", "routeId")
+        );
+
+        // The cause should be the ApiGatewayException (UNAUTHORIZED)
+        Assertions.assertNotNull(exception.getCause());
+        Assertions.assertTrue(exception.getCause() instanceof ApiGatewayException);
+        ApiGatewayException gatewayException = (ApiGatewayException) exception.getCause();
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, gatewayException.getStatusCode());
+        Assertions.assertTrue(gatewayException.getMessage().contains("Invalid Token") || gatewayException.getMessage().contains("Token verification failed"));
     }
 }
 

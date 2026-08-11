@@ -49,8 +49,32 @@ public class PublicKeyInfo {
     /** Unique identifier of the source that loaded this key. */
     private String sourceId;
     
+    /** Flag to indicate if scope validation should be skipped for tokens validated with this key. */
+    private boolean skipAuthz;
+    
+    /** Flag to indicate if claim validation should be skipped for tokens validated with this key. */
+    private boolean skipClaimValidation;
+    
     /** Additional metadata associated with this public key. */
     private Map<String, Object> additionalMetaData;
+
+    /**
+     * Sets the skip authorization flag.
+     *
+     * @param skipAuthz skip authz flag
+     */
+    public void setSkipAuthz(boolean skipAuthz) {
+        this.skipAuthz = skipAuthz;
+    }
+
+    /**
+     * Sets the skip claim validation flag.
+     *
+     * @param skipClaimValidation skip claim validation flag
+     */
+    public void setSkipClaimValidation(boolean skipClaimValidation) {
+        this.skipClaimValidation = skipClaimValidation;
+    }
 
     /**
      * Sets the key identifier with null validation.

@@ -172,6 +172,8 @@ public class PublicKeyServiceImpl implements PublicKeyService {
                     publicKeyInfo.setType(source.getType());
                     publicKeyInfo.setIssuer(source.getIssuer());
                     publicKeyInfo.setSourceId(source.getId());
+                    publicKeyInfo.setSkipAuthz(source.isSkipAuthz());
+                    publicKeyInfo.setSkipClaimValidation(source.isSkipClaimValidation());
                     String cacheKey = generateCacheKey(source, keyId);
                     publicKeyCache.put(cacheKey, publicKeyInfo);
                     LOGGER.info("Public key with KID: {} for source: {}, type: {}, added to cache with key: {}", 

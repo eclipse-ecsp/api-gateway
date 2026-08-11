@@ -2,7 +2,7 @@ FROM azul/zulu-openjdk-alpine:25-jre-headless
 
 RUN apk update && \
     apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main curl
-
+    
 ARG PROJECT_JAR_NAME
 ENV PROJECT_JAR_NAME=${PROJECT_JAR_NAME}
 

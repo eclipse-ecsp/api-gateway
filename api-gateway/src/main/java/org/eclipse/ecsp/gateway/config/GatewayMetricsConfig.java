@@ -31,6 +31,7 @@ import org.eclipse.ecsp.gateway.metrics.GatewayRequestMetricsFilter;
 import org.eclipse.ecsp.gateway.metrics.HttpClientObservationConvention;
 import org.eclipse.ecsp.gateway.metrics.HttpServerObservationConvention;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
+import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
@@ -138,9 +139,9 @@ public class GatewayMetricsConfig {
     @ConditionalOnProperty(name = "api.gateway.metrics.gateway-requests.enabled", havingValue = "true")
     public GatewayTagsProvider requestUrlTagProvider() {
         return (exchange -> {
-            LOGGER.debug("apply route path in gateway metrics", exchange.getRequest().getPath());
-            // Get the route information from the exchange attributes
-            return Tags.of(Tags.of("requestUrl", exchange.getRequest().getPath().toString()));
+            LOGGER.debug("apply route URI in gateway metrics", exchange.getRequest().getPath());
+            // Use route URI/pattern instead of high-cardinality raw request paths
+            return Tags.of(Tags.of("requestUrl", GatewayUtils.getRouteUri(exchange)));
         });
     }
 

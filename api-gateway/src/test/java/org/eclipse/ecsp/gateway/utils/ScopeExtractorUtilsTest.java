@@ -21,11 +21,13 @@ package org.eclipse.ecsp.gateway.utils;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,28 +48,14 @@ class ScopeExtractorUtilsTest {
 
     // Default Scope Claim Tests
 
-    @Test
-    void shouldExtractWhenDefaultClaimIsUsed() {
-        claims.put("scope", "Scope1 Scope2");
+    @ParameterizedTest
+    @ValueSource(strings = {"Scope1 Scope2", "Scope1 Scope1 Scope2"})
+    void shouldExtractWhenDefaultClaimIsUsedAndHandleWhitespaceFormatDuplicates(String scope) {
+        claims.put("scope", scope);
         Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
         assertEquals(Set.of("Scope1", "Scope2"), scopes);
     }
 
-    @Test
-    void shouldExtractWhenConfiguredClaimIsNull() {
-        jwtProperties.setScopeClaims(null);
-        claims.put("scope", "Scope1 Scope2");
-        Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
-        assertEquals(Set.of("Scope1", "Scope2"), scopes);
-    }
-
-    @Test
-    void shouldExtractWhenConfiguredClaimIsBlank() {
-        jwtProperties.setScopeClaims(Arrays.asList("  "));
-        claims.put("scope", "Scope1 Scope2");
-        Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
-        assertEquals(Set.of("Scope1", "Scope2"), scopes);
-    }
 
     // Configured Scope Claim Tests
 
@@ -183,13 +171,6 @@ class ScopeExtractorUtilsTest {
     // Duplicate Handling Tests
 
     @Test
-    void shouldHandleWhitespaceFormatDuplicates() {
-        claims.put("scope", "Scope1 Scope1 Scope2");
-        Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
-        assertEquals(Set.of("Scope1", "Scope2"), scopes);
-    }
-
-    @Test
     void shouldHandleArrayDuplicates() {
         claims.put("scp", Arrays.asList("Scope1", "Scope1", "Scope2"));
         jwtProperties.setScopeClaims(Arrays.asList("scp"));
@@ -199,29 +180,16 @@ class ScopeExtractorUtilsTest {
 
     // Empty Value Tests
 
-    @Test
-    void shouldHandleEmptyString() {
-        claims.put("scope", "");
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"     "})
+    void shouldHandleEmptyOrNullString(String scope) {
+        claims.put("scope", scope);
         Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
         assertNotNull(scopes);
         assertTrue(scopes.isEmpty());
     }
 
-    @Test
-    void shouldHandleWhitespaceOnlyString() {
-        claims.put("scope", "     ");
-        Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
-        assertNotNull(scopes);
-        assertTrue(scopes.isEmpty());
-    }
-
-    @Test
-    void shouldHandleNullValue() {
-        claims.put("scope", null);
-        Set<String> scopes = ScopeExtractorUtils.extractScopes(claims, jwtProperties);
-        assertNotNull(scopes);
-        assertTrue(scopes.isEmpty());
-    }
 
     // Missing Claim Tests
 

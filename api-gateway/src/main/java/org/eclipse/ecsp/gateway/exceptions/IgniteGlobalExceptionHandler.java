@@ -101,9 +101,13 @@ public class IgniteGlobalExceptionHandler extends AbstractErrorWebExceptionHandl
         Throwable throwable = getError(request);
         ResponseEntity<Object> responseEntity = errorResponseResolver.buildResponse(throwable, request.exchange());
         LOGGER.error("Error occurred while processing request: {}", throwable.getMessage(), throwable);
-        Object responseBody = responseEntity.getBody() != null ? responseEntity.getBody() : "";
-        return ServerResponse.status(responseEntity.getStatusCode())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(responseBody);
+        Object body = responseEntity.getBody();
+        if (body != null) {
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body);
+        } else {
+            return ServerResponse.status(responseEntity.getStatusCode()).build();
+        }
     }
 }

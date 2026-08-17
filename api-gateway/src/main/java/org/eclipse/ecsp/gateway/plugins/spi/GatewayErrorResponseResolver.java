@@ -50,7 +50,7 @@ import org.springframework.web.server.ServerWebExchange;
  * {@link org.eclipse.ecsp.gateway.exceptions.RequestValidationException}
  * separately and return field-level error details, use {@code instanceof} in
  * the
- * {@link #build} method:
+ * {@link #buildResponse(Throwable, ServerWebExchange)} method:
  * 
  * <pre>{@code
  * if (throwable instanceof RequestValidationException rve) {

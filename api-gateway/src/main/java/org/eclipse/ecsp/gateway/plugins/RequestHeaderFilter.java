@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.exceptions.RequestValidationException;
 import org.eclipse.ecsp.gateway.plugins.RequestHeaderFilter.Config;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
@@ -94,9 +94,9 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return the modified server web exchange
      */
     private static ServerWebExchange includeHeaderIfMissing(Config config,
-                                                            ServerWebExchange exchange,
-                                                            String uri,
-                                                            Set<String> allowHeaders) {
+            ServerWebExchange exchange,
+            String uri,
+            Set<String> allowHeaders) {
         LOGGER.debug("Starting header append check for URI: {}, headers to check : {}",
                 uri,
                 config.getAppendHeadersIfMissing());
@@ -124,8 +124,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return true if the header is valid, false otherwise
      */
     private static boolean validateMandatory(GlobalHeaderConfig headerConfig,
-                                             Map<String, String> requestHeaders,
-                                             String uri) {
+            Map<String, String> requestHeaders,
+            String uri) {
         return validateMandatory(headerConfig.getName(), headerConfig.isRequired(), requestHeaders, uri);
     }
 
@@ -139,14 +139,15 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return true if the header is valid, false otherwise
      */
     private static boolean validateMandatory(String name,
-                                             boolean isRequired,
-                                             Map<String, String> requestHeaders,
-                                             String uri) {
+            boolean isRequired,
+            Map<String, String> requestHeaders,
+            String uri) {
         if (isRequired && getHeader(name, requestHeaders).isEmpty()) {
             LOGGER.error("required header {} is missing in the request {}", name, uri);
-            throw new ApiGatewayException(HttpStatus.BAD_REQUEST,
+            throw new RequestValidationException(HttpStatus.BAD_REQUEST,
                     "api.gateway.error.header.invalid",
-                    "Missing required header " + name + " in the request");
+                    "Missing required header " + name + " in the request",
+                    name);
         }
         return true;
     }
@@ -182,8 +183,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return true if the header value matches the regex, false otherwise
      */
     private static boolean validateRegex(GlobalHeaderConfig globalHeaderConfig,
-                                         Map<String, String> requestHeaders,
-                                         String uri) {
+            Map<String, String> requestHeaders,
+            String uri) {
         Optional<String> reqHeader = getHeader(globalHeaderConfig.getName(), requestHeaders);
         if (reqHeader.isPresent() && StringUtils.isNotEmpty(globalHeaderConfig.getRegex())) {
             String headerValue = requestHeaders.get(reqHeader.get());
@@ -192,9 +193,13 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
                         globalHeaderConfig.getName(),
                         globalHeaderConfig.getRegex(),
                         uri);
-                throw new ApiGatewayException(HttpStatus.BAD_REQUEST,
+                String detailedError = "Header value '" + headerValue
+                        + "' doesn't match regex: " + globalHeaderConfig.getRegex();
+                throw new RequestValidationException(HttpStatus.BAD_REQUEST,
                         "api.gateway.error.header.invalid",
-                        "Invalid " + globalHeaderConfig.getName() + " header value: " + headerValue);
+                        "Invalid " + globalHeaderConfig.getName() + " header value: " + headerValue,
+                        globalHeaderConfig.getName(),
+                        detailedError);
             }
         }
         return true;
@@ -229,7 +234,7 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
             }
             LOGGER.debug("Request Header validation started for {}", uri);
 
-            //include headers if missing in the request
+            // include headers if missing in the request
             Set<String> allowedHeaders = new HashSet<>(config.getAllowHeaders());
             if (!CollectionUtils.isEmpty(config.getAppendHeadersIfMissing())) {
                 exchange = includeHeaderIfMissing(config, exchange, uri, allowedHeaders);
@@ -241,7 +246,6 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
                 Set<String> validatedGlobalHeaders = validateGlobalHeaders(globalHeaderConfigs, requestHeaders, uri);
                 allowedHeaders.addAll(validatedGlobalHeaders);
             }
-
 
             // Validate route headers
             Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
@@ -257,7 +261,7 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
                 exchange = removeUnknownHeaders(exchange, requestHeaders, allowedHeaders);
             }
 
-            //sanitize all the request headers
+            // sanitize all the request headers
             exchange = sanitizeHeaders(exchange);
 
             LOGGER.debug("Request Header validation completed for {}", uri);
@@ -285,8 +289,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return a set of allowed headers
      */
     private Set<String> validateGlobalHeaders(List<GlobalHeaderConfig> globalHeaderConfigs,
-                                              Map<String, String> requestHeaders,
-                                              String uri) {
+            Map<String, String> requestHeaders,
+            String uri) {
         return globalHeaderConfigs.stream()
                 .filter(h -> validateMandatory(h, requestHeaders, uri))
                 .filter(h -> validateRegex(h, requestHeaders, uri))
@@ -303,9 +307,9 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @param uri            the request URI
      */
     private void validateRouteHeaders(Route route,
-                                      Map<String, String> requestHeaders,
-                                      Set<String> allowedHeaders,
-                                      String uri) {
+            Map<String, String> requestHeaders,
+            Set<String> allowedHeaders,
+            String uri) {
         if (!CollectionUtils.isEmpty(route.getMetadata()) && route.getMetadata().get(HEADERS) != null) {
             LOGGER.debug("Route Header validation started for {}", uri);
             try {
@@ -345,8 +349,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
      * @return the modified server web exchange
      */
     ServerWebExchange removeUnknownHeaders(ServerWebExchange exchange,
-                                           Map<String, String> requestHeaders,
-                                           Set<String> includeHeaders) {
+            Map<String, String> requestHeaders,
+            Set<String> includeHeaders) {
         String uri = exchange.getRequest().getURI().getPath();
         Builder builder = exchange.getRequest().mutate();
         Set<String> unknownHeaders = requestHeaders.keySet().stream()
@@ -368,9 +372,8 @@ public class RequestHeaderFilter extends AbstractGatewayFilterFactory<Config> {
     private ServerWebExchange sanitizeHeaders(ServerWebExchange exchange) {
         Builder requestHeaders = exchange.getRequest().mutate();
         exchange.getRequest().getHeaders()
-                .forEach((headerName, headerValue) ->
-                        requestHeaders.header(headerName,
-                                headerValue.stream().map(this::sanitizeValue).toArray(String[]::new)));
+                .forEach((headerName, headerValue) -> requestHeaders.header(headerName,
+                        headerValue.stream().map(this::sanitizeValue).toArray(String[]::new)));
         return exchange.mutate().request(requestHeaders.build()).build();
     }
 

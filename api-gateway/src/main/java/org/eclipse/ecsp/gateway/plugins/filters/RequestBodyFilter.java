@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
+import org.eclipse.ecsp.gateway.exceptions.RequestValidationException;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -101,9 +102,10 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
             // Check if the body is null or empty
             if (StringUtils.isBlank(body)) {
                 LOGGER.error("Invalid request body missing from request: {}", exchange.getRequest().getPath());
-                throw new ApiGatewayException(HttpStatus.BAD_REQUEST,
+                throw new RequestValidationException(HttpStatus.BAD_REQUEST,
                         "api.gateway.error.request",
-                        "Invalid request payload");
+                        "Invalid request payload",
+                        "body");
             }
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Request Body : {}", body);
@@ -116,22 +118,27 @@ public class RequestBodyFilter implements GatewayFilter, Ordered {
                     LOGGER.error("Invalid request body validation failed with error {} for request: {}",
                             e,
                             exchange.getRequest().getPath());
-                    throw new ApiGatewayException(HttpStatus.BAD_REQUEST,
+                    throw new RequestValidationException(HttpStatus.BAD_REQUEST,
                             "api.gateway.error.request",
-                            "Invalid request payload");
+                            "Invalid request payload",
+                            "body");
                 }
                 SchemaValidator schemaValidator = (SchemaValidator) validatorObj;
                 ValidationData<Void> validation = new ValidationData<>();
                 schemaValidator.validate(contentNode, validation);
                 if (!validation.isValid()) {
                     LOGGER.warn("Request body validation failed: {}", validation.results());
-                    throw new ApiGatewayException(HttpStatus.BAD_REQUEST,
+                    String validationMessage = validation.results()
+                            .items().stream()
+                            .map(validationItem -> validationItem.dataCrumbs()
+                                + " is invalid because " + validationItem.message())
+                            .collect(Collectors.joining(", "));
+                    throw new RequestValidationException(HttpStatus.BAD_REQUEST,
                             "api.gateway.error.request.validation",
-                            "Validation failed : " + validation.results()
-                                    .items().stream()
-                                    .map(validationItem -> validationItem.dataCrumbs() 
-                                        + " is invalid because " + validationItem.message())
-                                    .collect(Collectors.joining(", ")));
+                            "Validation failed : " + validationMessage,
+                            "body",
+                            validationMessage,
+                            validation.results());
                 }
             }
         }

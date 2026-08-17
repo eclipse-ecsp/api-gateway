@@ -49,7 +49,19 @@ public class ApiGatewayException extends RuntimeException {
      * @param message    the message describing the exception
      */
     public ApiGatewayException(HttpStatusCode statusCode, String errorCode, String message) {
-        super(message);
+        this(statusCode, errorCode, message, null);
+    }
+
+    /**
+     * Constructs a new ApiGatewayException with the specified status code, error code, message, and cause.
+     *
+     * @param statusCode the HTTP status code associated with the exception
+     * @param errorCode  the error code associated with the exception
+     * @param message    the message describing the exception
+     * @param cause      the underlying cause of the exception
+     */
+    public ApiGatewayException(HttpStatusCode statusCode, String errorCode, String message, Throwable cause) {
+        super(message, cause);
         this.statusCode = statusCode;
         this.errorCode = errorCode;
         this.message = message;

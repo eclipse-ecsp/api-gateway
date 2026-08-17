@@ -35,6 +35,10 @@ import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.ScopeValidationContext;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.JwtTestTokenGenerator;
@@ -272,7 +276,7 @@ class JwtAuthValidatorTest {
         jwtAuthValidator.apply(config);
 
         // Create JWT filter with new architecture
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Setup JWT parser with proper token verification
         JwtParser jwtParser = Jwts.parser()
@@ -316,7 +320,7 @@ class JwtAuthValidatorTest {
         when(mockedRequest.getPath()).thenReturn(mockPath);
         when(mockedRequest.getId()).thenReturn("test-request-id");
 
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
                 () -> jwtAuthFilter.filter(mockedExchange, gatewayFilterChain));
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -338,7 +342,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         try {
             // Create a valid exchange for successful test
@@ -351,7 +355,7 @@ class JwtAuthValidatorTest {
             invalidConfig.setScope("InvalidScope");
             jwtAuthValidator.apply(invalidConfig);
             jwtAuthFilterWithInvalidScope =
-                    new JwtAuthFilter(invalidConfig, publicKeyService, jwtProperties);
+                    new JwtAuthFilter(invalidConfig, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
             // Test invalid scope scenario
             ApiGatewayException insufficientScopeException = Assertions.assertThrows(ApiGatewayException.class,
                     () -> jwtAuthFilterWithInvalidScope.filter(serverWebExchangeImpl, gatewayFilterChain));
@@ -371,7 +375,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage1");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
                 () -> jwtAuthFilter.filter(serverWebExchangeImpl, gatewayFilterChain));
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
@@ -379,26 +383,22 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testPrivateMethodValidateScope() throws NoSuchMethodException {
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+    void testPrivateMethodValidateScope() {
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "SelfManage");
-        Method privateMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
-                boolean.class, String.class, String.class);
-        privateMethod.setAccessible(true);
+        Set<String> routeScopes = Set.of("SelfManage");
+        ScopeValidationContext context = new ScopeValidationContext(route, claims, routeScopes, Set.of(), false, jwtProperties);
 
-        ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
+        scopeValidator.validate(context);
         List<String> scopesList = Arrays.asList("SelfManage", "IgniteSystem");
         claims.put("scope", scopesList);
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
+        String result = scopeValidator.validate(context);
         if (result != null) {
             Assertions.assertTrue(Strings.CS.contains(result, "SelfManage"));
         }
         claims.setScope(String.join(",", scopesList));
-        String resultString = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
+        String resultString = scopeValidator.validate(context);
         if (resultString != null) {
             Assertions.assertTrue(Strings.CS.contains(resultString, "SelfManage"));
         }
@@ -841,7 +841,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with expired token
         ServerWebExchangeImpl expiredTokenExchange = new ServerWebExchangeImpl() {
@@ -885,7 +885,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with token without kid
         ServerWebExchangeImpl tokenWithoutKidExchange = new ServerWebExchangeImpl() {
@@ -944,7 +944,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with valid token but subject that fails regex
         ServerWebExchangeImpl headerValidationFailExchange = new ServerWebExchangeImpl();
@@ -961,25 +961,17 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenClaimAsListInstance() {
-        // Setup configuration
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
         // Create custom claims with List instance
         ClaimImpl claimsWithList = new ClaimImpl();
         claimsWithList.put("scope", Arrays.asList("SelfManage", "AdminAccess"));
         claimsWithList.put("roles", Arrays.asList("user", "admin", "moderator"));
 
+        ScopeValidationContext context = new ScopeValidationContext(route, claimsWithList, Set.of("SelfManage"), Set.of(), false, jwtProperties);
+
         // Test validateScope method with List claim
-        String result = Assertions.assertDoesNotThrow(() -> {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                boolean.class, String.class, String.class);
-            validateScopeMethod.setAccessible(true);
-            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithList, 
-                false, "requestId", "requestPath");
-        });
+        String result = Assertions.assertDoesNotThrow(() -> scopeValidator.validate(context));
 
         // Should handle List properly and return valid scope
         Assertions.assertNotNull(result);
@@ -992,7 +984,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create custom claims with Integer instances
         ClaimImpl claimsWithIntegers = new ClaimImpl() {
@@ -1053,7 +1045,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with token missing required claim
         ServerWebExchangeImpl missingClaimExchange = new ServerWebExchangeImpl();
@@ -1080,7 +1072,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with valid token but audience that fails regex
         ServerWebExchangeImpl regexFailExchange = new ServerWebExchangeImpl();
@@ -1101,7 +1093,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("NonExistentScope"); // Invalid scope
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Setup strict validation rules
         TokenHeaderValidationConfig strictValidation = new TokenHeaderValidationConfig();
@@ -1135,7 +1127,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         ServerWebExchangeImpl nullKeyExchange = new ServerWebExchangeImpl();
         nullKeyExchange.setValidToken(true);
@@ -1155,7 +1147,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange without Authorization header
         ServerWebExchangeImpl missingHeaderExchange = new ServerWebExchangeImpl() {
@@ -1188,7 +1180,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with empty Authorization header
         ServerWebExchangeImpl emptyHeaderExchange = new ServerWebExchangeImpl() {
@@ -1221,7 +1213,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with non-Bearer token
         ServerWebExchangeImpl nonBearerExchange = new ServerWebExchangeImpl() {
@@ -1251,7 +1243,7 @@ class JwtAuthValidatorTest {
     @Test
     void testConstructorWithNullConfig() {
         // Test constructor with null config
-        JwtAuthFilter filterWithNullConfig = new JwtAuthFilter(null, publicKeyService, jwtProperties);
+        JwtAuthFilter filterWithNullConfig = new JwtAuthFilter(null, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Verify that routeScopes is empty when config is null
         Assertions.assertNotNull(ReflectionTestUtils.getField(filterWithNullConfig, "routeScopes"));
@@ -1263,7 +1255,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config configWithNullScope = new JwtAuthFilter.Config();
         configWithNullScope.setScope(null);
 
-        JwtAuthFilter filterWithNullScope = new JwtAuthFilter(configWithNullScope, publicKeyService, jwtProperties);
+        JwtAuthFilter filterWithNullScope = new JwtAuthFilter(configWithNullScope, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Verify that routeScopes is empty when scope is null
         @SuppressWarnings("unchecked")
@@ -1281,7 +1273,7 @@ class JwtAuthValidatorTest {
         config.setScope("SelfManage");
 
         // Test constructor with empty mapping
-        JwtAuthFilter filterWithEmptyMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        JwtAuthFilter filterWithEmptyMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Verify that default "sub" -> "user-id" mapping is added
         @SuppressWarnings("unchecked")
@@ -1299,7 +1291,7 @@ class JwtAuthValidatorTest {
         config.setScope("SelfManage");
 
         // Test constructor with null mapping
-        JwtAuthFilter filterWithNullMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        JwtAuthFilter filterWithNullMapping = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Verify that default mapping is created
         @SuppressWarnings("unchecked")
@@ -1321,7 +1313,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         ServerWebExchangeImpl invalidRegexExchange = new ServerWebExchangeImpl();
         invalidRegexExchange.setValidToken(true);
@@ -1346,7 +1338,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         ServerWebExchangeImpl emptyRegexExchange = new ServerWebExchangeImpl();
         emptyRegexExchange.setValidToken(true);
@@ -1361,7 +1353,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         // Create exchange with null route
         ServerWebExchangeImpl nullRouteExchange = new ServerWebExchangeImpl() {
@@ -1387,7 +1379,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         // Don't set scope, so routeScopes will be empty
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         ServerWebExchangeImpl emptyRouteScopesExchange = new ServerWebExchangeImpl();
         emptyRouteScopesExchange.setValidToken(true);
@@ -1398,11 +1390,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testValidateScopeWithStringScope() {
-        // Setup configuration
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage,AdminAccess");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
         // Create claims with string scope (space-separated)
         ClaimImpl claimsWithStringScope = new ClaimImpl() {
@@ -1415,14 +1403,11 @@ class JwtAuthValidatorTest {
             }
         };
 
+        ScopeValidationContext context = new ScopeValidationContext(route, claimsWithStringScope,
+                Set.of("SelfManage", "AdminAccess"), Set.of(), false, jwtProperties);
+
         // Test validateScope method with string scope
-        String result = Assertions.assertDoesNotThrow(() -> {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                boolean.class, String.class, String.class);
-            validateScopeMethod.setAccessible(true);
-            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithStringScope, 
-                false, "requestId", "requestPath");
-        });
+        String result = Assertions.assertDoesNotThrow(() -> scopeValidator.validate(context));
 
         // Should handle string scope properly
         Assertions.assertNotNull(result);
@@ -1431,11 +1416,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testValidateScopeWithCommaSeparatedScope() {
-        // Setup configuration
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage,AdminAccess");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
         // Create claims with comma-separated scope
         ClaimImpl claimsWithCommaSeparatedScope = new ClaimImpl() {
@@ -1448,14 +1429,11 @@ class JwtAuthValidatorTest {
             }
         };
 
+        ScopeValidationContext context = new ScopeValidationContext(route, claimsWithCommaSeparatedScope,
+                Set.of("SelfManage", "AdminAccess"), Set.of(), false, jwtProperties);
+
         // Test validateScope method with comma-separated scope
-        String result = Assertions.assertDoesNotThrow(() -> {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                boolean.class, String.class, String.class);
-            validateScopeMethod.setAccessible(true);
-            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithCommaSeparatedScope, 
-                false, "requestId", "requestPath");
-        });
+        String result = Assertions.assertDoesNotThrow(() -> scopeValidator.validate(context));
 
         // Should handle comma-separated scope properly
         Assertions.assertNotNull(result);
@@ -1465,11 +1443,7 @@ class JwtAuthValidatorTest {
 
     @Test
     void testValidateScopeWithNullScopeInClaims() {
-        // Setup configuration
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
         // Create claims with null scope
         ClaimImpl claimsWithNullScope = new ClaimImpl() {
@@ -1482,19 +1456,11 @@ class JwtAuthValidatorTest {
             }
         };
 
-        // Test validateScope method with null scope
-        try {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class,
-                boolean.class, String.class, String.class);
-            validateScopeMethod.setAccessible(true);
+        ScopeValidationContext context = new ScopeValidationContext(route, claimsWithNullScope,
+                Set.of("SelfManage"), Set.of(), false, jwtProperties);
 
-            // Should throw exception due to insufficient scope
-            Assertions.assertThrows(Exception.class, () ->
-                validateScopeMethod.invoke(jwtAuthFilter, route, claimsWithNullScope, false, "requestId", "requestPath"));
-        } catch (Exception ex) {
-            // Expected to fail due to missing scope
-            LOGGER.debug("Expected exception for missing scope: {}", ex.getMessage());       
-        }
+        // Should throw exception due to insufficient scope
+        Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
     }
 
     @Test
@@ -1510,11 +1476,11 @@ class JwtAuthValidatorTest {
             }
         };
 
-        // Test getTokenHeaderValue with String[] input
+        // Test getClaimValue with String[] input
         String result = Assertions.assertDoesNotThrow(() -> {
-            Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
-            getTokenHeaderValueMethod.setAccessible(true);
-            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithStringArray, "roles");
+            Method getClaimValueMethod = DefaultTokenClaimHeaderMapper.class.getDeclaredMethod("getClaimValue", Claims.class, String.class);
+            getClaimValueMethod.setAccessible(true);
+            return (String) getClaimValueMethod.invoke(null, claimsWithStringArray, "roles");
         });
 
         // Should join array with commas
@@ -1535,11 +1501,11 @@ class JwtAuthValidatorTest {
             }
         };
 
-        // Test getTokenHeaderValue with Set input
+        // Test getClaimValue with Set input
         String result = Assertions.assertDoesNotThrow(() -> {
-            Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
-            getTokenHeaderValueMethod.setAccessible(true);
-            return (String) getTokenHeaderValueMethod.invoke(null, claimsWithSet, "permissions");
+            Method getClaimValueMethod = DefaultTokenClaimHeaderMapper.class.getDeclaredMethod("getClaimValue", Claims.class, String.class);
+            getClaimValueMethod.setAccessible(true);
+            return (String) getClaimValueMethod.invoke(null, claimsWithSet, "permissions");
         });
 
         // Should join set with commas
@@ -1565,13 +1531,13 @@ class JwtAuthValidatorTest {
             }
         };
 
-        // Test getTokenHeaderValue with other types (Integer, Boolean, etc.)
+        // Test getClaimValue with other types (Integer, Boolean, etc.)
         Assertions.assertDoesNotThrow(() -> {
-            Method getTokenHeaderValueMethod = JwtAuthFilter.class.getDeclaredMethod("getTokenHeaderValue", Claims.class, String.class);
-            getTokenHeaderValueMethod.setAccessible(true);
+            Method getClaimValueMethod = DefaultTokenClaimHeaderMapper.class.getDeclaredMethod("getClaimValue", Claims.class, String.class);
+            getClaimValueMethod.setAccessible(true);
 
-            String userIdResult = (String) getTokenHeaderValueMethod.invoke(null, claimsWithOtherTypes, "userId");
-            String isActiveResult = (String) getTokenHeaderValueMethod.invoke(null, claimsWithOtherTypes, "isActive");
+            String userIdResult = (String) getClaimValueMethod.invoke(null, claimsWithOtherTypes, "userId");
+            String isActiveResult = (String) getClaimValueMethod.invoke(null, claimsWithOtherTypes, "isActive");
 
             // Should convert to string
             Assertions.assertEquals("12345", userIdResult);
@@ -1588,7 +1554,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         ServerWebExchangeImpl securityExceptionExchange = new ServerWebExchangeImpl();
         securityExceptionExchange.setValidToken(true);
@@ -1606,7 +1572,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(), new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper());
 
         int order = jwtAuthFilter.getOrder();
         Assertions.assertEquals(GatewayConstants.JWT_AUTH_FILTER_ORDER, order);
@@ -1614,22 +1580,17 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenScopeWithPrefixesPositiveCasePrefixRemovedAndMatched() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage,AdminAccess"); // Route requires these scopes
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with scopes that have prefixes that should be removed
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("ProviderPrefix/SelfManage", "ScopePrefix/AdminAccess", "OtherScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should succeed after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        
-        // Verify that prefixes were removed and scopes matched
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("SelfManage", "AdminAccess"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+        String result = scopeValidator.validate(context);
+
         Assertions.assertNotNull(result);
         Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
         Assertions.assertTrue(resultScopes.contains("SelfManage"), "Should contain SelfManage after prefix removal");
@@ -1639,22 +1600,17 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenScopeWithPrefixesPositiveCasePartialPrefixMatch() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("ReadAccess"); // Route requires this scope
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with mixed scopes - some with prefix, some without
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("ProviderPrefix/ReadAccess", "WriteAccess", "ScopePrefix/DeleteAccess"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should succeed as ReadAccess matches after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        
-        // Verify that prefixes were removed correctly
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("ReadAccess"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+        String result = scopeValidator.validate(context);
+
         Assertions.assertNotNull(result);
         Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
         Assertions.assertTrue(resultScopes.contains("ReadAccess"), "Should contain ReadAccess after prefix removal");
@@ -1664,22 +1620,17 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenScopeWithPrefixesPositiveCaseStringScopeWithPrefix() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("UserManage"); // Route requires this scope
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with string scope containing comma-separated values with prefixes
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "ProviderPrefix/UserManage,ScopePrefix/DataAccess,PublicRead");
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should succeed after prefix removal
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        
-        // Verify that prefixes were removed correctly
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("UserManage"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+        String result = scopeValidator.validate(context);
+
         Assertions.assertNotNull(result);
         Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
         Assertions.assertTrue(resultScopes.contains("UserManage"), "Should contain UserManage after prefix removal");
@@ -1689,120 +1640,92 @@ class JwtAuthValidatorTest {
 
     @Test
     void testTokenScopeWithPrefixesNegativeCaseNoMatchAfterPrefixRemoval() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("RequiredScope"); // Route requires this specific scope
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with scopes that don't match route scope even after prefix removal
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("ProviderPrefix/DifferentScope", "ScopePrefix/AnotherScope", "ThirdScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should fail as no scope matches after prefix removal
-        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        });
-        
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("RequiredScope"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
+
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
     }
 
     @Test
     void testTokenScopeWithPrefixesNegativeCaseEmptyScopeAfterPrefixProcessing() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("NeededScope"); // Route requires this scope
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with scopes that become empty or null after prefix processing
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("ProviderPrefix/", "ScopePrefix/", "   ", null));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should fail as no valid scopes remain
-        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        });
-        
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("NeededScope"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
+
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
     }
 
     @Test
     void testTokenScopeWithPrefixesNegativeCaseNonMatchingPrefix() {
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("TargetScope"); // Route requires this scope
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with scopes that have non-configured prefixes
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("DifferentPrefix/TargetScope", "AnotherPrefix/SomeScope", "UnknownPrefix/TestScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should fail as prefixes don't match configured ones
-        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        });
-        
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("TargetScope"), Set.of("ProviderPrefix/", "ScopePrefix/"), false, jwtProperties);
+
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
+
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
     }
 
     @Test
     void testTokenScopeWithPrefixesEdgeCaseNullTokenScopePrefixes() {
-        // Setup JWT properties with null scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(null);
-        
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("TestScope");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with scopes containing prefixes
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("ProviderPrefix/TestScope", "ScopePrefix/OtherScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
 
-        // Test validateScope method - should fail as prefixes are not removed when config is null
-        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> {
-            ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        });
-        
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("TestScope"), null, false, jwtProperties);
+
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
+
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         Assertions.assertTrue(exception.getMessage().contains("Token verification failed"));
     }
 
     @Test
     void testTokenScopeWithPrefixesEdgeCaseEmptyTokenScopePrefixes() {
-        // Setup JWT properties with empty scope prefixes
         when(jwtProperties.getScopePrefixes()).thenReturn(new HashSet<>());
-        
-        // Setup configuration with route scope
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("DirectScope");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims with direct scope match (no prefixes to remove)
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", Arrays.asList("DirectScope", "OtherScope"));
         claims.put("sub", "testuser");
         claims.put("aud", "test-audience");
-        
-        // Test validateScope method - should succeed as direct match works
-        String result = ReflectionTestUtils.invokeMethod(jwtAuthFilter, "validateScope", route, claims, false, "requestId", "requestPath");
-        
-        // Verify result contains the correctly extracted scopes
+
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("DirectScope"), Set.of(), false, jwtProperties);
+
+        String result = scopeValidator.validate(context);
+
         Assertions.assertNotNull(result);
         Set<String> resultScopes = new HashSet<>(Arrays.asList(result.split(",")));
         Assertions.assertTrue(resultScopes.contains("DirectScope"));
@@ -1811,112 +1734,65 @@ class JwtAuthValidatorTest {
 
     @Test
     void testSkipAuthzWhenConfiguredTrue() {
-        // Setup configuration with a required scope that the token DOES NOT have
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("RequiredAdminScope");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims that don't match the required scope
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "OnlyUserScope");
 
-        // Use validateScope with skipAuthz=true
-        String result = Assertions.assertDoesNotThrow(() -> {
-            Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-                boolean.class, String.class, String.class);
-            validateScopeMethod.setAccessible(true);
-            return (String) validateScopeMethod.invoke(jwtAuthFilter, route, claims, true, "requestId", "requestPath");
-        });
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("RequiredAdminScope"), Set.of(), true, jwtProperties);
 
-        // Should return the original claims without throwing an exception
+        String result = Assertions.assertDoesNotThrow(() -> scopeValidator.validate(context));
+
         Assertions.assertNotNull(result);
         Assertions.assertTrue(result.contains("OnlyUserScope"));
     }
 
     @Test
     void testSkipAuthzWhenConfiguredFalse() throws Exception {
-        // Setup configuration with a required scope that the token DOES NOT have
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("RequiredAdminScope");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
-        // Create claims that don't match the required scope
         ClaimImpl claims = new ClaimImpl();
         claims.put("scope", "OnlyUserScope");
 
-        Method validateScopeMethod = JwtAuthFilter.class.getDeclaredMethod("validateScope", Route.class, Claims.class, 
-            boolean.class, String.class, String.class);
-        validateScopeMethod.setAccessible(true);
+        ScopeValidationContext context = new ScopeValidationContext(route, claims,
+                Set.of("RequiredAdminScope"), Set.of(), false, jwtProperties);
 
-        // Use validateScope with skipAuthz=false, should fail
-        Exception exception = Assertions.assertThrows(Exception.class, () -> 
-            validateScopeMethod.invoke(jwtAuthFilter, route, claims, false, "requestId", "requestPath")
-        );
+        ApiGatewayException gatewayException = Assertions.assertThrows(ApiGatewayException.class, () -> scopeValidator.validate(context));
 
-        // The cause should be the ApiGatewayException (UNAUTHORIZED)
-        Assertions.assertNotNull(exception.getCause());
-        Assertions.assertTrue(exception.getCause() instanceof ApiGatewayException);
-        ApiGatewayException gatewayException = (ApiGatewayException) exception.getCause();
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, gatewayException.getStatusCode());
         Assertions.assertTrue(gatewayException.getMessage().contains("Token verification failed"));
     }
 
     @Test
     void testSkipClaimValidationWhenConfiguredTrue() {
-        // Setup TokenHeaderValidationConfig to require a specific header
         TokenHeaderValidationConfig requiredHeaderConfig = new TokenHeaderValidationConfig();
         requiredHeaderConfig.setRequired(true);
         tokenHeaderValidationConfig.put("required-header", requiredHeaderConfig);
         when(jwtProperties.getTokenHeaderValidationConfig()).thenReturn(tokenHeaderValidationConfig);
 
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
-
-        // ClaimImpl missing the 'required-header'
+        DefaultTokenClaimValidator claimValidator = new DefaultTokenClaimValidator();
         ClaimImpl claims = new ClaimImpl();
 
-        // Use validateTokenHeaders with skipClaimValidation=true, should pass without exceptions
-        Assertions.assertDoesNotThrow(() -> {
-            Method validateHeadersMethod = JwtAuthFilter.class.getDeclaredMethod("validateTokenHeaders", Claims.class, 
-                boolean.class, String.class, String.class, String.class);
-            validateHeadersMethod.setAccessible(true);
-            validateHeadersMethod.invoke(jwtAuthFilter, claims, true, "requestId", "requestPath", "routeId");
-        });
+        Assertions.assertDoesNotThrow(() ->
+                claimValidator.validate(claims, true, jwtProperties.getTokenHeaderValidationConfig())
+        );
     }
 
     @Test
     void testSkipClaimValidationWhenConfiguredFalse() throws Exception {
-        // Setup TokenHeaderValidationConfig to require a specific header
         TokenHeaderValidationConfig requiredHeaderConfig = new TokenHeaderValidationConfig();
         requiredHeaderConfig.setRequired(true);
         tokenHeaderValidationConfig.put("required-header", requiredHeaderConfig);
         when(jwtProperties.getTokenHeaderValidationConfig()).thenReturn(tokenHeaderValidationConfig);
 
-        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
-        config.setScope("SelfManage");
-        jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
-
-        // ClaimImpl missing the 'required-header'
+        DefaultTokenClaimValidator claimValidator = new DefaultTokenClaimValidator();
         ClaimImpl claims = new ClaimImpl();
 
-        Method validateHeadersMethod = JwtAuthFilter.class.getDeclaredMethod("validateTokenHeaders", Claims.class, 
-            boolean.class, String.class, String.class, String.class);
-        validateHeadersMethod.setAccessible(true);
-
-        // Use validateTokenHeaders with skipClaimValidation=false, should fail
-        Exception exception = Assertions.assertThrows(Exception.class, () -> 
-            validateHeadersMethod.invoke(jwtAuthFilter, claims, false, "requestId", "requestPath", "routeId")
+        ApiGatewayException gatewayException = Assertions.assertThrows(ApiGatewayException.class, () ->
+                claimValidator.validate(claims, false, jwtProperties.getTokenHeaderValidationConfig())
         );
 
-        // The cause should be the ApiGatewayException (UNAUTHORIZED)
-        Assertions.assertNotNull(exception.getCause());
-        Assertions.assertTrue(exception.getCause() instanceof ApiGatewayException);
-        ApiGatewayException gatewayException = (ApiGatewayException) exception.getCause();
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, gatewayException.getStatusCode());
         Assertions.assertTrue(gatewayException.getMessage().contains("Invalid Token") || gatewayException.getMessage().contains("Token verification failed"));
     }

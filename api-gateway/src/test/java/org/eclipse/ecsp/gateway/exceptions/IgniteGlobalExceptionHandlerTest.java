@@ -18,8 +18,10 @@
 
 package org.eclipse.ecsp.gateway.exceptions;
 
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultGatewayErrorResponseResolver;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -35,13 +37,20 @@ import static org.mockito.Mockito.mock;
  */
 class IgniteGlobalExceptionHandlerTest {
 
+    private DefaultGatewayErrorResponseResolver defaultBuilder;
+
+    @BeforeEach
+    void setUp() {
+        defaultBuilder = new DefaultGatewayErrorResponseResolver();
+    }
+
     /**
      * Tests the handling of a ResponseStatusException.
      */
     @Test
     void testHandleResponseStatusException() {
         ResponseStatusException exception = new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals("Resource not found", response.get("message"));
     }
@@ -49,7 +58,7 @@ class IgniteGlobalExceptionHandlerTest {
     @Test
     void testHandleResponseStatusExceptionWithNoReason() {
         ResponseStatusException exception = new ResponseStatusException(HttpStatus.NOT_FOUND, null);
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals(GatewayConstants.INTERNAL_SERVER_ERROR, response.get("message"));
     }
@@ -57,7 +66,7 @@ class IgniteGlobalExceptionHandlerTest {
     @Test
     void testHandleNoResourceFoundException() {
         NoResourceFoundException exception = mock(NoResourceFoundException.class);
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals(GatewayConstants.REQUEST_NOT_FOUND, response.get("message"));
     }
@@ -67,7 +76,7 @@ class IgniteGlobalExceptionHandlerTest {
         ApiGatewayException exception = new ApiGatewayException(HttpStatus.BAD_REQUEST,
                 GatewayConstants.API_GATEWAY_ERROR,
                 "Bad request");
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals("Bad request", response.get("message"));
     }
@@ -75,7 +84,7 @@ class IgniteGlobalExceptionHandlerTest {
     @Test
     void testHandleIllegalStateException() {
         IllegalStateException exception = new IllegalStateException("Invalid request value");
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals(GatewayConstants.INTERNAL_SERVER_ERROR, response.get("message"));
     }
@@ -83,7 +92,7 @@ class IgniteGlobalExceptionHandlerTest {
     @Test
     void testHandleGenericException() {
         Exception exception = new Exception("An unexpected error occurred");
-        Map<String, String> response = IgniteGlobalExceptionHandler.prepareResponse(exception);
+        Map<String, String> response = defaultBuilder.prepareResponse(exception);
         Assertions.assertEquals(GatewayConstants.API_GATEWAY_ERROR, response.get("code"));
         Assertions.assertEquals(GatewayConstants.INTERNAL_SERVER_ERROR, response.get("message"));
     }
@@ -91,25 +100,25 @@ class IgniteGlobalExceptionHandlerTest {
     @Test
     void testStatusCode() {
         ResponseStatusException exception = new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
-        HttpStatusCode status = IgniteGlobalExceptionHandler.determineHttpStatus(exception);
+        HttpStatusCode status = defaultBuilder.determineHttpStatus(exception);
         Assertions.assertEquals(HttpStatus.NOT_FOUND, status);
 
         NoResourceFoundException noResourceFoundException = mock(NoResourceFoundException.class);
-        status = IgniteGlobalExceptionHandler.determineHttpStatus(noResourceFoundException);
+        status = defaultBuilder.determineHttpStatus(noResourceFoundException);
         Assertions.assertEquals(HttpStatus.NOT_FOUND, status);
 
         ApiGatewayException apiGatewayException = new ApiGatewayException(HttpStatus.BAD_REQUEST,
                 GatewayConstants.API_GATEWAY_ERROR,
                 "Bad request");
-        status = IgniteGlobalExceptionHandler.determineHttpStatus(apiGatewayException);
+        status = defaultBuilder.determineHttpStatus(apiGatewayException);
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, status);
 
         IllegalStateException illegalStateException = new IllegalStateException("Invalid request value");
-        status = IgniteGlobalExceptionHandler.determineHttpStatus(illegalStateException);
+        status = defaultBuilder.determineHttpStatus(illegalStateException);
         Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, status);
 
         Exception genericException = new Exception("An unexpected error occurred");
-        status = IgniteGlobalExceptionHandler.determineHttpStatus(genericException);
+        status = defaultBuilder.determineHttpStatus(genericException);
         Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, status);
     }
 

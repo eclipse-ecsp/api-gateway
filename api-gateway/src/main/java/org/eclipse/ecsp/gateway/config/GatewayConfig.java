@@ -24,12 +24,29 @@ import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.eclipse.ecsp.gateway.model.Response;
+import org.eclipse.ecsp.gateway.plugins.spi.AdditionalClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultGatewayErrorResponseResolver;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser;
+import org.eclipse.ecsp.gateway.plugins.spi.GatewayErrorResponseResolver;
+import org.eclipse.ecsp.gateway.plugins.spi.ScopeValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.SignatureVerifier;
+import org.eclipse.ecsp.gateway.plugins.spi.TokenClaimHeaderMapper;
+import org.eclipse.ecsp.gateway.plugins.spi.TokenClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.TokenDecoder;
+import org.eclipse.ecsp.gateway.plugins.spi.TokenParser;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.http.codec.CodecCustomizer;
@@ -304,6 +321,118 @@ public class GatewayConfig {
     public CodecCustomizer codecCustomizer(@Value("${spring.codec.max-in-memory-size:1MB}") String maxInMemorySize) {
         int maxInMemorySizeBytes = (int) DataSize.parse(maxInMemorySize).toBytes();
         return configurer -> configurer.defaultCodecs().maxInMemorySize(maxInMemorySizeBytes);
+    }
+
+    // -------------------------------------------------------------------------
+    // SPI default bean registrations — each is skipped when a custom bean exists
+    // -------------------------------------------------------------------------
+
+    /**
+     * Default {@link TokenParser} bean — extracts the bearer token from the
+     * {@code Authorization} header. Overridden by any user-defined {@link TokenParser} bean.
+     *
+     * @return default token parser instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(TokenParser.class)
+    public TokenParser defaultTokenParser() {
+        LOGGER.info("Registering DefaultTokenParser (no custom TokenParser bean found).");
+        return new DefaultTokenParser();
+    }
+
+    /**
+     * Default {@link TokenDecoder} bean — decodes JWT structure via Nimbus without
+     * signature verification. Overridden by any user-defined {@link TokenDecoder} bean.
+     *
+     * @return default token decoder instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(TokenDecoder.class)
+    public TokenDecoder defaultTokenDecoder() {
+        LOGGER.info("Registering DefaultTokenDecoder (no custom TokenDecoder bean found).");
+        return new DefaultTokenDecoder();
+    }
+
+    /**
+     * Default {@link SignatureVerifier} bean — verifies JWT signatures via JJWT.
+     * Overridden by any user-defined {@link SignatureVerifier} bean.
+     *
+     * @return default signature verifier instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(SignatureVerifier.class)
+    public SignatureVerifier defaultSignatureVerifier() {
+        LOGGER.info("Registering DefaultSignatureVerifier (no custom SignatureVerifier bean found).");
+        return new DefaultSignatureVerifier();
+    }
+
+    /**
+     * Default {@link TokenClaimValidator} bean — validates configured required/regex claim rules.
+     * Overridden by any user-defined {@link TokenClaimValidator} bean.
+     *
+     * @return default token claim validator instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(TokenClaimValidator.class)
+    public TokenClaimValidator defaultTokenClaimValidator() {
+        LOGGER.info("Registering DefaultTokenClaimValidator (no custom TokenClaimValidator bean found).");
+        return new DefaultTokenClaimValidator();
+    }
+
+    /**
+     * Default {@link AdditionalClaimValidator} no-op bean — performs no additional claim checks.
+     * Override by registering a custom {@link AdditionalClaimValidator} bean to add
+     * business-specific programmatic claim validation.
+     *
+     * @return no-op additional claim validator instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(AdditionalClaimValidator.class)
+    public AdditionalClaimValidator defaultAdditionalClaimValidator() {
+        LOGGER.info("Registering DefaultAdditionalClaimValidator "
+                + "(no-op — no custom AdditionalClaimValidator bean found).");
+        return new DefaultAdditionalClaimValidator();
+    }
+
+    /**
+     * Default {@link ScopeValidator} bean — validates token scopes against route-required scopes.
+     * Overridden by any user-defined {@link ScopeValidator} bean.
+     *
+     * @return default scope validator instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(ScopeValidator.class)
+    public ScopeValidator defaultScopeValidator() {
+        LOGGER.info("Registering DefaultScopeValidator (no custom ScopeValidator bean found).");
+        return new DefaultScopeValidator();
+    }
+
+    /**
+     * Default {@link TokenClaimHeaderMapper} bean — maps JWT claims to downstream HTTP headers.
+     * Overridden by any user-defined {@link TokenClaimHeaderMapper} bean.
+     *
+     * @return default token claim header mapper instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(TokenClaimHeaderMapper.class)
+    public TokenClaimHeaderMapper defaultTokenClaimHeaderMapper() {
+        LOGGER.info("Registering DefaultTokenClaimHeaderMapper (no custom TokenClaimHeaderMapper bean found).");
+        return new DefaultTokenClaimHeaderMapper();
+    }
+
+    /**
+     * Default {@link GatewayErrorResponseResolver} bean — produces the standard
+     * {@code {"message":"...", "code":"..."}} error response shape.
+     * Overridden by any user-defined {@link GatewayErrorResponseResolver} bean.
+     *
+     * @return default error response builder instance
+     */
+    @Bean
+    @ConditionalOnMissingBean(GatewayErrorResponseResolver.class)
+    public GatewayErrorResponseResolver defaultGatewayErrorResponseResolver() {
+        LOGGER.info("Registering DefaultGatewayErrorResponseResolver "
+                + "(no custom GatewayErrorResponseResolver bean found).");
+        return new DefaultGatewayErrorResponseResolver();
     }
 
 }

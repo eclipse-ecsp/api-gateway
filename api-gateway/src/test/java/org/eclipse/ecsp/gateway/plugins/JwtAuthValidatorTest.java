@@ -1761,7 +1761,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testSkipAuthzWhenConfiguredFalse() throws Exception {
+    void testSkipAuthzWhenConfiguredFalse() {
         DefaultScopeValidator scopeValidator = new DefaultScopeValidator();
 
         ClaimImpl claims = new ClaimImpl();
@@ -1792,7 +1792,7 @@ class JwtAuthValidatorTest {
     }
 
     @Test
-    void testSkipClaimValidationWhenConfiguredFalse() throws Exception {
+    void testSkipClaimValidationWhenConfiguredFalse() {
         TokenHeaderValidationConfig requiredHeaderConfig = new TokenHeaderValidationConfig();
         requiredHeaderConfig.setRequired(true);
         tokenHeaderValidationConfig.put("required-header", requiredHeaderConfig);
@@ -1801,8 +1801,10 @@ class JwtAuthValidatorTest {
         DefaultTokenClaimValidator claimValidator = new DefaultTokenClaimValidator();
         ClaimImpl claims = new ClaimImpl();
 
+        Map<String, TokenHeaderValidationConfig> tokenHeaderValidation = jwtProperties.getTokenHeaderValidationConfig();
+
         ApiGatewayException gatewayException = Assertions.assertThrows(ApiGatewayException.class, () ->
-                claimValidator.validate(claims, false, jwtProperties.getTokenHeaderValidationConfig())
+                claimValidator.validate(claims, false, tokenHeaderValidation)
         );
 
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, gatewayException.getStatusCode());

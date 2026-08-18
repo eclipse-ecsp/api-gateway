@@ -68,7 +68,7 @@ public class ApiGatewayObservationConvention extends DefaultGatewayObservationCo
         if (route != null && !CollectionUtils.isEmpty(route.getMetadata())
                 && route.getMetadata().containsKey(GatewayConstants.SERVICE_NAME)) {
             keyValues = keyValues.and(GatewayConstants.SERVICE,
-                    (String) route.getMetadata().get(GatewayConstants.SERVICE_NAME));
+                    (String) route.getMetadata().getOrDefault(GatewayConstants.SERVICE_NAME, GatewayConstants.UNKNOWN));
         } else {
             keyValues = keyValues.and(GatewayConstants.SERVICE, GatewayConstants.UNKNOWN);
         }

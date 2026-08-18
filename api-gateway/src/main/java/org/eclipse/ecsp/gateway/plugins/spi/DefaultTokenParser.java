@@ -49,7 +49,25 @@ public class DefaultTokenParser implements TokenParser {
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(GatewayConstants.AUTHORIZATION);
 
+        // Fallback for WebSockets: Check Sec-WebSocket-Protocol header
         if (StringUtils.isBlank(authHeader) || !authHeader.startsWith(GatewayConstants.BEARER)) {
+            String upgradeHeader = exchange.getRequest().getHeaders().getFirst("Upgrade");
+            if ("websocket".equalsIgnoreCase(upgradeHeader)) {
+                java.util.List<String> protocols = exchange.getRequest().getHeaders().get("Sec-WebSocket-Protocol");
+                if (protocols != null) {
+                    for (String protocolHeader : protocols) {
+                        for (String protocol : protocolHeader.split(",")) {
+                            String trimmed = protocol.trim();
+                            // A JWT has 2 dots (header.payload.signature)
+                            if (trimmed.split("\\.").length == 3) {
+                                LOGGER.debug("Token extracted from Sec-WebSocket-Protocol header for requestUrl: {}, requestId: {}", requestPath, requestId);
+                                return trimmed;
+                            }
+                        }
+                    }
+                }
+            }
+            
             LOGGER.error("Token validation failed - Token missing or invalid format. "
                     + "requestUrl: {}, requestId: {}", requestPath, requestId);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);

@@ -29,6 +29,7 @@ import org.eclipse.ecsp.gateway.plugins.spi.TokenClaimValidator;
 import org.eclipse.ecsp.gateway.plugins.spi.TokenDecoder;
 import org.eclipse.ecsp.gateway.plugins.spi.TokenParser;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
+import org.eclipse.ecsp.gateway.service.TokenValidationComponents;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
@@ -91,9 +92,15 @@ public class JwtAuthValidator extends AbstractGatewayFilterFactory<JwtAuthFilter
 
     @Override
     public GatewayFilter apply(Config config) {
-        return new JwtAuthFilter(config, publicKeyService, jwtProperties,
-                tokenParser, tokenDecoder, signatureVerifier,
-                tokenClaimValidator, additionalClaimValidator,
-                scopeValidator, tokenClaimHeaderMapper);
+        TokenValidationComponents validationComponents = 
+            new TokenValidationComponents(
+                tokenParser,
+                tokenDecoder, 
+                signatureVerifier, 
+                tokenClaimValidator, 
+                additionalClaimValidator, 
+                scopeValidator, 
+                tokenClaimHeaderMapper);
+        return new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
     }
 }

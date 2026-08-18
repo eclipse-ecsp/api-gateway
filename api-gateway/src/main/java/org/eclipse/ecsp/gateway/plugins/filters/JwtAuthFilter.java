@@ -37,6 +37,7 @@ import org.eclipse.ecsp.gateway.plugins.spi.TokenClaimValidator;
 import org.eclipse.ecsp.gateway.plugins.spi.TokenDecoder;
 import org.eclipse.ecsp.gateway.plugins.spi.TokenParser;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
+import org.eclipse.ecsp.gateway.service.TokenValidationComponents;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -109,33 +110,21 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
      * @param config                   route-level filter configuration (scope)
      * @param publicKeyService         public key resolution service
      * @param jwtProperties            JWT configuration properties
-     * @param tokenParser              SPI: extract raw token from HTTP exchange
-     * @param tokenDecoder             SPI: decode JWT structure without signature verification
-     * @param signatureVerifier        SPI: verify JWT signature
-     * @param tokenClaimValidator      SPI: config-driven claim validation
-     * @param additionalClaimValidator SPI: custom programmatic claim validation
-     * @param scopeValidator           SPI: scope validation
-     * @param tokenClaimHeaderMapper   SPI: map claim values to downstream request headers
+     * @param tokenValidationComponents token validation components
      */
     public JwtAuthFilter(Config config,
                          PublicKeyService publicKeyService,
                          JwtProperties jwtProperties,
-                         TokenParser tokenParser,
-                         TokenDecoder tokenDecoder,
-                         SignatureVerifier signatureVerifier,
-                         TokenClaimValidator tokenClaimValidator,
-                         AdditionalClaimValidator additionalClaimValidator,
-                         ScopeValidator scopeValidator,
-                         TokenClaimHeaderMapper tokenClaimHeaderMapper) {
+                         TokenValidationComponents tokenValidationComponents) {
         this.jwtProperties = jwtProperties;
         this.publicKeyService = publicKeyService;
-        this.tokenParser = tokenParser;
-        this.tokenDecoder = tokenDecoder;
-        this.signatureVerifier = signatureVerifier;
-        this.tokenClaimValidator = tokenClaimValidator;
-        this.additionalClaimValidator = additionalClaimValidator;
-        this.scopeValidator = scopeValidator;
-        this.tokenClaimHeaderMapper = tokenClaimHeaderMapper;
+        this.tokenParser = tokenValidationComponents.tokenParser();
+        this.tokenDecoder = tokenValidationComponents.tokenDecoder();
+        this.signatureVerifier = tokenValidationComponents.signatureVerifier();
+        this.tokenClaimValidator = tokenValidationComponents.tokenClaimValidator();
+        this.additionalClaimValidator = tokenValidationComponents.additionalClaimValidator();
+        this.scopeValidator = tokenValidationComponents.scopeValidator();
+        this.tokenClaimHeaderMapper = tokenValidationComponents.tokenClaimHeaderMapper();
 
         if (config != null && config.getScope() != null) {
             LOGGER.debug("Config: {}", config);
@@ -227,7 +216,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         } catch (SecurityException | IllegalStateException e) {
             LOGGER.error("Token validation failed with exception: {}, {}",
                     e.getMessage(), GatewayUtils.getLogMessage(routeId, requestPath, requestId));
-            throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, "api.gateway.error.token.invalid",
+            throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE,
                     "Token verification failed");
         } catch (ApiGatewayException e) {
             throw e;

@@ -20,7 +20,7 @@ package org.eclipse.ecsp.gateway.plugins;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
-import org.eclipse.ecsp.gateway.exceptions.IgniteGlobalExceptionHandler;
+import org.eclipse.ecsp.gateway.plugins.spi.GatewayErrorResponseResolver;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
@@ -36,6 +36,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
@@ -57,16 +58,6 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.G
 @Component
 @ConditionalOnProperty(name = "api.gateway.accesslog.enabled", havingValue = "true", matchIfMissing = true)
 public class AccessLog implements GlobalFilter, Ordered {
-    /**
-     * Default constructor.
-     */
-    public AccessLog() {
-        // Default constructor
-    }
-
-    /**
-     * created a logger instance.
-     */
     private static final IgniteLogger LOGGER =
             IgniteLoggerFactory.getLogger(AccessLog.class);
     private static final Predicate<MediaType> TEXT_MIME_TYPES = mediaType -> {
@@ -93,6 +84,16 @@ public class AccessLog implements GlobalFilter, Ordered {
 
     private Set<String> skipRequestHeadersSet;
     private Set<String> skipResponseHeadersSet;
+    private final GatewayErrorResponseResolver errorResponseResolver;
+    
+    /**
+     * Constructs the AccessLog with required dependencies.
+     *
+     * @param errorResponseResolver the configured GatewayErrorResponseResolver
+     */
+    public AccessLog(GatewayErrorResponseResolver errorResponseResolver) {
+        this.errorResponseResolver = errorResponseResolver;
+    }
 
     /**
      * initialize and prepare AccessLog.
@@ -146,10 +147,12 @@ public class AccessLog implements GlobalFilter, Ordered {
                         .build())
                 .doOnError(throwable -> {
                     if (!logged.getAndSet(true)) {
+                        ResponseEntity<Object> errorResponseEntity = 
+                                errorResponseResolver.buildResponse(throwable, exchange);
                         accesslog(exchange,
                                 startTime,
-                                IgniteGlobalExceptionHandler.determineHttpStatus(throwable),
-                                ObjectMapperUtil.toJson(IgniteGlobalExceptionHandler.prepareResponse(throwable))
+                                errorResponseEntity.getStatusCode(),
+                                ObjectMapperUtil.toJson(errorResponseEntity.getBody())
                         );
                     }
                 });

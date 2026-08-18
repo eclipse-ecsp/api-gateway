@@ -245,7 +245,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
         String cachedRequestKey = "http://example.com";
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
+        ServerHttpResponse mockedHttpResponse = mock(ServerHttpResponse.class);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mockedHttpResponse);
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);
@@ -275,7 +276,8 @@ class CacheFilterTest {
         when(cacheManager.getCache(any())).thenReturn(cache);
         String cachedRequestKey = "http://example.com";
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
+        ServerHttpResponse mockedHttpResponse = mock(ServerHttpResponse.class);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mockedHttpResponse);
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);
@@ -291,7 +293,8 @@ class CacheFilterTest {
         String cachedRequestKey = "http://example.com";
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
-        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mock(ServerHttpResponse.class));
+        ServerHttpResponse mockedHttpResponse = mock(ServerHttpResponse.class);
+        when(globalFilterUtils.getServerHttpResponse(any(), any(), any())).thenReturn(mockedHttpResponse);
 
         when(cache.get(cachedRequestKey)).thenReturn(null);
         globalFilterUtils.deleteFromRedisCache(cache, cachedRequestKey);

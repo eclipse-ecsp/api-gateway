@@ -24,9 +24,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;

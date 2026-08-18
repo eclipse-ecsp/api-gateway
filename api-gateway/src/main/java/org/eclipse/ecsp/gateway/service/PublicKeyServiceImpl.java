@@ -29,7 +29,7 @@ import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import java.security.PublicKey;
 import java.util.List;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  *
  * @author Abhishek Kumar
  */
-@Component
+@Service
 public class PublicKeyServiceImpl implements PublicKeyService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(PublicKeyServiceImpl.class);
     private final List<PublicKeySourceProvider> sourceProviders;
@@ -172,6 +172,8 @@ public class PublicKeyServiceImpl implements PublicKeyService {
                     publicKeyInfo.setType(source.getType());
                     publicKeyInfo.setIssuer(source.getIssuer());
                     publicKeyInfo.setSourceId(source.getId());
+                    publicKeyInfo.setSkipAuthz(source.isSkipAuthz());
+                    publicKeyInfo.setSkipClaimValidation(source.isSkipClaimValidation());
                     String cacheKey = generateCacheKey(source, keyId);
                     publicKeyCache.put(cacheKey, publicKeyInfo);
                     LOGGER.info("Public key with KID: {} for source: {}, type: {}, added to cache with key: {}", 

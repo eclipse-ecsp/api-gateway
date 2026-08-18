@@ -221,6 +221,46 @@ class JwtPropertiesTest {
     }
 
     /**
+     * Test binding for skip_authz and skip_claim_validation properties.
+     */
+    @Test
+    void bindWhenSkipAuthzAndSkipClaimValidationConfiguredThenBindsCorrectly() {
+        // Given
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("jwt.key-sources[0].id", "test-provider");
+        properties.put("jwt.key-sources[0].skip-authz", "true");
+        properties.put("jwt.key-sources[0].skip-claim-validation", "true");
+
+        ConfigurationPropertySource source = new MapConfigurationPropertySource(properties);
+        Binder binder = new Binder(source);
+
+        // When
+        jwtProperties = binder.bind("jwt", JwtProperties.class).get();
+
+        // Then
+        assertNotNull(jwtProperties.getKeySources());
+        assertEquals(1, jwtProperties.getKeySources().size());
+        PublicKeySource keySource = jwtProperties.getKeySources().get(0);
+        assertTrue(keySource.isSkipAuthz());
+        assertTrue(keySource.isSkipClaimValidation());
+    }
+
+    /**
+     * Test default skipAuthz and skipClaimValidation in PublicKeySource.
+     */
+    @Test
+    void testDefaultSkipAuthzAndSkipClaimValidation() {
+        PublicKeySource keySource = new PublicKeySource();
+        assertFalse(keySource.isSkipAuthz());
+        assertFalse(keySource.isSkipClaimValidation());
+
+        keySource.setSkipAuthz(true);
+        keySource.setSkipClaimValidation(true);
+        assertTrue(keySource.isSkipAuthz());
+        assertTrue(keySource.isSkipClaimValidation());
+    }
+
+    /**
      * Test configuration with credentials.
      * Verifies that key sources with authentication credentials are handled correctly.
      */

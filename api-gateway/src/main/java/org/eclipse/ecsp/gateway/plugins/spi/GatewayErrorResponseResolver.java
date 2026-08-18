@@ -25,28 +25,24 @@ import org.springframework.web.server.ServerWebExchange;
  * SPI for building the JSON error response body and determining the HTTP status
  * code.
  *
- * <p>
- * Register a Spring bean implementing this interface to fully customise the
+ * <p>Register a Spring bean implementing this interface to fully customise the
  * error
  * JSON shape returned by the API Gateway for any exception — including
  * {@link org.eclipse.ecsp.gateway.exceptions.ApiGatewayException},
  * {@link org.eclipse.ecsp.gateway.exceptions.RequestValidationException},
  * and any other {@link Throwable}.
  *
- * <p>
- * The default implementation delegates to the existing static
+ * <p>The default implementation delegates to the existing static
  * {@code IgniteGlobalExceptionHandler.prepareResponse()} and
  * {@code IgniteGlobalExceptionHandler.determineHttpStatus()} methods,
  * preserving the existing {@code {"message": "...", "code": "..."}} error
  * shape.
  *
- * <p>
- * If no custom bean is present, the gateway automatically uses
+ * <p>If no custom bean is present, the gateway automatically uses
  * {@link DefaultGatewayErrorResponseResolver} via
  * {@code @ConditionalOnMissingBean}.
  *
- * <p>
- * <strong>Tip:</strong> To handle
+ * <p><strong>Tip:</strong> To handle
  * {@link org.eclipse.ecsp.gateway.exceptions.RequestValidationException}
  * separately and return field-level error details, use {@code instanceof} in
  * the

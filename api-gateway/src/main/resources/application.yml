@@ -63,7 +63,7 @@ spring:
               args:
                 remove-unknown-headers: ${api_gateway_request-header-filter_remove_unknown_headers:true}
                 skip-validation-for-apis: ${api_gateway_request-header-filter_skip_validation_for_apis:/api-docs/**,/v3/api-docs/**}
-                allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName}
+                allow-headers: ${api_gateway_request-header-filter_allow_headers:host, connection, content-type, content-length, accept, user-agent, "content-type, origin, referer, accept-encoding, accept-language, authorization, serviceName, upgrade, sec-websocket-key, sec-websocket-version, sec-websocket-extensions, sec-websocket-protocol}
                 append-headers-if-missing: ${api_gateway_request-header-filter_append_headers_if_missing:correlationId}
                 global-headers:
                 - name: correlationId

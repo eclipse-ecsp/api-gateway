@@ -46,6 +46,7 @@ import static org.eclipse.ecsp.gateway.utils.GatewayConstants.TYPE;
 @ConditionOnPublicKeyMetricsEnabled
 public class PublicKeyRefreshMetricsRecorder {
 
+    private static final String SOURCE_ID = "sourceId";
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(PublicKeyRefreshMetricsRecorder.class);
     private static final double MILLISECONDS_TO_SECONDS_DIVISOR = 1000.0;
 
@@ -90,6 +91,33 @@ public class PublicKeyRefreshMetricsRecorder {
         recordSourceRefreshTime(sourceId);
     }
 
+    public void recordUnknownKid(String sourceId) {
+        recordCounter("api_gateway_jwks_unknown_kid_total", sourceId, null);
+    }
+
+    public void recordForcedRefresh(String sourceId, String outcome) {
+        recordCounter("api_gateway_jwks_forced_refresh_total", sourceId, outcome);
+    }
+
+    public void recordKidRecovered(String sourceId) {
+        recordCounter("api_gateway_jwks_kid_recovered_total", sourceId, null);
+    }
+
+    private void recordCounter(String metricName, String sourceId, String outcome) {
+        if (StringUtils.isBlank(sourceId)) {
+            return;
+        }
+        try {
+            Tags tags = Tags.of(SOURCE_ID, sourceId);
+            if (outcome != null) {
+                tags = tags.and("outcome", outcome);
+            }
+            meterRegistry.counter(metricName, tags).increment();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to record metric {} for {}: {}", metricName, sourceId, e);
+        }
+    }
+
     /**
      * Record source refresh count metric.
      *
@@ -103,7 +131,7 @@ public class PublicKeyRefreshMetricsRecorder {
             meterRegistry.counter(metricName,
                     Tags.of(COMPONENT, PUBLIC_KEY_CACHE,
                             TYPE, "source-refresh",
-                            "sourceId", sourceId))
+                            SOURCE_ID, sourceId))
                     .increment();
             LOGGER.debug("Recorded source refresh count for: {}", sourceId);
         } catch (Exception e) {
@@ -153,7 +181,7 @@ public class PublicKeyRefreshMetricsRecorder {
                 .description("Timestamp of last refresh for public key source (seconds since epoch)")
                 .tags(Tags.of(COMPONENT, PUBLIC_KEY_CACHE,
                         TYPE, "source-refresh-time",
-                        "sourceId", sourceId))
+                        SOURCE_ID, sourceId))
                 .register(meterRegistry);
         
         LOGGER.debug("Registered source refresh time gauge for sourceId: {}", sourceId);

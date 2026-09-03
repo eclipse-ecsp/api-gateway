@@ -277,7 +277,6 @@ public class GatewayConstants {
      * Default metric name for public key source refresh time.
      */
     public static final String DEFAULT_SOURCE_REFRESH_TIME_METRIC = "public_key_source_refresh_time";
-
     /**
      * Prefix for caching-related properties.
      */

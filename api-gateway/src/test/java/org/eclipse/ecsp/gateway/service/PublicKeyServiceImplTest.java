@@ -24,6 +24,7 @@ package org.eclipse.ecsp.gateway.service;
 
 import io.micrometer.core.instrument.Timer;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
+import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.metrics.PublicKeyMetrics;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
@@ -122,7 +123,8 @@ class PublicKeyServiceImplTest {
                 List.of(sourceProvider),
                 List.of(keyLoader),
                 publicKeyCache,
-                eventPublisher);
+                eventPublisher,
+                new JwtProperties());
     }
 
     /**
@@ -717,9 +719,6 @@ class PublicKeyServiceImplTest {
 
         when(keyLoader.loadKeys(any(PublicKeySource.class)))
                 .thenThrow(new RuntimeException("JWKS fetch failed"));
-
-        // Mock cache entrySet for removePublicKeysBySourceId
-        when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
 
         try {
             // Get the threadPoolExecutor field and replace with mock

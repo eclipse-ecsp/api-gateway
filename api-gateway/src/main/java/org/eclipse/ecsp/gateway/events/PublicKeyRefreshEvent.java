@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.gateway.events;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,10 +27,41 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 public class PublicKeyRefreshEvent {
     private RefreshType refreshType;
     private String sourceId;
+    private Trigger trigger;
+    private String outcome;
+
+    public PublicKeyRefreshEvent(RefreshType refreshType, String sourceId) {
+        this(refreshType, sourceId, Trigger.SCHEDULED, "success");
+    }
+
+    /**
+     * Creates an event with its refresh trigger.
+     *
+     * @param refreshType type of refresh
+     * @param sourceId source that was refreshed
+     * @param trigger operation that caused the refresh
+     */
+    public PublicKeyRefreshEvent(RefreshType refreshType, String sourceId, Trigger trigger) {
+        this(refreshType, sourceId, trigger, "success");
+    }
+
+    /**
+     * Creates an event with a trigger and outcome.
+     *
+     * @param refreshType type of refresh
+     * @param sourceId source that was refreshed
+     * @param trigger operation that caused the refresh
+     * @param outcome result of the refresh
+     */
+    public PublicKeyRefreshEvent(RefreshType refreshType, String sourceId, Trigger trigger, String outcome) {
+        this.refreshType = refreshType;
+        this.sourceId = sourceId;
+        this.trigger = trigger;
+        this.outcome = outcome;
+    }
 
     /**
      * Enum representing the type of refresh operation.
@@ -47,6 +77,12 @@ public class PublicKeyRefreshEvent {
          * Refresh all public keys.
          */
         ALL_KEYS,
+    }
+
+    /** Trigger that caused the refresh. */
+    public enum Trigger {
+        SCHEDULED,
+        UNKNOWN_KID
     }
 
 }

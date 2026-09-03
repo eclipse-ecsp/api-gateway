@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.service;
 
 import jakarta.annotation.PostConstruct;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
+import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
@@ -36,9 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -54,24 +57,29 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     private final PublicKeyCache publicKeyCache;
     private final ScheduledExecutorService threadPoolExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ApplicationEventPublisher eventPublisher;
+    private final JwtProperties jwtProperties;
+    private final Map<String, AtomicLong> lastForcedRefreshAt = new ConcurrentHashMap<>();
 
     /**
-     * Constructor with dependencies for key sources, loaders, cache, and metrics.
+     * Constructor with explicit JWT refresh configuration.
      *
      * @param sourceProviders list of public key source providers
-     * @param keyLoaders map of public key loaders by type
+     * @param keyLoaders list of public key loaders
      * @param publicKeyCache cache for public keys
      * @param eventPublisher event publisher for refresh events
+     * @param jwtProperties JWT refresh configuration
      */
     public PublicKeyServiceImpl(List<PublicKeySourceProvider> sourceProviders,
                                 List<PublicKeyLoader> keyLoaders,
                                 PublicKeyCache publicKeyCache,
-                                ApplicationEventPublisher eventPublisher) {
+                                ApplicationEventPublisher eventPublisher,
+                                JwtProperties jwtProperties) {
         this.sourceProviders = sourceProviders;
         this.keyLoaders = keyLoaders.stream()
                 .collect(Collectors.toMap(PublicKeyLoader::getType, loader -> loader));
         this.publicKeyCache = publicKeyCache;
         this.eventPublisher = eventPublisher;
+        this.jwtProperties = jwtProperties;
     }
 
     /**
@@ -158,8 +166,71 @@ public class PublicKeyServiceImpl implements PublicKeyService {
         }
     }
 
+    @Override
+    public boolean refreshPublicKeys(String issuer) {
+        if (!jwtProperties.getJwks().isEnabled()) {
+            return false;
+        }
+
+        boolean refreshed = false;
+        for (PublicKeySource source : findSourcesByIssuer(issuer)) {
+            if (!tryAcquireRefreshSlot(source.getId(), jwtProperties.getJwks().getCooldownMs())) {
+                LOGGER.warn("JWKS refresh suppressed by cooldown for source: {}", source.getId());
+                publishUnknownKidEvent(source.getId(), "suppressed");
+                continue;
+            }
+            PublicKeyLoader loader = keyLoaders.get(source.getType());
+            if (loader != null && loadAndSwapPublicKeys(source, loader)) {
+                refreshed = true;
+                publishUnknownKidEvent(source.getId(), "success");
+            } else {
+                publishUnknownKidEvent(source.getId(), "failure");
+            }
+        }
+        return refreshed;
+    }
+
+    private void publishUnknownKidEvent(String sourceId, String outcome) {
+        eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY,
+                sourceId, PublicKeyRefreshEvent.Trigger.UNKNOWN_KID, outcome));
+    }
+
+    private List<PublicKeySource> findSourcesByIssuer(String issuer) {
+        return sourceProviders.stream()
+            .flatMap(provider -> Optional.ofNullable(provider.keySources()).orElse(List.of()).stream())
+            .filter(source -> source.getType() == PublicKeyType.JWKS
+                && (issuer == null || issuer.equals(source.getIssuer())))
+                .toList();
+    }
+
+    private boolean tryAcquireRefreshSlot(String sourceId, long cooldownMs) {
+        long now = System.currentTimeMillis();
+        AtomicLong lastRefresh = lastForcedRefreshAt.computeIfAbsent(sourceId, key -> new AtomicLong(0L));
+        long previous = lastRefresh.get();
+        return now - previous >= cooldownMs && lastRefresh.compareAndSet(previous, now);
+    }
+
+    private boolean loadAndSwapPublicKeys(PublicKeySource source, PublicKeyLoader loader) {
+        try {
+            Map<String, PublicKey> loadedKeys = loader.loadKeys(source);
+            if (CollectionUtils.isEmpty(loadedKeys)) {
+                LOGGER.warn("No public keys loaded from source: {}, retaining cached keys", source.getId());
+                return false;
+            }
+            removePublicKeysBySourceId(source.getId());
+            loadPublicKeys(source, loadedKeys);
+            return true;
+        } catch (Exception e) {
+            LOGGER.warn("Error refreshing public keys from source: {}, retaining cached keys", source.getId(), e);
+            return false;
+        }
+    }
+
     private void loadPublicKeys(PublicKeySource source, PublicKeyLoader loader) {
-        Map<String, PublicKey> loadedKeys = loader.loadKeys(source);
+        loadPublicKeys(source, loader.loadKeys(source));
+    }
+
+    private void loadPublicKeys(PublicKeySource source, Map<String, PublicKey> loadedKeys) {
         if (!CollectionUtils.isEmpty(loadedKeys)) {
             LOGGER.info("Public key fetched successfully from source: {}, type {}", source.getId(), source.getType());
             for (Entry<String, PublicKey> entry : loadedKeys.entrySet()) {
@@ -196,20 +267,21 @@ public class PublicKeyServiceImpl implements PublicKeyService {
             LOGGER.info("Refreshing JWKS public key from source: {}", source.getId());
             
             try {
-                removePublicKeysBySourceId(source.getId());
-                LOGGER.info("Cleared existing keys from cache for source: {}", source.getId());
-
-                this.loadPublicKeys(source, loader);
+                Map<String, PublicKey> loadedKeys = loader.loadKeys(source);
+                if (!CollectionUtils.isEmpty(loadedKeys)) {
+                    removePublicKeysBySourceId(source.getId());
+                    this.loadPublicKeys(source, loadedKeys);
+                }
                 LOGGER.info("JWKS public key refresh completed for source: {}", source.getId());
                 
                 // Publish individual source refresh event
-                eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY, 
-                    source.getId()));
+                eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY,
+                    source.getId(), PublicKeyRefreshEvent.Trigger.SCHEDULED));
                 
             } catch (Exception e) {
                 LOGGER.error("Error during JWKS refresh for source: " + source.getId(), e);
                 eventPublisher.publishEvent(new PublicKeyRefreshEvent(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY,
-                    source.getId()));
+                    source.getId(), PublicKeyRefreshEvent.Trigger.SCHEDULED));
             }
         }, source.getRefreshInterval().toMillis(), source.getRefreshInterval().toMillis(), TimeUnit.MILLISECONDS);
     }

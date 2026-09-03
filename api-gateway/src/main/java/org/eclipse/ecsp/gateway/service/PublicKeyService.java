@@ -42,5 +42,15 @@ public interface PublicKeyService {
      * This method should be called to reload keys when they are updated or changed.
      */
     void refreshPublicKeys();
+
+    /**
+     * Force-refreshes JWKS keys for a source, subject to the configured cooldown.
+     *
+     * @param issuer issuer claim used to select the JWKS source, or null to refresh all JWKS sources
+     * @return true when at least one refresh was executed
+     */
+    default boolean refreshPublicKeys(String issuer) {
+        return false;
+    }
 }
 

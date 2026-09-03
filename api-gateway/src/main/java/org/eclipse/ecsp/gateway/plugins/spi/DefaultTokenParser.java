@@ -25,6 +25,7 @@ import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ServerWebExchange;
+import java.util.List;
 
 /**
  * Default implementation of {@link TokenParser}.
@@ -38,6 +39,7 @@ import org.springframework.web.server.ServerWebExchange;
  */
 public class DefaultTokenParser implements TokenParser {
 
+    private static final int THREE = 3;
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(DefaultTokenParser.class);
     private static final String INVALID_TOKEN_CODE = "api.gateway.error.token.invalid";
     private static final String INVALID_TOKEN = "Invalid Token";
@@ -53,14 +55,15 @@ public class DefaultTokenParser implements TokenParser {
         if (StringUtils.isBlank(authHeader) || !authHeader.startsWith(GatewayConstants.BEARER)) {
             String upgradeHeader = exchange.getRequest().getHeaders().getFirst("Upgrade");
             if ("websocket".equalsIgnoreCase(upgradeHeader)) {
-                java.util.List<String> protocols = exchange.getRequest().getHeaders().get("Sec-WebSocket-Protocol");
+                List<String> protocols = exchange.getRequest().getHeaders().get("Sec-WebSocket-Protocol");
                 if (protocols != null) {
                     for (String protocolHeader : protocols) {
                         for (String protocol : protocolHeader.split(",")) {
                             String trimmed = protocol.trim();
                             // A JWT has 2 dots (header.payload.signature)
-                            if (trimmed.split("\\.").length == 3) {
-                                LOGGER.debug("Token extracted from Sec-WebSocket-Protocol header for requestUrl: {}, requestId: {}", requestPath, requestId);
+                            if (trimmed.split("\\.").length == THREE) {
+                                LOGGER.debug("Token extracted from Sec-WebSocket-Protocol header for requestUrl: " 
+                                    + "{}, requestId: {}", requestPath, requestId);
                                 return trimmed;
                             }
                         }

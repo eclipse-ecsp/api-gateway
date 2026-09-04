@@ -46,6 +46,11 @@ public class ScopeTagger implements OperationCustomizer {
      */
     public ScopeTagger(ScopeOverrideProperties scopeOverrideProperties) {
         this.scopeOverrideProperties = scopeOverrideProperties;
+        // log the override configuration
+
+        LOGGER.info("Scope override is enabled? : {}, config: {}",
+             scopeOverrideProperties.getOverride().isEnabled(), 
+             scopeOverrideProperties.getScopesMap());
     }
 
     @Override
@@ -80,9 +85,10 @@ public class ScopeTagger implements OperationCustomizer {
                     + "</p>");
             // override scope config
             Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
-            if (scopeOverrideProperties.getOverride().isEnabled() && scopesMap != null
-                    && (scopesMap.get(routeId) != null || scopesMap.get(routeId.toLowerCase()) != null)) {
-                updateNewScopes(operation, routeId, scopesMap);
+            List<String> overrideScope = getOverrideScopesForRoutes(scopesMap, routeId);
+            if (scopeOverrideProperties.getOverride().isEnabled() && !overrideScope.isEmpty()) {
+                LOGGER.info("Overriding default scopes for routeId: {} with scopes : {}", routeId, overrideScope);
+                updateNewScopes(operation, routeId, overrideScope);
             }
         } else {
             operation.description(operation.getDescription() + "<p style='color:red;'>SCOPE: EMPTY </p>");
@@ -90,19 +96,42 @@ public class ScopeTagger implements OperationCustomizer {
         return operation;
     }
 
-    private void updateNewScopes(final Operation operation, String routeId, Map<String, List<String>> scopesMap) {
-        List<String> scopesList =
-                scopesMap.get(routeId) != null ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
-        LOGGER.debug("Override Scopes Map Config: " + scopesMap);
+    private void updateNewScopes(final Operation operation, String routeId, List<String> scopes) {
+        LOGGER.debug("Override Scopes Map Config: {}, for routeId: {}" + scopes, routeId);
         // Replace the scopes in the OpenAPI operation model so that ApiRoutesLoader
         // picks up the overridden scopes when it reads operation.getSecurity().
         // Java annotations are immutable; the mutable OpenAPI model must be updated instead.
         if (operation.getSecurity() != null) {
             operation.getSecurity().forEach(sr ->
-                    sr.replaceAll((name, existingScopes) -> scopesList));
+                    sr.replaceAll((name, existingScopes) -> scopes));
         }
         operation.description(operation
-                .getDescription() + "<p style='color:blue;'>OVERRIDE_SCOPE: " + scopesList + "</p>");
+                .getDescription() + "<p style='color:blue;'>OVERRIDE_SCOPE: " + scopes + "</p>");
+    }
+
+    /**
+     * get the override scope for the route.
+     *
+     * @param scopesMap override scope config map
+     * @param routeId the api routeId
+     * @return list of override scopes, empty if not found
+     */
+    private List<String> getOverrideScopesForRoutes(Map<String, List<String>> scopesMap, String routeId) {
+        // normalize the route by removing whitespace is the routeid
+        // checks if scope is available with the route Id scopesMap.get(routeId)
+        // else if checks the scope with routeId.toLowerCase
+        if (scopesMap == null || scopesMap.isEmpty()) {
+            return List.of();
+        }
+        String normalizedRouteId = routeId.replace(" ", "");
+        if (scopesMap.containsKey(normalizedRouteId)) {
+            return scopesMap.get(normalizedRouteId);
+        } 
+        String lowerCaseRouteId = normalizedRouteId.toLowerCase();
+        if (scopesMap.containsKey(lowerCaseRouteId)) {
+            return scopesMap.get(lowerCaseRouteId);
+        }
+        return List.of();
     }
 
 }

@@ -35,7 +35,6 @@ import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.CachingTagger;
-import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.security.Security;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
@@ -64,7 +63,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * This class is the load the api-routes from Swagger Annotations.
@@ -102,7 +100,6 @@ public class ApiRoutesLoader extends OpenApiResource {
      * API Routes configuration.
      */
     protected ApiRoutesConfig apiRoutesConfig;
-    private final ScopeOverrideProperties scopeOverrideProperties;
     @Value("${spring.application.name}")
     private String appName;
     @Value("${spring.application.servicename}")
@@ -130,7 +127,6 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
-     * @param scopeOverrideProperties     the scope-override configuration properties
      */
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
@@ -138,14 +134,12 @@ public class ApiRoutesLoader extends OpenApiResource {
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
                            SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
-                           ApiRoutesConfig apiRoutesConfig,
-                           ScopeOverrideProperties scopeOverrideProperties) {
+                           ApiRoutesConfig apiRoutesConfig) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
         this.apiRoutesConfig = apiRoutesConfig;
-        this.scopeOverrideProperties = scopeOverrideProperties;
     }
 
     /**
@@ -175,7 +169,6 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     private void prepareApiRoutes() throws URISyntaxException {
         // Load from configuration
-        LOGGER.debug("Scopes Map config: " + scopeOverrideProperties.getScopesMap());
         LOGGER.debug("Routes List: " + apiRoutesConfig.getRoutes());
         prepareStaticRoutes();
         // Load from Swagger Annotations
@@ -354,9 +347,10 @@ public class ApiRoutesLoader extends OpenApiResource {
     private void setRequestBodyFilters(Operation operation, RouteDefinition route) throws JsonProcessingException {
         RequestBody request = operation.getRequestBody();
         if (request != null) {
-            MediaType mt = (request.getContent().get(MULTIPART_FORM_DATA) != null)
-                    ? (request.getContent().get(MULTIPART_FORM_DATA)) :
-                    (request.getContent().get("application/json"));
+            MediaType mt = request.getContent().get(MULTIPART_FORM_DATA);
+            if (mt == null) {
+                mt = request.getContent().get("application/json");
+            }
             LOGGER.debug("Media-Type extracted from schema: {}", mt);
             if (mt.getSchema().get$ref() != null) {
                 String schemaName = mt.getSchema().get$ref().replace("#/components/schemas/", "");
@@ -444,7 +438,6 @@ public class ApiRoutesLoader extends OpenApiResource {
                 sr.forEach((name, scopes) -> {
                     filter.setName(name);
                     if (scopes != null && !scopes.isEmpty()) {
-                        enabledOverrideScope(route, scopes);
                         filter.getArgs().put(RegistryCommonConstants.SCOPE, String.join(",", scopes));
                         LOGGER.info("Final scope config: " + scopes);
                     }
@@ -452,26 +445,6 @@ public class ApiRoutesLoader extends OpenApiResource {
                 route.getFilters().add(filter);
                 LOGGER.info("Token Validation Filter: " + filter);
             }
-        }
-    }
-
-    /**
-     * Enables override scope for the route.
-     *
-     * <p>This method checks if the override scope is enabled and adds the scopes to the route.
-     *
-     * @param route  the RouteDefinition object
-     * @param scopes the list of scopes
-     */
-    private void enabledOverrideScope(RouteDefinition route, List<String> scopes) {
-        String routeId = route.getId();
-        Map<String, List<String>> scopesMap = scopeOverrideProperties.getScopesMap();
-        if (scopeOverrideProperties.getOverride().isEnabled() && scopesMap != null
-                && (scopesMap.get(routeId) != null || scopesMap.get(routeId.toLowerCase()) != null)) {
-            List<String> scopesList = scopesMap.get(routeId) != null
-                    ? scopesMap.get(routeId) : scopesMap.get(routeId.toLowerCase());
-            scopes = Stream.concat(scopes.stream(), scopesList.stream()).distinct().toList();
-            LOGGER.info("Extended Scope Config:" + scopes);
         }
     }
 

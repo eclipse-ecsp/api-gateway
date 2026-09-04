@@ -339,13 +339,7 @@ class CacheFilterTest {
         when(mockedExchange.getResponse().bufferFactory().wrap(mockString.getBytes())).thenReturn(buffer);
 
         CachedResponse cacheResponse = new CachedResponse(HttpStatus.OK, header, mockString.getBytes());
-        Cache.ValueWrapper mockedValue = new ValueWrapper() {
-
-            @Override
-            public Object get() {
-                return cacheResponse;
-            }
-        };
+        Cache.ValueWrapper mockedValue = () -> cacheResponse;
         when(cache.get(cachedRequestKey)).thenReturn(mockedValue);
 
         when(globalFilterUtils.getResponseInString(any())).thenReturn(mockString);

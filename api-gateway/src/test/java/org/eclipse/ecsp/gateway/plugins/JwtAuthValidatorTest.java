@@ -332,6 +332,111 @@ class JwtAuthValidatorTest {
         verify(publicKeyService, Mockito.atLeastOnce()).refreshPublicKeys();
     }
 
+    private ServerWebExchange createExchangeWithCustomToken(String token) {
+        ServerWebExchangeImpl exchange = spy(serverWebExchangeImpl);
+        ServerHttpRequest mockRequest = mock(ServerHttpRequest.class);
+        when(exchange.getRequest()).thenReturn(mockRequest);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", token);
+        doReturn(headers).when(mockRequest).getHeaders();
+
+        org.springframework.http.server.RequestPath mockPath = mock(org.springframework.http.server.RequestPath.class);
+        when(mockPath.value()).thenReturn("/test-path");
+        when(mockPath.toString()).thenReturn("/test-path");
+        when(mockRequest.getPath()).thenReturn(mockPath);
+        when(mockRequest.getId()).thenReturn("test-request-id");
+
+        ServerHttpRequest.Builder mockBuilder = mock(ServerHttpRequest.Builder.class);
+        when(mockRequest.mutate()).thenReturn(mockBuilder);
+        when(mockBuilder.header(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(mockBuilder);
+        when(mockBuilder.header(Mockito.anyString(), Mockito.anyString())).thenReturn(mockBuilder);
+        when(mockBuilder.build()).thenReturn(mockRequest);
+
+        return exchange;
+    }
+
+    @Test
+    void testUnknownKidWithBlankIssuerSkipsRefresh() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        final String token = JwtTestTokenGenerator.createToken("admin", "", "test-audience", "SelfManage", "user1", "unknown-kid");
+        when(publicKeyService.findPublicKey("unknown-kid", "")).thenReturn(Optional.empty());
+        when(publicKeyService.findPublicKey("DEFAULT", null)).thenReturn(Optional.empty());
+
+        final ServerWebExchange exchange = createExchangeWithCustomToken(token);
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
+                () -> jwtAuthFilter.filter(exchange, gatewayFilterChain));
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verify(publicKeyService, Mockito.never()).refreshPublicKeys(Mockito.anyString());
+    }
+
+    @Test
+    void testUnknownKidWithIssuerRefreshesSuccessfullyAndFindsKey() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        final String token = JwtTestTokenGenerator.createToken(
+                "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "recovered-kid");
+        PublicKeyInfo recoveredKeyInfo = new PublicKeyInfo();
+        recoveredKeyInfo.setKid("recovered-kid");
+        recoveredKeyInfo.setPublicKey(JwtTestTokenGenerator.getTestPublicKey());
+        recoveredKeyInfo.setSourceId("jwks-source");
+
+        when(publicKeyService.findPublicKey("recovered-kid", ""))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(recoveredKeyInfo));
+        when(publicKeyService.refreshPublicKeys("https://auth.example.com")).thenReturn(true);
+
+        final ServerWebExchange exchange = createExchangeWithCustomToken(token);
+        Assertions.assertDoesNotThrow(() -> jwtAuthFilter.filter(exchange, gatewayFilterChain));
+        verify(publicKeyService).refreshPublicKeys("https://auth.example.com");
+    }
+
+    @Test
+    void testUnknownKidWithIssuerRefreshesSuccessfullyButKeyStillNotFound() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        final String token = JwtTestTokenGenerator.createToken(
+                "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "still-missing-kid");
+        when(publicKeyService.findPublicKey("still-missing-kid", "")).thenReturn(Optional.empty());
+        when(publicKeyService.findPublicKey("DEFAULT", null)).thenReturn(Optional.empty());
+        when(publicKeyService.refreshPublicKeys("https://auth.example.com")).thenReturn(true);
+
+        final ServerWebExchange exchange = createExchangeWithCustomToken(token);
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
+                () -> jwtAuthFilter.filter(exchange, gatewayFilterChain));
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verify(publicKeyService).refreshPublicKeys("https://auth.example.com");
+    }
+
+    @Test
+    void testUnknownKidWithIssuerRefreshFails() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+
+        final String token = JwtTestTokenGenerator.createToken(
+                "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "unrefreshed-kid");
+        when(publicKeyService.findPublicKey("unrefreshed-kid", "")).thenReturn(Optional.empty());
+        when(publicKeyService.findPublicKey("DEFAULT", null)).thenReturn(Optional.empty());
+        when(publicKeyService.refreshPublicKeys("https://auth.example.com")).thenReturn(false);
+
+        final ServerWebExchange exchange = createExchangeWithCustomToken(token);
+        ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
+                () -> jwtAuthFilter.filter(exchange, gatewayFilterChain));
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verify(publicKeyService).refreshPublicKeys("https://auth.example.com");
+    }
+
     @Test
     void tokenValidationScenariosTest() {
         // Setup test configuration

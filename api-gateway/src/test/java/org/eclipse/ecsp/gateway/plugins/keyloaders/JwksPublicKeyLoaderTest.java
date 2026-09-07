@@ -32,12 +32,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.security.PublicKey;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -50,6 +59,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(SpringExtension.class)
@@ -932,6 +945,74 @@ class JwksPublicKeyLoaderTest {
         // Verify that special characters in credentials are properly encoded in Basic Auth header
         verify(postRequestedFor(urlEqualTo("/oauth/token"))
                 .withHeader("Authorization", equalTo("Basic " + expectedClientAuth)));
+    }
+
+    @Test
+    void awaitWhenThreadInterruptedThenThrowsIllegalStateException() {
+        Thread.currentThread().interrupt();
+        try {
+            IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class, () ->
+                    ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", Mono.never()));
+            Assertions.assertEquals("Interrupted while waiting for HTTP response", ex.getMessage());
+            Assertions.assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void awaitWhenTimedOutThenThrowsIllegalStateException() throws Exception {
+        Mono<String> mono = mock(Mono.class);
+        Mono<String> monoWithTimeout = mock(Mono.class);
+        Mono<String> monoWithSched = mock(Mono.class);
+        CompletableFuture<String> future = mock(CompletableFuture.class);
+
+        when(mono.timeout(any(Duration.class))).thenReturn(monoWithTimeout);
+        when(monoWithTimeout.subscribeOn(any())).thenReturn(monoWithSched);
+        when(monoWithSched.toFuture()).thenReturn(future);
+        when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException("custom timeout"));
+
+        IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class, () ->
+                ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", mono));
+        Assertions.assertEquals("Timed out waiting for HTTP response", ex.getMessage());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void awaitWhenExecutionExceptionWithNullCauseThenThrowsIllegalStateException() throws Exception {
+        Mono<String> mono = mock(Mono.class);
+        Mono<String> monoWithTimeout = mock(Mono.class);
+        Mono<String> monoWithSched = mock(Mono.class);
+        CompletableFuture<String> future = mock(CompletableFuture.class);
+
+        when(mono.timeout(any(Duration.class))).thenReturn(monoWithTimeout);
+        when(monoWithTimeout.subscribeOn(any())).thenReturn(monoWithSched);
+        when(monoWithSched.toFuture()).thenReturn(future);
+        when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new ExecutionException("raw error", null));
+
+        IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class, () ->
+                ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", mono));
+        Assertions.assertEquals("raw error", ex.getMessage());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void awaitWhenCompletionExceptionThenThrowsIllegalStateExceptionWithCause() throws Exception {
+        Mono<String> mono = mock(Mono.class);
+        Mono<String> monoWithTimeout = mock(Mono.class);
+        Mono<String> monoWithSched = mock(Mono.class);
+        CompletableFuture<String> future = mock(CompletableFuture.class);
+
+        when(mono.timeout(any(Duration.class))).thenReturn(monoWithTimeout);
+        when(monoWithTimeout.subscribeOn(any())).thenReturn(monoWithSched);
+        when(monoWithSched.toFuture()).thenReturn(future);
+        when(future.get(anyLong(), any(TimeUnit.class)))
+                .thenThrow(new CompletionException(new RuntimeException("cause error")));
+
+        IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class, () ->
+                ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", mono));
+        Assertions.assertEquals("cause error", ex.getMessage());
     }
 
     /**

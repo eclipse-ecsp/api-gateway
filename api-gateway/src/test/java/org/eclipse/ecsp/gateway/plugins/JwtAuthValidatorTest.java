@@ -85,6 +85,7 @@ import java.util.function.Function;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -370,7 +371,7 @@ class JwtAuthValidatorTest {
         ApiGatewayException exception = Assertions.assertThrows(ApiGatewayException.class,
                 () -> jwtAuthFilter.filter(exchange, gatewayFilterChain));
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
-        verify(publicKeyService, Mockito.never()).refreshPublicKeys(Mockito.anyString());
+        verify(publicKeyService, never()).refreshPublicKeys(Mockito.anyString());
     }
 
     @Test

@@ -883,6 +883,7 @@ class PublicKeyServiceImplTest {
 
             @Override
             public void refreshPublicKeys() {
+                // not required for test
             }
         };
         assertFalse(defaultService.refreshPublicKeys("test-issuer"));

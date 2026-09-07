@@ -950,9 +950,10 @@ class JwksPublicKeyLoaderTest {
     @Test
     void awaitWhenThreadInterruptedThenThrowsIllegalStateException() {
         Thread.currentThread().interrupt();
+        Mono<Object> monoObj = Mono.never();
         try {
             IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class, () ->
-                    ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", Mono.never()));
+                    ReflectionTestUtils.invokeMethod(jwksPublicKeyLoader, "await", monoObj));
             Assertions.assertEquals("Interrupted while waiting for HTTP response", ex.getMessage());
             Assertions.assertTrue(Thread.currentThread().isInterrupted());
         } finally {

@@ -62,6 +62,7 @@
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.22.2</jackson-bom.version>
+        <jackson-annotations.version>2.22</jackson-annotations.version>
         <tools-jackson-bom.version>3.2.2</tools-jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.46</lombok.version>
@@ -244,7 +245,16 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson-bom.version}</version>
-                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson-bom.version}</version>
             </dependency>
             <dependency>
                 <groupId>tools.jackson</groupId>

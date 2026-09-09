@@ -239,21 +239,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Force Jackson 2 core modules where transitive dependencies pin older versions -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson-bom.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson-bom.version}</version>
-            </dependency>
+            <!-- Force Jackson 2 databind version as requested -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson-bom.version}</version>
+                <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>tools.jackson</groupId>

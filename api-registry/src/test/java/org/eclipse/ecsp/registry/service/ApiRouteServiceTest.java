@@ -317,12 +317,35 @@ class ApiRouteServiceTest {
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
         existing.setChecksum("abc123checksum");
+        existing.setActive(Boolean.TRUE);
         when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
         when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
 
         RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
 
         verify(apiRouteRepo, never()).save(Mockito.any());
+        Assertions.assertNotNull(result);
+    }
+
+    /**
+     * Test purpose          - Verify inactive existing route is reactivated and saved even when checksum matches.
+     * Test data             - Existing entity with active=false and matching checksum.
+     * Test expected result  - Repository save called once and entity active flag set to true.
+     * Test type             - Positive.
+     */
+    @Test
+    void testCreateOrUpdateInactiveExistingWithSameChecksumReactivatesRoute() {
+        RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
+        ApiRouteEntity existing = RegistryTestUtil.getApiRouteEntity();
+        existing.setChecksum("abc123checksum");
+        existing.setActive(Boolean.FALSE);
+        when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.of(existing));
+        when(checksumService.compute(routeDefinition)).thenReturn(Optional.of("abc123checksum"));
+        when(apiRouteRepo.save(Mockito.any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RouteDefinition result = apiRouteService.createOrUpdate(routeDefinition);
+
+        verify(apiRouteRepo, times(1)).save(Mockito.argThat(entity -> Boolean.TRUE.equals(entity.getActive())));
         Assertions.assertNotNull(result);
     }
 

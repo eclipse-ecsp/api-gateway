@@ -42,4 +42,6 @@ public class PublicKeySource {
     private Duration refreshInterval = Duration.ofDays(1);
     private String issuer;
     private boolean useProviderPrefixedKey = false;
+    private boolean skipAuthz = false;
+    private boolean skipClaimValidation = false;
 }

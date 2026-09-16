@@ -35,9 +35,13 @@ import org.eclipse.ecsp.gateway.model.TokenHeaderValidationConfig;
 import org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter;
 import org.eclipse.ecsp.gateway.plugins.filters.RequestBodyFilter.Config;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator;
 import org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier;
 import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper;
 import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder;
+import org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser;
 import org.eclipse.ecsp.gateway.plugins.spi.ScopeValidationContext;
 import org.eclipse.ecsp.gateway.service.PublicKeyService;
 import org.eclipse.ecsp.gateway.service.TokenValidationComponents;
@@ -47,7 +51,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -102,8 +105,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 @SuppressWarnings("checkstyle:MethodLength")
 class JwtAuthValidatorTest {
-    private static final org.eclipse.ecsp.utils.logger.IgniteLogger LOGGER =
-            org.eclipse.ecsp.utils.logger.IgniteLoggerFactory.getLogger(JwtAuthValidatorTest.class);
     private static final String BEARER_TOKEN_WITHOUT_KID = JwtTestTokenGenerator.createTokenWithoutKid();
     private static final long START_DATE = 1683811748923L;
     public static final int ONE_THOUSAND = 1000;
@@ -145,13 +146,13 @@ class JwtAuthValidatorTest {
     private RequestBodyFilter requestBodyFilter = new RequestBodyFilter(new RequestBodyFilter.Config(), true);
 
     private TokenValidationComponents validationComponents = new TokenValidationComponents(
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenParser(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenDecoder(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultSignatureVerifier(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimValidator(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultAdditionalClaimValidator(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultScopeValidator(),
-            new org.eclipse.ecsp.gateway.plugins.spi.DefaultTokenClaimHeaderMapper()
+            new DefaultTokenParser(),
+            new DefaultTokenDecoder(),
+            new DefaultSignatureVerifier(),
+            new DefaultTokenClaimValidator(),
+            new DefaultAdditionalClaimValidator(),
+            new DefaultScopeValidator(),
+            new DefaultTokenClaimHeaderMapper()
     );
 
     @BeforeEach

@@ -25,7 +25,9 @@ import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ServerWebExchange;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Default implementation of {@link TokenParser}.
@@ -51,34 +53,44 @@ public class DefaultTokenParser implements TokenParser {
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(GatewayConstants.AUTHORIZATION);
 
-        // Fallback for WebSockets: Check Sec-WebSocket-Protocol header
-        if (StringUtils.isBlank(authHeader) || !authHeader.startsWith(GatewayConstants.BEARER)) {
-            String upgradeHeader = exchange.getRequest().getHeaders().getFirst("Upgrade");
-            if ("websocket".equalsIgnoreCase(upgradeHeader)) {
-                List<String> protocols = exchange.getRequest().getHeaders().get("Sec-WebSocket-Protocol");
-                if (protocols != null) {
-                    for (String protocolHeader : protocols) {
-                        for (String protocol : protocolHeader.split(",")) {
-                            String trimmed = protocol.trim();
-                            // A JWT has 2 dots (header.payload.signature)
-                            if (trimmed.split("\\.").length == THREE) {
-                                LOGGER.debug("Token extracted from Sec-WebSocket-Protocol header for requestUrl: " 
-                                    + "{}, requestId: {}", requestPath, requestId);
-                                return trimmed;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            LOGGER.error("Token validation failed - Token missing or invalid format. "
-                    + "requestUrl: {}, requestId: {}", requestPath, requestId);
-            throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
+        if (StringUtils.isNotBlank(authHeader) && authHeader.startsWith(GatewayConstants.BEARER)) {
+            String rawToken = authHeader.split(" ")[1];
+            LOGGER.debug("Token extracted from Authorization header for requestUrl: {}, requestId: {}",
+                    requestPath, requestId);
+            return rawToken;
         }
 
-        String rawToken = authHeader.split(" ")[1];
-        LOGGER.debug("Token extracted from Authorization header for requestUrl: {}, requestId: {}",
-                requestPath, requestId);
-        return rawToken;
+        // Fallback for WebSockets: Check Sec-WebSocket-Protocol header
+        Optional<String> webSocketToken = extractWebSocketToken(exchange);
+        if (webSocketToken.isPresent()) {
+            LOGGER.debug("Token extracted from Sec-WebSocket-Protocol header for requestUrl: {}, requestId: {}",
+                    requestPath, requestId);
+            return webSocketToken.get();
+        }
+
+        LOGGER.error("Token validation failed - Token missing or invalid format. "
+                + "requestUrl: {}, requestId: {}", requestPath, requestId);
+        throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
+    }
+
+    /**
+     * Extracts a JWT (three dot-separated segments) from the Sec-WebSocket-Protocol header, if present.
+     */
+    private Optional<String> extractWebSocketToken(ServerWebExchange exchange) {
+        String upgradeHeader = exchange.getRequest().getHeaders().getFirst("Upgrade");
+        if (!"websocket".equalsIgnoreCase(upgradeHeader)) {
+            return Optional.empty();
+        }
+
+        List<String> protocols = exchange.getRequest().getHeaders().get("Sec-WebSocket-Protocol");
+        if (protocols == null) {
+            return Optional.empty();
+        }
+
+        return protocols.stream()
+                .flatMap(protocolHeader -> Arrays.stream(protocolHeader.split(",")))
+                .map(String::trim)
+                .filter(candidate -> candidate.split("\\.").length == THREE)
+                .findFirst();
     }
 }

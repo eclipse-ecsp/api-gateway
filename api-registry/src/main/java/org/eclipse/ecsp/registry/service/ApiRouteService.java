@@ -242,6 +242,10 @@ public class ApiRouteService {
         if (existing.isEmpty()) {
             return RouteChangeType.NEW;
         }
+        // Reactivate previously inactive routes on re-registration even when payload checksum matches.
+        if (!Boolean.TRUE.equals(existing.get().getActive())) {
+            return RouteChangeType.UPDATED;
+        }
         if (newChecksumOpt.isEmpty()) {
             return RouteChangeType.UPDATED;
         }

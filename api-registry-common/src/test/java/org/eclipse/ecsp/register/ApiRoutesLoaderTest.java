@@ -112,10 +112,9 @@ class ApiRoutesLoaderTest {
         when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
-        scopeOverrideProperties = new ScopeOverrideProperties();
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig, scopeOverrideProperties);
+                springDocProviders, springDocCustomizers, apiRouteConfig);
     }
 
     @Test

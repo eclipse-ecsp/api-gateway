@@ -153,11 +153,11 @@ class ScopeTaggerTest {
      */
     @Test
     void testCustomize_WithScopes_OverrideDisabled_DoesNotChangeSecurity() {
-        Operation operation = buildOperation("myOp");
         when(handlerMethod.getMethodAnnotation(SecurityRequirement.class))
                 .thenReturn(createAnnotation("OriginalScope"));
         scopeOverrideProperties.getOverride().setEnabled(false);
-
+        scopeOverrideProperties.setScopesMap(Map.of());
+        Operation operation = buildOperation("myOp");
         Operation result = scopeTagger.customize(operation, handlerMethod);
 
         assertTrue(result.getDescription().contains("SCOPE:"));

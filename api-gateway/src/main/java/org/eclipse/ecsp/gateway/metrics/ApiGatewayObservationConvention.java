@@ -62,7 +62,6 @@ public class ApiGatewayObservationConvention extends DefaultGatewayObservationCo
         LOGGER.debug("Before ApiGatewayObservationConvention:  {}", keyValues);
         Route route = context.getServerWebExchange().getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
         
-        String uriValue = route != null ? route.getUri().toString() : "UNKNOWN";
         keyValues = keyValues
                 .and("requestUrl", GatewayUtils.getRouteUri(context.getServerWebExchange()));
                 

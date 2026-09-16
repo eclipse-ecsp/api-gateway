@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.metrics;
 import org.eclipse.ecsp.gateway.annotations.ConditionOnPublicKeyMetricsEnabled;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.RefreshType;
+import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent.Trigger;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -87,7 +88,15 @@ public class PublicKeyRefreshEventHandler {
         } else if (RefreshType.PUBLIC_KEY.equals(refreshType)) {
             String sourceId = event.getSourceId();
             if (sourceId != null) {
-                metricsRecorder.recordSourceRefresh(sourceId);
+                if (Trigger.UNKNOWN_KID.equals(event.getTrigger())) {
+                    metricsRecorder.recordUnknownKid(sourceId);
+                    metricsRecorder.recordForcedRefresh(sourceId, event.getOutcome());
+                    if ("success".equals(event.getOutcome())) {
+                        metricsRecorder.recordKidRecovered(sourceId);
+                    }
+                } else {
+                    metricsRecorder.recordSourceRefresh(sourceId);
+                }
             } else {
                 LOGGER.warn("Received source refresh event without source ID, ignoring");
             }

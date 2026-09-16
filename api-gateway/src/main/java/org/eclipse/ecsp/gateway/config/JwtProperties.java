@@ -77,4 +77,7 @@ public class JwtProperties {
      * Retry configuration for JWKS fetching.
      */
     private RetryConfig retry = new RetryConfig();
+
+    /** Configuration for forced JWKS refreshes after an unknown key ID. */
+    private JwksRefreshProperties jwks = new JwksRefreshProperties();
 }

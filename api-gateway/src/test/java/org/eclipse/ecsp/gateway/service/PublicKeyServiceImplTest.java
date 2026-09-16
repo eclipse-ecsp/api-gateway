@@ -1,8 +1,4 @@
-/************************import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
-import org.eclipse.ecsp.gateway.model.PublicKeySource;
-import org.eclipse.ecsp.gateway.service.cache.PublicKeyCache;
-import org.eclipse.ecsp.gateway.service.loader.PublicKeyLoader;
-import org.eclipse.ecsp.gateway.service.provider.PublicKeySourceProvider;*****************************************************
+/********************************************************************************
  * Copyright (c) 2023-24 Harman International
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +20,8 @@ package org.eclipse.ecsp.gateway.service;
 
 import io.micrometer.core.instrument.Timer;
 import org.eclipse.ecsp.gateway.cache.PublicKeyCache;
+import org.eclipse.ecsp.gateway.config.JwtProperties;
+import org.eclipse.ecsp.gateway.events.PublicKeyRefreshEvent;
 import org.eclipse.ecsp.gateway.metrics.PublicKeyMetrics;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
 import org.eclipse.ecsp.gateway.model.PublicKeySource;
@@ -33,6 +31,7 @@ import org.eclipse.ecsp.gateway.plugins.keysources.PublicKeySourceProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -98,6 +97,7 @@ class PublicKeyServiceImplTest {
     private PublicKeyServiceImpl publicKeyService;
     private PublicKey testPublicKey;
     private PublicKeySource testKeySource;
+    private JwtProperties jwtProperties;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -117,12 +117,14 @@ class PublicKeyServiceImplTest {
         testKeySource.setUseProviderPrefixedKey(true);
 
         when(keyLoader.getType()).thenReturn(PublicKeyType.JWKS);
+        jwtProperties = new JwtProperties();
         // Initialize service with mocks
         publicKeyService = new PublicKeyServiceImpl(
                 List.of(sourceProvider),
                 List.of(keyLoader),
                 publicKeyCache,
-                eventPublisher);
+                eventPublisher,
+                jwtProperties);
     }
 
     /**
@@ -718,9 +720,6 @@ class PublicKeyServiceImplTest {
         when(keyLoader.loadKeys(any(PublicKeySource.class)))
                 .thenThrow(new RuntimeException("JWKS fetch failed"));
 
-        // Mock cache entrySet for removePublicKeysBySourceId
-        when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
-
         try {
             // Get the threadPoolExecutor field and replace with mock
             java.lang.reflect.Field executorField = PublicKeyServiceImpl.class
@@ -869,5 +868,187 @@ class PublicKeyServiceImplTest {
         } catch (Exception e) {
             throw new RuntimeException("Failed to test removePublicKeysBySourceId with mixed sources", e);
         }
+    }
+
+    /**
+     * Test the default implementation of refreshPublicKeys in PublicKeyService.
+     */
+    @Test
+    void defaultRefreshPublicKeysInInterfaceReturnsFalse() {
+        PublicKeyService defaultService = new PublicKeyService() {
+            @Override
+            public Optional<PublicKeyInfo> findPublicKey(String keyId, String provider) {
+                return Optional.empty();
+            }
+
+            @Override
+            public void refreshPublicKeys() {
+                // not required for test
+            }
+        };
+        assertFalse(defaultService.refreshPublicKeys("test-issuer"));
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when JWKS is disabled in properties.
+     */
+    @Test
+    void refreshPublicKeysWhenJwksDisabledThenReturnsFalse() {
+        jwtProperties.getJwks().setEnabled(false);
+        boolean result = publicKeyService.refreshPublicKeys("test-issuer");
+        assertFalse(result);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when successful.
+     */
+    @Test
+    void refreshPublicKeysWhenSuccessfulThenLoadsKeysAndPublishesSuccessEvent() {
+        testKeySource.setIssuer("https://auth.example.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(testKeySource)).thenReturn(Map.of("new-kid", testPublicKey));
+        when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
+
+        boolean result = publicKeyService.refreshPublicKeys("https://auth.example.com");
+
+        assertTrue(result);
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        PublicKeyRefreshEvent event = captor.getValue();
+        assertEquals(PublicKeyRefreshEvent.RefreshType.PUBLIC_KEY, event.getRefreshType());
+        assertEquals("test-provider", event.getSourceId());
+        assertEquals(PublicKeyRefreshEvent.Trigger.UNKNOWN_KID, event.getTrigger());
+        assertEquals("success", event.getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(null) matches any JWKS source regardless of issuer.
+     */
+    @Test
+    void refreshPublicKeysWhenIssuerIsNullThenMatchesAnyJwksSource() {
+        testKeySource.setIssuer("https://auth.example.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(testKeySource)).thenReturn(Map.of("new-kid", testPublicKey));
+        when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
+
+        boolean result = publicKeyService.refreshPublicKeys(null);
+
+        assertTrue(result);
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals("success", captor.getValue().getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) cooldown suppression on rapid subsequent calls.
+     */
+    @Test
+    void refreshPublicKeysWhenCalledWithinCooldownThenSuppressed() {
+        testKeySource.setIssuer("https://auth.example.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(testKeySource)).thenReturn(Map.of("new-kid", testPublicKey));
+        when(publicKeyCache.entrySet()).thenReturn(Collections.emptySet());
+
+        // First call succeeds
+        boolean first = publicKeyService.refreshPublicKeys("https://auth.example.com");
+        assertTrue(first);
+
+        // Immediate second call is suppressed by cooldown
+        boolean second = publicKeyService.refreshPublicKeys("https://auth.example.com");
+        assertFalse(second);
+
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher, atLeast(TWO)).publishEvent(captor.capture());
+        List<PublicKeyRefreshEvent> events = captor.getAllValues();
+        assertEquals("success", events.get(0).getOutcome());
+        assertEquals("suppressed", events.get(1).getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when key loader returns empty map.
+     */
+    @Test
+    void refreshPublicKeysWhenKeyLoaderReturnsEmptyThenPublishesFailureEvent() {
+        testKeySource.setIssuer("https://auth.example.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(testKeySource)).thenReturn(Collections.emptyMap());
+
+        boolean result = publicKeyService.refreshPublicKeys("https://auth.example.com");
+
+        assertFalse(result);
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals("failure", captor.getValue().getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when key loader throws exception.
+     */
+    @Test
+    void refreshPublicKeysWhenKeyLoaderThrowsExceptionThenHandlesGracefullyAndPublishesFailureEvent() {
+        testKeySource.setIssuer("https://auth.example.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+        when(keyLoader.loadKeys(testKeySource)).thenThrow(new RuntimeException("Connection timeout"));
+
+        boolean result = publicKeyService.refreshPublicKeys("https://auth.example.com");
+
+        assertFalse(result);
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals("failure", captor.getValue().getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when no key loader is found for the source type.
+     */
+    @Test
+    void refreshPublicKeysWhenKeyLoaderNotFoundThenPublishesFailureEvent() {
+        testKeySource.setIssuer("https://auth.example.com");
+        PublicKeyServiceImpl serviceWithoutLoaders = new PublicKeyServiceImpl(
+                List.of(sourceProvider),
+                Collections.emptyList(),
+                publicKeyCache,
+                eventPublisher,
+                jwtProperties);
+
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+
+        boolean result = serviceWithoutLoaders.refreshPublicKeys("https://auth.example.com");
+
+        assertFalse(result);
+        ArgumentCaptor<PublicKeyRefreshEvent> captor = ArgumentCaptor.forClass(PublicKeyRefreshEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals("failure", captor.getValue().getOutcome());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when no matching sources are found.
+     */
+    @Test
+    void refreshPublicKeysWhenNoMatchingSourcesThenReturnsFalse() {
+        testKeySource.setIssuer("https://other-issuer.com");
+        when(sourceProvider.keySources()).thenReturn(List.of(testKeySource));
+
+        boolean result = publicKeyService.refreshPublicKeys("https://auth.example.com");
+
+        assertFalse(result);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    /**
+     * Test refreshPublicKeys(issuer) when source is not JWKS or provider returns null.
+     */
+    @Test
+    void refreshPublicKeysWhenSourceProviderReturnsNullOrNonJwksThenReturnsFalse() {
+        PublicKeySource pemSource = new PublicKeySource();
+        pemSource.setType(PublicKeyType.PEM);
+        pemSource.setIssuer("https://auth.example.com");
+
+        when(sourceProvider.keySources()).thenReturn(List.of(pemSource));
+        assertFalse(publicKeyService.refreshPublicKeys("https://auth.example.com"));
+
+        when(sourceProvider.keySources()).thenReturn(null);
+        assertFalse(publicKeyService.refreshPublicKeys("https://auth.example.com"));
     }
 }

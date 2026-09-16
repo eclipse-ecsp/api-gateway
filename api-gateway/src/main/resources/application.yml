@@ -70,6 +70,10 @@ spring:
                   required: true # first level
                   regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" # second level
 jwt:
+  jwks:
+    refresh-on-unknown-kid:
+      enabled: ${jwt_jwks_refresh_on_unknown_kid_enabled:true}
+      cooldown-ms: ${jwt_jwks_refresh_on_unknown_kid_cooldown_ms:60000}
   keySources:
   - id: test
     type: PEM

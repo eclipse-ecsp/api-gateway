@@ -335,6 +335,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             JWT jwt = JWTParser.parse(token);
             Object kidObject = jwt.getHeader().toJSONObject().get("kid");
             Object tenantIdObject = jwt.getJWTClaimsSet().toJSONObject().get("tenantId");
+            String issuer = jwt.getJWTClaimsSet().getIssuer();
             String kid = (kidObject == null || StringUtils.isEmpty(kidObject.toString()))
                     ? DEFAULT : kidObject.toString();
             String tenantId = (tenantIdObject == null || StringUtils.isEmpty(tenantIdObject.toString()))
@@ -349,7 +350,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                         GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             }
             // Parse token and extract metadata
-            TokenMetadata metadata = new TokenMetadata(kid, tenantId);
+            TokenMetadata metadata = new TokenMetadata(kid, tenantId, issuer);
 
             // Get public key for validation
             PublicKeyInfo publicKeyInfo = getValidationKey(metadata, requestPath, requestId, routeId);
@@ -389,6 +390,26 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
         
         Optional<PublicKeyInfo> key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
         
+        if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
+            LOGGER.warn("JWKS_UNKNOWN_KID | kid={} | tenantId={} | issuer={} | {}", metadata.kid,
+                    metadata.tenantId, metadata.issuer,
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            if (StringUtils.isBlank(metadata.issuer)) {
+                LOGGER.warn("JWKS_REFRESH_SKIPPED | reason=missing_issuer | kid={} | tenantId={} | {}",
+                        metadata.kid, metadata.tenantId,
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            } else if (publicKeyService.refreshPublicKeys(metadata.issuer)) {
+                key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
+                LOGGER.info("JWKS_REFRESH_LOOKUP | kid={} | issuer={} | found={} | {}", metadata.kid,
+                        metadata.issuer, key.isPresent(),
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            } else {
+                LOGGER.warn("JWKS_REFRESH_LOOKUP | kid={} | issuer={} | found=false | refresh=false | {}",
+                        metadata.kid, metadata.issuer,
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            }
+        }
+
         if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
             LOGGER.warn("Public key not found for kid: {}, tenantId: {}, attempting fallback to default key. "
                     + "{}", metadata.kid, metadata.tenantId, 
@@ -431,10 +452,12 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     private static class TokenMetadata {
         final String kid;
         final String tenantId;
+        final String issuer;
         
-        TokenMetadata(String kid, String tenantId) {
+        TokenMetadata(String kid, String tenantId, String issuer) {
             this.kid = kid;
             this.tenantId = tenantId;
+            this.issuer = issuer;
         }
     }
 

@@ -39,6 +39,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.time.Duration;
@@ -46,6 +48,10 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Implementation of PublicKeyLoader for JWKS (JSON Web Key Set) format keys.
@@ -168,10 +174,31 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
         }
 
         LOGGER.debug("fetchJwksWithAuthentication - Fetching JWKS from URL: {}", config.getUrl());
-        return requestSpec.retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(THIRTY_SECONDS))
-                .block();
+        return await(requestSpec.retrieve().bodyToMono(String.class));
+    }
+
+    /**
+     * Waits for the given Mono to complete without calling {@code block()} on the caller thread.
+     * The refresh can be triggered from a Netty event-loop thread, where blocking operators are rejected.
+     *
+     * @param mono the mono to await
+     * @return the emitted value
+     */
+    private String await(Mono<String> mono) {
+        try {
+            return mono.timeout(Duration.ofSeconds(THIRTY_SECONDS))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .toFuture()
+                    .get(THIRTY_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for HTTP response", e);
+        } catch (CompletionException | ExecutionException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new IllegalStateException(cause.getMessage(), cause);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("Timed out waiting for HTTP response", e);
+        }
     }
 
     /**
@@ -229,15 +256,13 @@ public class JwksPublicKeyLoader implements PublicKeyLoader {
         try {
             String authValue = credentials.getClientId() + ":" + credentials.getClientSecret();
             String encodedAuth = Base64.getEncoder().encodeToString(authValue.getBytes(StandardCharsets.UTF_8));
-            String responseBody = webClient.post()
+            String responseBody = await(webClient.post()
                     .uri(credentials.getTokenEndpoint())
                     .header(AUTHORIZATION, "Basic " + encodedAuth)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(BodyInserters.fromFormData(formData))
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(THIRTY_SECONDS))
-                    .block();
+                    .bodyToMono(String.class));
 
             JsonNode response = objectMapper.readTree(responseBody);
             String accessToken = response.get("access_token").asText();

@@ -377,7 +377,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
 
         final String token = JwtTestTokenGenerator.createToken("admin", "", "test-audience", "SelfManage", "user1", "unknown-kid");
         when(publicKeyService.findPublicKey("unknown-kid", "")).thenReturn(Optional.empty());
@@ -395,7 +395,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
 
         final String token = JwtTestTokenGenerator.createToken(
                 "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "recovered-kid");
@@ -419,7 +419,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
 
         final String token = JwtTestTokenGenerator.createToken(
                 "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "still-missing-kid");
@@ -439,7 +439,7 @@ class JwtAuthValidatorTest {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");
         jwtAuthValidator.apply(config);
-        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
 
         final String token = JwtTestTokenGenerator.createToken(
                 "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "unrefreshed-kid");

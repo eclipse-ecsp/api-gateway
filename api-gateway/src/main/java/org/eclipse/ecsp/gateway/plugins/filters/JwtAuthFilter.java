@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.config.JwtProperties;
 import org.eclipse.ecsp.gateway.exceptions.ApiGatewayException;
 import org.eclipse.ecsp.gateway.model.PublicKeyInfo;
@@ -173,7 +174,12 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                     GatewayUtils.getLogMessage(routeId, requestPath, requestId));
     
             // Step 3 — Resolve public key (key management is gateway-internal, not an SPI)
-            PublicKeyInfo publicKeyInfo = resolvePublicKey(decoded, requestPath, requestId, routeId);
+            String issuer = Optional.ofNullable(decoded.getRawClaims().get("iss"))
+                    .map(Object::toString)
+                    .orElse("");
+            // Parse token and extract metadata for key lookup and refresh flow.
+            TokenMetadata metadata = new TokenMetadata(decoded.getKid(), decoded.getTenantId(), issuer);
+            PublicKeyInfo publicKeyInfo = getValidationKey(metadata, requestPath, requestId, routeId);
     
             // Step 4 — Verify JWT signature; returns fully-verified Claims
             Claims claims = signatureVerifier.verify(rawToken, publicKeyInfo);
@@ -232,24 +238,46 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
      * Resolves the public key for the given decoded token metadata.
      * Falls back to the DEFAULT key if no specific key is found for the kid/tenantId.
      */
-    private PublicKeyInfo resolvePublicKey(DecodedToken decoded, String requestPath,
-                                           String requestId, String routeId) {
+    private PublicKeyInfo getValidationKey(TokenMetadata metadata,
+                                           String requestPath,
+                                           String requestId,
+                                           String routeId) {
         LOGGER.debug("Fetching public key for kid: {}, tenantId: {}, {}",
-                decoded.getKid(), decoded.getTenantId(),
+                metadata.kid, metadata.tenantId,
                 GatewayUtils.getLogMessage(routeId, requestPath, requestId));
 
-        Optional<PublicKeyInfo> key = publicKeyService.findPublicKey(decoded.getKid(), decoded.getTenantId());
+        Optional<PublicKeyInfo> key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
 
-        if (key.isEmpty() && !DEFAULT.equals(decoded.getKid())) {
-            LOGGER.warn("Public key not found for kid: {}, tenantId: {}. Attempting fallback to DEFAULT key. {}",
-                    decoded.getKid(), decoded.getTenantId(),
+        if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
+            LOGGER.warn("JWKS_UNKNOWN_KID | kid={} | tenantId={} | issuer={} | {}", metadata.kid,
+                    metadata.tenantId, metadata.issuer,
+                    GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            if (StringUtils.isBlank(metadata.issuer)) {
+                LOGGER.warn("JWKS_REFRESH_SKIPPED | reason=missing_issuer | kid={} | tenantId={} | {}",
+                        metadata.kid, metadata.tenantId,
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            } else if (publicKeyService.refreshPublicKeys(metadata.issuer)) {
+                key = publicKeyService.findPublicKey(metadata.kid, metadata.tenantId);
+                LOGGER.info("JWKS_REFRESH_LOOKUP | kid={} | issuer={} | found={} | {}", metadata.kid,
+                        metadata.issuer, key.isPresent(),
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            } else {
+                LOGGER.warn("JWKS_REFRESH_LOOKUP | kid={} | issuer={} | found=false | refresh=false | {}",
+                        metadata.kid, metadata.issuer,
+                        GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            }
+        }
+
+        if (key.isEmpty() && !DEFAULT.equals(metadata.kid)) {
+            LOGGER.warn("Public key not found for kid: {}, tenantId: {}, attempting fallback to default key. {}",
+                    metadata.kid, metadata.tenantId,
                     GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             key = publicKeyService.findPublicKey(DEFAULT, null);
         }
 
         if (key.isEmpty()) {
             LOGGER.error("Token validation failed - Public key not found. kid: {}, tenantId: {}, {}",
-                    decoded.getKid(), decoded.getTenantId(),
+                    metadata.kid, metadata.tenantId,
                     GatewayUtils.getLogMessage(routeId, requestPath, requestId));
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, INVALID_TOKEN);
         }
@@ -259,6 +287,21 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                 info.getKid(), info.getSourceId(),
                 GatewayUtils.getLogMessage(routeId, requestPath, requestId));
         return info;
+    }
+
+    /**
+     * Inner class to hold decoded token metadata used in key resolution.
+     */
+    private static class TokenMetadata {
+        final String kid;
+        final String tenantId;
+        final String issuer;
+
+        TokenMetadata(String kid, String tenantId, String issuer) {
+            this.kid = kid;
+            this.tenantId = tenantId;
+            this.issuer = issuer;
+        }
     }
 
     @Override

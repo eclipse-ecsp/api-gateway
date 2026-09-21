@@ -220,14 +220,14 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
             return chain.filter(exchange.mutate().request(builder.build()).build());
 
         } catch (SecurityException | IllegalStateException e) {
-            LOGGER.error("Token validation failed with exception: {}, {}",
-                    e.getMessage(), GatewayUtils.getLogMessage(routeId, requestPath, requestId));
+            LOGGER.error("Token validation failed with exception: {}, {}, error: {}",
+                    e.getMessage(), GatewayUtils.getLogMessage(routeId, requestPath, requestId), e);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE,
                     "Token verification failed");
         } catch (ApiGatewayException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Internal server error: {}, {}",
+            LOGGER.error("Internal server error: {}, {}, error: {}",
                     e.getMessage(), GatewayUtils.getLogMessage(routeId, requestPath, requestId), e);
             throw new ApiGatewayException(HttpStatus.INTERNAL_SERVER_ERROR, "api.gateway.error.internal",
                     "Internal server error");

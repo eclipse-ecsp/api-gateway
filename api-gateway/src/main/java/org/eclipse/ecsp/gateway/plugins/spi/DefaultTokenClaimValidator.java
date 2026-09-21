@@ -85,12 +85,13 @@ public class DefaultTokenClaimValidator implements TokenClaimValidator {
                 LOGGER.debug("Token claim validation passed for: {}", claimName);
             }
         } catch (PatternSyntaxException regexException) {
-            LOGGER.error("Token claim validation failed - invalid regex pattern: {}", regexException.getMessage());
+            LOGGER.error("Token claim validation failed - invalid regex pattern: {}", regexException);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         } catch (ApiGatewayException e) {
+            LOGGER.info("Token claim validation failed, rethrowing ApiGatewayException: {}", e);
             throw e;
         } catch (Exception ex) {
-            LOGGER.error("Token claim validation failed with unexpected error: {}", ex.getMessage());
+            LOGGER.error("Token claim validation failed with unexpected error: {}", ex);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         }
     }

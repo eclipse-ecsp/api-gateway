@@ -70,7 +70,7 @@ public class DefaultTokenDecoder implements TokenDecoder {
             return new DecodedToken(kid, tenantId, rawClaims);
 
         } catch (Exception ex) {
-            LOGGER.error("Token decoding failed - unable to parse JWT structure: {}", ex.getMessage());
+            LOGGER.error("Token decoding failed - unable to parse JWT structure: {}", ex);
             throw new ApiGatewayException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN_CODE, TOKEN_VERIFICATION_FAILED);
         }
     }

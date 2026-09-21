@@ -131,7 +131,16 @@ public class ApiRoutesHealthMonitor {
     }
 
     private boolean getHealth(String name, String url, String uri) {
-        String healthUrl = url + uri;
+        String healthBaseUrl = url.endsWith("/") ? url : url + "/";
+        
+        // Fix for WebSocket registry checking: Protocol Swap
+        if (healthBaseUrl.startsWith("ws://")) {
+            healthBaseUrl = healthBaseUrl.replaceFirst("ws://", "http://");
+        } else if (healthBaseUrl.startsWith("wss://")) {
+            healthBaseUrl = healthBaseUrl.replaceFirst("wss://", "https://");
+        }
+        
+        String healthUrl = healthBaseUrl + uri;
         try {
             ResponseEntity<String> resp = restTemplate.getForEntity(healthUrl, String.class);
             LOGGER.debug("Url {}, Response: {}", healthUrl, resp);

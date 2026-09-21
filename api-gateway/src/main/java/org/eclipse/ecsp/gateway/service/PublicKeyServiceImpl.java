@@ -168,13 +168,13 @@ public class PublicKeyServiceImpl implements PublicKeyService {
 
     @Override
     public boolean refreshPublicKeys(String issuer) {
-        if (!jwtProperties.getJwks().isEnabled()) {
+        if (!jwtProperties.getJwksRefreshOnUnknownKid().isEnabled()) {
             return false;
         }
 
         boolean refreshed = false;
         for (PublicKeySource source : findSourcesByIssuer(issuer)) {
-            if (!tryAcquireRefreshSlot(source.getId(), jwtProperties.getJwks().getCooldownMs())) {
+            if (!tryAcquireRefreshSlot(source.getId(), jwtProperties.getJwksRefreshOnUnknownKid().getCooldownMs())) {
                 LOGGER.warn("JWKS refresh suppressed by cooldown for source: {}", source.getId());
                 publishUnknownKidEvent(source.getId(), "suppressed");
                 continue;

@@ -894,7 +894,7 @@ class PublicKeyServiceImplTest {
      */
     @Test
     void refreshPublicKeysWhenJwksDisabledThenReturnsFalse() {
-        jwtProperties.getJwks().setEnabled(false);
+        jwtProperties.getJwksRefreshOnUnknownKid().setEnabled(false);
         boolean result = publicKeyService.refreshPublicKeys("test-issuer");
         assertFalse(result);
         verify(eventPublisher, never()).publishEvent(any());

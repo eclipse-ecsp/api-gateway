@@ -169,6 +169,7 @@ public class PublicKeyServiceImpl implements PublicKeyService {
     @Override
     public boolean refreshPublicKeys(String issuer) {
         if (!jwtProperties.getJwksRefreshOnUnknownKid().isEnabled()) {
+            LOGGER.debug("Refresh on unknown kid is disabled, skipping jwks refresh for issuer: {}.", issuer);
             return false;
         }
 
@@ -183,8 +184,10 @@ public class PublicKeyServiceImpl implements PublicKeyService {
             if (loader != null && loadAndSwapPublicKeys(source, loader)) {
                 refreshed = true;
                 publishUnknownKidEvent(source.getId(), "success");
+                LOGGER.debug("key refreshed for issuer: {}", issuer);
             } else {
                 publishUnknownKidEvent(source.getId(), "failure");
+                LOGGER.debug("key refresh failed for issuer: {}", issuer);
             }
         }
         return refreshed;

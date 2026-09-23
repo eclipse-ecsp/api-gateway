@@ -101,7 +101,7 @@ public class GatewayUtils {
             return "Malformed token";
         } else if (ex instanceof UnsupportedJwtException) {
             return "Unsupported token format";
-        } else if (ex instanceof SecurityException) {
+        } else if (ex instanceof SecurityException || ex instanceof io.jsonwebtoken.security.SecurityException) {
             return "Token signature verification failed";
         } else if (ex instanceof IllegalArgumentException) {
             return "Invalid token argument";

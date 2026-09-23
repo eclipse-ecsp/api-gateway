@@ -62,6 +62,7 @@ public class DefaultSignatureVerifier implements SignatureVerifier {
             return parsedToken.getPayload();
 
         } catch (SecurityException
+                 | io.jsonwebtoken.security.SecurityException
                  | MalformedJwtException
                  | ExpiredJwtException
                  | UnsupportedJwtException

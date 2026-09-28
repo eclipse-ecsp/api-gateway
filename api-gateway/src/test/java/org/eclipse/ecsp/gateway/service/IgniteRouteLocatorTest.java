@@ -39,6 +39,8 @@ import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.BooleanSpec;
+import org.springframework.cloud.gateway.route.builder.PredicateSpec;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.gateway.support.ConfigurationService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -123,6 +125,36 @@ class IgniteRouteLocatorTest {
         );
 
         assertNotNull(igniteRouteLocator);
+    }
+
+    @Test
+    void setPredicateSpecRejectsNullRouteUri() {
+        igniteRouteLocator = new IgniteRouteLocator(
+                                configurationService,
+                                gatewayFilterFactories,
+                                gatewayProperties,
+                                false,
+                                pluginLoader,
+                                apiRegistryClient,
+                                routeLocatorBuilder,
+                                applicationEventPublisher,
+                                springCloudGatewayConfig,
+                                new ArrayList<>()
+                );
+        IgniteRouteDefinition route = new IgniteRouteDefinition();
+        route.setId("route-without-uri");
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("pattern", "/test/**");
+        route.setPredicates(List.of(pathPredicate));
+        PredicateSpec predicateSpec = mock(PredicateSpec.class);
+        BooleanSpec booleanSpec = mock(BooleanSpec.class);
+        when(predicateSpec.path("/test/**")).thenReturn(booleanSpec);
+
+        IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+                                () -> ReflectionTestUtils.invokeMethod(igniteRouteLocator, "setPredicateSpec", route, predicateSpec));
+
+        Assertions.assertEquals("Route URI must not be null for route: route-without-uri", exception.getMessage());
     }
 
     @Test

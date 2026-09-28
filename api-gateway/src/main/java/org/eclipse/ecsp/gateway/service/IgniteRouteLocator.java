@@ -61,6 +61,7 @@ import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -287,9 +288,13 @@ public class IgniteRouteLocator implements RouteLocator {
             }
         }
         
-        Buildable<Route> route = booleanSpec.uri(apiRoute.getUri());
+        URI routeUri = apiRoute.getUri();
+        if (routeUri == null) {
+            throw new IllegalArgumentException("Route URI must not be null for route: " + apiRoute.getId());
+        }
+        Buildable<Route> route = booleanSpec.uri(routeUri);
         LOGGER.debug("route---{}", route);
-        if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
+        if (!apiRoute.getFilters().isEmpty()) {
             setCacheFilter(apiRoute);
 
             filters.addAll(getFilters(apiRoute));
@@ -427,7 +432,7 @@ public class IgniteRouteLocator implements RouteLocator {
     private List<GatewayFilter> getFilters(RouteDefinition apiRoute) {
         LOGGER.debug("Fetching gateway filters");
         List<GatewayFilter> filters = new ArrayList<>();
-        if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
+        if (!apiRoute.getFilters().isEmpty()) {
             List<FilterDefinition> filterDefinitions = new ArrayList<>();
             apiRoute.getFilters().forEach(filter -> {
                 FilterDefinition fd = new FilterDefinition();

@@ -20,6 +20,7 @@ package org.eclipse.ecsp.register;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -407,6 +408,23 @@ class ApiRoutesLoaderTest {
         Assertions.assertTrue(registeredModelSchema.path("nullable").asBoolean());
         Assertions.assertFalse(registeredModelSchema.has("types"),
                 "OpenAPI-internal types must not be registered");
+    }
+
+    @Test
+    void testCollectReferencedSchemasSkipsMissingComponents() {
+        Schema<?> rootSchema = new Schema<>();
+        rootSchema.addProperty("missing", new Schema<>().$ref("#/components/schemas/MissingInfo"));
+        Components testComponents = new Components();
+        testComponents.addSchemas("Root", rootSchema);
+        ReflectionTestUtils.setField(apiRoutesLoader, "components", testComponents);
+
+        ObjectNode collectedSchemas = ReflectionTestUtils.invokeMethod(
+                apiRoutesLoader, "collectReferencedSchemas", "Root");
+
+        Assertions.assertNotNull(collectedSchemas);
+        Assertions.assertTrue(collectedSchemas.has("Root"));
+        Assertions.assertFalse(collectedSchemas.has("MissingInfo"));
+        Assertions.assertEquals(1, collectedSchemas.size());
     }
 
     @Test

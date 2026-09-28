@@ -20,6 +20,8 @@ package org.eclipse.ecsp.register;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -28,11 +30,13 @@ import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
+import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.Assertions;
@@ -109,7 +113,7 @@ class ApiRoutesLoaderTest {
         when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         ApplicationContext mockedApplicationContext = mock(ApplicationContext.class);
         when(openApiService.getContext()).thenReturn(mockedApplicationContext);
-        when(springDocProviders.jsonMapper()).thenReturn(new ObjectMapper());
+        when(springDocProviders.jsonMapper()).thenReturn(Json.mapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
@@ -334,42 +338,35 @@ class ApiRoutesLoaderTest {
     }
 
     @Test
-    void testSchemaStoredWithRefsAndComponents() throws Exception {
-        // Simulate a schema where the body $ref points to a schema that itself
-        // has nested $ref nodes — the exact scenario that caused ResolutionException.
-        // After the fix the stored schema must be a full document containing
-        // both $ref and components.schemas so openapi4j can resolve all refs.
-        Schema innerSchema = new Schema();
-        innerSchema.set$ref("#/components/schemas/AddressInfo");
+    void testSchemaStoredWithTransitiveRefsOnly() throws Exception {
+        Schema<?> addressSchema = new Schema<>();
+        addressSchema.addProperty("street", new StringSchema());
+        addressSchema.addProperty("country", new Schema<>().$ref("#/components/schemas/CountryInfo"));
+        Schema<?> countrySchema = new Schema<>();
+        countrySchema.addProperty("vehicle", new Schema<>().$ref("#/components/schemas/VehicleAttributes"));
+        Schema<?> vehicleSchema = new Schema<>();
+        vehicleSchema.addProperty("model", new StringSchema().nullable(true));
+        vehicleSchema.addProperty("address", new Schema<>().$ref("#/components/schemas/AddressInfo"));
 
-        Schema addressSchema = new Schema();
-        addressSchema.addProperty("street", new Schema().type("string"));
-
-        Schema vehicleSchema = new Schema();
-        vehicleSchema.addProperty("model", new Schema().type("string"));
-        vehicleSchema.addProperty("address", innerSchema); // nested $ref
-
-        Components components = new Components();
-        components.addSchemas("VehicleAttributes", vehicleSchema);
-        components.addSchemas("AddressInfo", addressSchema);
-        ReflectionTestUtils.setField(apiRoutesLoader, "components", components);
+        Components testComponents = new Components();
+        testComponents.addSchemas("VehicleAttributes", vehicleSchema);
+        testComponents.addSchemas("AddressInfo", addressSchema);
+        testComponents.addSchemas("CountryInfo", countrySchema);
+        testComponents.addSchemas("UnrelatedInfo", new StringSchema());
+        ReflectionTestUtils.setField(apiRoutesLoader, "components", testComponents);
 
         // Build an operation with a body $ref pointing to VehicleAttributes
         Operation operation = new Operation();
         operation.setTags(List.of("vehicles-controller"));
         operation.setOperationId("update");
         operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
-
         MediaType mediaType = new MediaType();
-        Schema bodyRef = new Schema();
-        bodyRef.set$ref("#/components/schemas/VehicleAttributes");
-        mediaType.setSchema(bodyRef);
+        mediaType.setSchema(new Schema<>().$ref("#/components/schemas/VehicleAttributes"));
         Content content = new Content();
         content.put("application/json", mediaType);
         RequestBody requestBody = new RequestBody();
         requestBody.setContent(content);
         operation.setRequestBody(requestBody);
-
         ReflectionTestUtils.invokeMethod(
                 apiRoutesLoader, "setOperation", HttpMethod.POST, "/v2/vehicles", operation);
 
@@ -391,7 +388,7 @@ class ApiRoutesLoaderTest {
                 "Stored schema must have a top-level $ref");
         Assertions.assertEquals("#/components/schemas/VehicleAttributes", schemaDoc.get("$ref").asText());
 
-        // Must embed all component schemas so nested $refs can be resolved
+        // Must embed the request schema and transitive references only
         Assertions.assertTrue(schemaDoc.has("components"),
                 "Stored schema must contain components");
         Assertions.assertTrue(schemaDoc.path("components").has("schemas"),
@@ -400,6 +397,46 @@ class ApiRoutesLoaderTest {
                 "components.schemas must include VehicleAttributes");
         Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("AddressInfo"),
                 "components.schemas must include AddressInfo (needed for nested $ref resolution)");
+        Assertions.assertTrue(schemaDoc.path("components").path("schemas").has("CountryInfo"),
+                "components.schemas must include transitive references");
+        Assertions.assertFalse(schemaDoc.path("components").path("schemas").has("UnrelatedInfo"),
+                "components.schemas must exclude unrelated schemas");
+        Assertions.assertEquals(3, schemaDoc.path("components").path("schemas").size());
+        JsonNode registeredModelSchema = schemaDoc.path("components").path("schemas")
+                .path("VehicleAttributes").path("properties").path("model");
+        Assertions.assertEquals("string", registeredModelSchema.path("type").asText());
+        Assertions.assertTrue(registeredModelSchema.path("nullable").asBoolean());
+        Assertions.assertFalse(registeredModelSchema.has("types"),
+                "OpenAPI-internal types must not be registered");
+    }
+
+    @Test
+    void testCollectReferencedSchemasSkipsMissingComponents() {
+        Schema<?> rootSchema = new Schema<>();
+        rootSchema.addProperty("missing", new Schema<>().$ref("#/components/schemas/MissingInfo"));
+        Components testComponents = new Components();
+        testComponents.addSchemas("Root", rootSchema);
+        ReflectionTestUtils.setField(apiRoutesLoader, "components", testComponents);
+
+        ObjectNode collectedSchemas = ReflectionTestUtils.invokeMethod(
+                apiRoutesLoader, "collectReferencedSchemas", "Root");
+
+        Assertions.assertNotNull(collectedSchemas);
+        Assertions.assertTrue(collectedSchemas.has("Root"));
+        Assertions.assertFalse(collectedSchemas.has("MissingInfo"));
+        Assertions.assertEquals(1, collectedSchemas.size());
+    }
+
+    @Test
+    void testOpenApi31RetainsLegacySchemaMapper() {
+        when(springDocConfigProperties.isOpenapi31()).thenReturn(true);
+
+        ApiRoutesLoader openApi31Loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
+                abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
+                springDocProviders, springDocCustomizers, new ApiRoutesConfig());
+
+        Assertions.assertSame(ObjectMapperUtil.getObjectMapper(),
+                ReflectionTestUtils.getField(openApi31Loader, "schemaObjectMapper"));
     }
 
     @Test

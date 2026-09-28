@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.register;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -26,6 +28,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
@@ -59,10 +62,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class is the load the api-routes from Swagger Annotations.
@@ -84,6 +89,13 @@ import java.util.Map;
 @Service
 @ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
 public class ApiRoutesLoader extends OpenApiResource {
+    private static final String COMPONENT_SCHEMA_REF_PREFIX = "#/components/schemas/";
+    private static final List<String> SCHEMA_CHILD_KEYWORDS = List.of(
+        "additionalItems", "additionalProperties", "allOf", "anyOf", "contains", "contentSchema",
+        "else", "if", "items", "not", "oneOf", "prefixItems", "propertyNames", "then",
+        "unevaluatedItems", "unevaluatedProperties");
+    private static final List<String> SCHEMA_MAP_KEYWORDS = List.of(
+        "$defs", "definitions", "dependencies", "dependentSchemas", "patternProperties", "properties");
     /**
      * RegistryCommonConstants for multipart/form-data.
      */
@@ -95,6 +107,7 @@ public class ApiRoutesLoader extends OpenApiResource {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRoutesLoader.class);
     private final List<GroupedOpenApi> groupedOpenApis;
     private final List<RouteDefinition> apiRoutes;
+    private final ObjectMapper schemaObjectMapper;
 
     /**
      * API Routes configuration.
@@ -140,6 +153,9 @@ public class ApiRoutesLoader extends OpenApiResource {
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
         this.apiRoutesConfig = apiRoutesConfig;
+        this.schemaObjectMapper = springDocConfigProperties.isOpenapi31()
+            ? ObjectMapperUtil.getObjectMapper()
+            : springDocProviders.jsonMapper();
     }
 
     /**
@@ -353,27 +369,90 @@ public class ApiRoutesLoader extends OpenApiResource {
             }
             LOGGER.debug("Media-Type extracted from schema: {}", mt);
             if (mt.getSchema().get$ref() != null) {
-                String schemaName = mt.getSchema().get$ref().replace("#/components/schemas/", "");
+                String schemaName = mt.getSchema().get$ref().replace(COMPONENT_SCHEMA_REF_PREFIX, "");
                 LOGGER.debug(REQUEST_BODY_SCHEMA, schemaName);
                 if (!schemaName.isBlank() && components != null
                         && components.getSchemas() != null
                         && components.getSchemas().get(schemaName) != null) {
-                    // Build a full schema document containing the components so that nested
-                    // $ref nodes (e.g. #/components/schemas/SubType) can be resolved by
-                    // openapi4j SchemaValidator at the api-gateway side.
-                    ObjectNode fullSchemaDoc = ObjectMapperUtil.getObjectMapper().createObjectNode();
-                    fullSchemaDoc.put("$ref", "#/components/schemas/" + schemaName);
-                    ObjectNode schemasNode = ObjectMapperUtil.getObjectMapper()
-                            .valueToTree(components.getSchemas());
-                    ObjectNode componentsNode = ObjectMapperUtil.getObjectMapper().createObjectNode();
-                    componentsNode.set("schemas", schemasNode);
+                    // Include the request schema and its transitive references so openapi4j
+                    // can resolve nested $ref nodes without registering unrelated components.
+                    ObjectNode fullSchemaDoc = schemaObjectMapper.createObjectNode();
+                    fullSchemaDoc.put("$ref", COMPONENT_SCHEMA_REF_PREFIX + schemaName);
+                    ObjectNode componentsNode = schemaObjectMapper.createObjectNode();
+                    componentsNode.set("schemas", collectReferencedSchemas(schemaName));
                     fullSchemaDoc.set("components", componentsNode);
-                    String schemaStr = ObjectMapperUtil.getObjectMapper().writeValueAsString(fullSchemaDoc);
+                    String schemaStr = schemaObjectMapper.writeValueAsString(fullSchemaDoc);
                     LOGGER.info(REQUEST_BODY_SCHEMA, schemaStr);
                     route.getMetadata().put(RegistryCommonConstants.SCHEMA, schemaStr);
                     addRequestBodyFilters(route);
                 }
             }
+        }
+    }
+
+    private ObjectNode collectReferencedSchemas(String rootSchemaName) {
+        ObjectNode referencedSchemas = schemaObjectMapper.createObjectNode();
+        LinkedList<String> pendingSchemas = new LinkedList<>();
+        Set<String> processedSchemas = new LinkedHashSet<>();
+        pendingSchemas.add(rootSchemaName);
+
+        while (!pendingSchemas.isEmpty()) {
+            String schemaName = pendingSchemas.removeFirst();
+            if (processedSchemas.add(schemaName)) {
+                Schema<?> schema = components.getSchemas().get(schemaName);
+                if (schema == null) {
+                    LOGGER.warn("Referenced component schema not found: {}", schemaName);
+                } else {
+                    JsonNode schemaNode = schemaObjectMapper.valueToTree(schema);
+                    referencedSchemas.set(schemaName, schemaNode);
+                    collectSchemaReferences(schemaNode, pendingSchemas);
+                }
+            }
+        }
+        return referencedSchemas;
+    }
+
+    private static void collectSchemaReferences(JsonNode schemaNode, LinkedList<String> referencedSchemas) {
+        if (schemaNode == null) {
+            return;
+        }
+        if (schemaNode.isArray()) {
+            schemaNode.elements().forEachRemaining(node -> collectSchemaReferences(node, referencedSchemas));
+            return;
+        }
+        if (!schemaNode.isObject()) {
+            return;
+        }
+
+        addComponentSchemaReference(schemaNode.get("$ref"), referencedSchemas);
+        SCHEMA_CHILD_KEYWORDS.forEach(keyword ->
+                collectSchemaReferences(schemaNode.get(keyword), referencedSchemas));
+        SCHEMA_MAP_KEYWORDS.forEach(keyword ->
+                collectSchemaMapReferences(schemaNode.get(keyword), referencedSchemas));
+
+        JsonNode discriminatorMapping = schemaNode.path("discriminator").path("mapping");
+        if (discriminatorMapping.isObject()) {
+            discriminatorMapping.elements().forEachRemaining(reference ->
+                    addComponentSchemaReference(reference, referencedSchemas));
+        }
+    }
+
+    private static void collectSchemaMapReferences(JsonNode schemaMap, LinkedList<String> referencedSchemas) {
+        if (schemaMap != null && schemaMap.isObject()) {
+            schemaMap.elements().forEachRemaining(schema -> collectSchemaReferences(schema, referencedSchemas));
+        }
+    }
+
+    private static void addComponentSchemaReference(JsonNode referenceNode, LinkedList<String> referencedSchemas) {
+        if (referenceNode == null || !referenceNode.isTextual()
+                || !referenceNode.asText().startsWith(COMPONENT_SCHEMA_REF_PREFIX)) {
+            return;
+        }
+        String schemaPath = referenceNode.asText().substring(COMPONENT_SCHEMA_REF_PREFIX.length());
+        int pathSeparator = schemaPath.indexOf('/');
+        String encodedSchemaName = pathSeparator >= 0 ? schemaPath.substring(0, pathSeparator) : schemaPath;
+        if (!encodedSchemaName.isBlank()) {
+            referencedSchemas.add(encodedSchemaName.replace("~1", "/").replace("~0", "~"));
         }
     }
 

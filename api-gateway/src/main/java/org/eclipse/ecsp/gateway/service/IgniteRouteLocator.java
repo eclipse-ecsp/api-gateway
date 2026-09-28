@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.gateway.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
@@ -74,6 +76,13 @@ import java.util.TreeSet;
 @ConditionalOnProperty(value = "api.dynamic.routes.enabled", havingValue = "true", matchIfMissing = false)
 @ConfigurationProperties(prefix = "api")
 public class IgniteRouteLocator implements RouteLocator {
+    private static final String ONE_OF = "oneOf";
+    private static final List<String> SCHEMA_CHILD_KEYWORDS = List.of(
+            "additionalItems", "additionalProperties", "allOf", "anyOf", "contains", "contentSchema",
+            "else", "if", "items", "not", ONE_OF, "prefixItems", "propertyNames", "then",
+            "unevaluatedItems", "unevaluatedProperties");
+    private static final List<String> SCHEMA_MAP_KEYWORDS = List.of(
+            "$defs", "definitions", "dependencies", "dependentSchemas", "patternProperties", "properties");
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(IgniteRouteLocator.class);
     private static final String LOCAL_RESPONSE_FILTER = "LocalResponseCache";
     private static final String CACHE_FILTER = "CacheFilter";
@@ -296,6 +305,7 @@ public class IgniteRouteLocator implements RouteLocator {
             if (schemaObj != null) {
                 try {
                     JsonNode schemaNode = ObjectMapperUtil.getObjectMapper().readTree((String) schemaObj);
+                    normalizeSchemaTypes(schemaNode);
                     SchemaValidator schemaValidator = new SchemaValidator(null, schemaNode);
                     apiRoute.getMetadata().put(GatewayConstants.SCHEMA_VALIDATOR, schemaValidator);
                     LOGGER.debug("Request Body SchemaValidator added for route: {}", apiRoute.getId());
@@ -308,6 +318,73 @@ public class IgniteRouteLocator implements RouteLocator {
         }
         LOGGER.debug("route in setPredicates {} ", route);
         return route;
+    }
+
+    static void normalizeSchemaTypes(JsonNode schemaNode) {
+        if (schemaNode == null) {
+            return;
+        }
+        if (schemaNode.isObject()) {
+            ObjectNode schemaObject = (ObjectNode) schemaNode;
+            JsonNode typeNode = schemaObject.get("type");
+            if (typeNode != null && typeNode.isArray()) {
+                schemaObject.remove("type");
+                applySchemaTypes(schemaObject, typeNode);
+            }
+            applySchemaTypes(schemaObject, schemaObject.remove("types"));
+            SCHEMA_CHILD_KEYWORDS.forEach(keyword -> normalizeSchemaTypes(schemaObject.get(keyword)));
+            SCHEMA_MAP_KEYWORDS.forEach(keyword -> normalizeSchemaMap(schemaObject.get(keyword)));
+            JsonNode componentsNode = schemaObject.get("components");
+            if (componentsNode != null) {
+                normalizeSchemaMap(componentsNode.get("schemas"));
+            }
+        } else if (schemaNode.isArray()) {
+            schemaNode.elements().forEachRemaining(IgniteRouteLocator::normalizeSchemaTypes);
+        }
+    }
+
+    private static void normalizeSchemaMap(JsonNode schemaMapNode) {
+        if (schemaMapNode != null && schemaMapNode.isObject()) {
+            schemaMapNode.elements().forEachRemaining(IgniteRouteLocator::normalizeSchemaTypes);
+        }
+    }
+
+    private static void applySchemaTypes(ObjectNode schemaObject, JsonNode typesNode) {
+        if (typesNode == null) {
+            return;
+        }
+        List<String> nonNullTypes = new ArrayList<>();
+        boolean nullable = collectSchemaTypes(typesNode, nonNullTypes);
+        if (nullable) {
+            schemaObject.put("nullable", true);
+        }
+        if (schemaObject.hasNonNull("type") || nonNullTypes.isEmpty()) {
+            return;
+        }
+        if (nonNullTypes.size() == 1) {
+            schemaObject.put("type", nonNullTypes.get(0));
+        } else if (!schemaObject.has(ONE_OF) && !schemaObject.has("anyOf")) {
+            ArrayNode oneOf = schemaObject.putArray(ONE_OF);
+            nonNullTypes.forEach(type -> oneOf.addObject().put("type", type));
+        }
+    }
+
+    private static boolean collectSchemaTypes(JsonNode typesNode, List<String> nonNullTypes) {
+        boolean nullable = false;
+        List<JsonNode> typeNodes = new ArrayList<>();
+        if (typesNode.isArray()) {
+            typesNode.elements().forEachRemaining(typeNodes::add);
+        } else {
+            typeNodes.add(typesNode);
+        }
+        for (JsonNode typeNode : typeNodes) {
+            if (typeNode.isNull() || "null".equals(typeNode.asText())) {
+                nullable = true;
+            } else if (typeNode.isTextual() && !nonNullTypes.contains(typeNode.asText())) {
+                nonNullTypes.add(typeNode.asText());
+            }
+        }
+        return nullable;
     }
 
     private void setCacheFilter(IgniteRouteDefinition apiRoute) {

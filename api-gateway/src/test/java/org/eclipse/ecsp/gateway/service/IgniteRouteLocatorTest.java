@@ -688,55 +688,47 @@ class IgniteRouteLocatorTest {
     }
 
     @Test
-    void getRoutesWithSchemaAddsSchemaValidator() {
-        igniteRouteLocator = new IgniteRouteLocator(
-                configurationService,
-                gatewayFilterFactories,
-                gatewayProperties,
-                false,
-                pluginLoader,
-                apiRegistryClient,
-                routeLocatorBuilder,
-                applicationEventPublisher,
-                springCloudGatewayConfig,
-                new ArrayList<>()
-        );
+    void normalizeSchemaTypesSupportsStandardAndLegacyKeywords() throws Exception {
+        JsonNode schemaNode = ObjectMapperUtil.getObjectMapper().readTree("""
+                {
+                  "types": ["object"],
+                  "properties": {
+                    "legacyNullable": { "types": ["string", null] },
+                    "quotedNullable": { "types": ["string", "null"] },
+                    "standard": { "type": "integer" },
+                                                                                "union": { "types": ["string", "integer"] },
+                                                                                "types": { "type": "string" }
+                                                                        },
+                                                                        "example": { "types": "must remain instance data" }
+                }
+                """);
 
-        IgniteRouteDefinition testRoute = new IgniteRouteDefinition();
-        testRoute.setId("test-route");
-        testRoute.setUri(URI.create("http://localhost:8080"));
-        testRoute.setService("test-service");
+        IgniteRouteLocator.normalizeSchemaTypes(schemaNode);
 
-        Map<String, Object> metadata = new HashMap<>();
-        String schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}";
-        metadata.put("schema", schema);
-        testRoute.setMetadata(metadata);
+        Assertions.assertEquals("object", schemaNode.path("type").asText());
+        Assertions.assertFalse(schemaNode.has("types"));
+        JsonNode properties = schemaNode.path("properties");
+        Assertions.assertEquals("string", properties.path("legacyNullable").path("type").asText());
+        Assertions.assertTrue(properties.path("legacyNullable").path("nullable").asBoolean());
+        Assertions.assertEquals("string", properties.path("quotedNullable").path("type").asText());
+        Assertions.assertTrue(properties.path("quotedNullable").path("nullable").asBoolean());
+        Assertions.assertEquals("integer", properties.path("standard").path("type").asText());
+        Assertions.assertEquals(2, properties.path("union").path("oneOf").size());
+        Assertions.assertEquals("string", properties.path("types").path("type").asText());
+        Assertions.assertEquals("must remain instance data", schemaNode.path("example").path("types").asText());
 
-        PredicateDefinition pathPredicate = new PredicateDefinition();
-        pathPredicate.setName("Path");
-        pathPredicate.addArg("pattern", "/test/**");
-        testRoute.setPredicates(List.of(pathPredicate));
+        SchemaValidator schemaValidator = new SchemaValidator(null, schemaNode);
+        ValidationData<Void> stringUnionValidation = new ValidationData<>();
+        schemaValidator.validate(ObjectMapperUtil.getObjectMapper().readTree("""
+                {"legacyNullable":null,"quotedNullable":"value","standard":1,"union":"value"}
+                """), stringUnionValidation);
+        Assertions.assertTrue(stringUnionValidation.isValid());
 
-        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(testRoute));
-
-        RouteLocatorBuilder.Builder builder = mock(RouteLocatorBuilder.Builder.class);
-        when(routeLocatorBuilder.routes()).thenReturn(builder);
-        when(builder.route(any(String.class), any())).thenReturn(builder);
-
-        RouteLocator mockLocator = mock(RouteLocator.class);
-        Route mockRoute = Route.async()
-                .id("test-route")
-                .uri("http://localhost:8080")
-                .predicate(exchange -> true)
-                .build();
-        when(mockLocator.getRoutes()).thenReturn(Flux.just(mockRoute));
-        when(builder.build()).thenReturn(mockLocator);
-
-        Flux<Route> routes = igniteRouteLocator.getRoutes();
-
-        StepVerifier.create(routes)
-                .expectNextCount(1)
-                .verifyComplete();
+        ValidationData<Void> integerUnionValidation = new ValidationData<>();
+        schemaValidator.validate(ObjectMapperUtil.getObjectMapper().readTree("""
+                {"legacyNullable":"value","quotedNullable":null,"standard":1,"union":2}
+                """), integerUnionValidation);
+        Assertions.assertTrue(integerUnionValidation.isValid());
     }
 
     @Test

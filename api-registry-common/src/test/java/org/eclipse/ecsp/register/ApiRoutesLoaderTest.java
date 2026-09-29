@@ -118,7 +118,7 @@ class ApiRoutesLoaderTest {
         apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig);
+                springDocProviders, springDocCustomizers, apiRouteConfig, Optional.empty());
     }
 
     @Test
@@ -203,19 +203,23 @@ class ApiRoutesLoaderTest {
 
     private Paths getPathsObj() {
         Paths paths = new Paths();
-        paths.addPathItem("POST", new PathItem().post(getOperationObj()));
-        paths.addPathItem("GET", new PathItem().get(getOperationObj()));
-        paths.addPathItem("PUT", new PathItem().put(getOperationObj()));
-        paths.addPathItem("DELETE", new PathItem().delete(getOperationObj()));
-        paths.addPathItem("PATCH", new PathItem().patch(getOperationObj()));
-        paths.addPathItem("OPTIONS", new PathItem().options(getOperationObj()));
+        paths.addPathItem("POST", new PathItem().post(getOperationObj("createPost")));
+        paths.addPathItem("GET", new PathItem().get(getOperationObj("createGet")));
+        paths.addPathItem("PUT", new PathItem().put(getOperationObj("createPut")));
+        paths.addPathItem("DELETE", new PathItem().delete(getOperationObj("createDelete")));
+        paths.addPathItem("PATCH", new PathItem().patch(getOperationObj("createPatch")));
+        paths.addPathItem("OPTIONS", new PathItem().options(getOperationObj("createOptions")));
         return paths;
     }
 
     private Operation getOperationObj() {
+        return getOperationObj("create");
+    }
+
+    private Operation getOperationObj(String operationId) {
         Operation operation = new Operation();
         operation.setTags(List.of("test-controller", "get"));
-        operation.setOperationId("create");
+        operation.setOperationId(operationId);
         operation.setRequestBody(getRequestBodyObj());
         operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
         return operation;

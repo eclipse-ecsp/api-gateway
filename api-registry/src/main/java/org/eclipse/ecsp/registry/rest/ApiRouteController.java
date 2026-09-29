@@ -21,6 +21,8 @@ package org.eclipse.ecsp.registry.rest;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.registry.service.ApiRouteService;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.security.Scopes;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -111,5 +114,26 @@ public class ApiRouteController {
     public void delete(@PathVariable String name) {
         LOGGER.info("Delete Route: {}", name);
         apiRouteService.delete(name);
+    }
+
+    /**
+     * Reconciles the authoritative route snapshot for one service: upserts every desired route,
+     * then retires any previously-active route for the service that this snapshot does not
+     * include. See the Route Path Exposure &amp; Filter Customization design for the full
+     * generation/snapshotId fencing contract.
+     *
+     * @param service the service name; every route in {@code request} must belong to it
+     * @param request the complete desired route snapshot
+     * @return the reconciliation result counts
+     */
+    @Hidden
+    @PutMapping(path = "/api/v1/routes/services/{service}/snapshot",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
+    public RouteSnapshotResult reconcileSnapshot(@PathVariable String service,
+                                                  @RequestBody @Validated RouteSnapshotRequest request) {
+        LOGGER.info("Reconcile Route Snapshot: service={}, generation={}", service, request.generation());
+        return apiRouteService.reconcile(service, request);
     }
 }

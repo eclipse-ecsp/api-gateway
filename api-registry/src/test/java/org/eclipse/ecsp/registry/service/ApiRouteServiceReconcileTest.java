@@ -1,0 +1,263 @@
+/********************************************************************************
+ * Copyright (c) 2023-24 Harman International
+ *
+ * <p>Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and\
+ * limitations under the License.
+ *
+ * <p>SPDX-License-Identifier: Apache-2.0
+ ********************************************************************************/
+
+package org.eclipse.ecsp.registry.service;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.eclipse.ecsp.register.SnapshotDigestUtil;
+import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
+import org.eclipse.ecsp.registry.config.ChecksumProperties;
+import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.registry.events.EventPublisherContext;
+import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.web.server.ResponseStatusException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Tests for {@link ApiRouteService#reconcile(String, RouteSnapshotRequest)} (route snapshot
+ * reconciliation).
+ */
+class ApiRouteServiceReconcileTest {
+
+    private static final String SERVICE = "demo-service";
+
+    private ApiRouteService apiRouteService;
+
+    @Mock
+    private ApiRouteRepo apiRouteRepo;
+
+    @Mock
+    private EventPublisherContext routeEventPublisher;
+
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter counter;
+
+    @Mock
+    private ChecksumService checksumService;
+
+    @BeforeEach
+    void beforeEach() {
+        MockitoAnnotations.openMocks(this);
+        when(meterRegistry.counter(anyString(), anyString(), anyString())).thenReturn(counter);
+        ChecksumProperties checksumProperties = new ChecksumProperties();
+        checksumProperties.setEnabled(false);
+        apiRouteService = new ApiRouteService(
+                apiRouteRepo, Optional.of(routeEventPublisher), checksumProperties, checksumService, meterRegistry);
+        when(apiRouteRepo.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private RouteDefinition route(String id) {
+        RouteDefinition route = new RouteDefinition();
+        route.setId(id);
+        route.setService(SERVICE);
+        route.setUri(URI.create("http://" + SERVICE + ":8080/"));
+        route.setMetadata(new HashMap<>());
+        return route;
+    }
+
+    private ApiRouteEntity entity(String id, boolean active) {
+        ApiRouteEntity entity = new ApiRouteEntity();
+        entity.setId(id);
+        entity.setService(SERVICE);
+        entity.setActive(active);
+        RouteDefinition route = route(id);
+        entity.setRoute(route);
+        return entity;
+    }
+
+    private RouteSnapshotRequest snapshot(long generation, RouteDefinition... routes) {
+        List<RouteDefinition> routeList = List.of(routes);
+        return new RouteSnapshotRequest(generation, SnapshotDigestUtil.compute(generation, routeList), routeList);
+    }
+
+    @Test
+    void initialSnapshotCreatesAllDesiredRoutesWithoutRetirement() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        when(apiRouteRepo.findById(anyString())).thenReturn(Optional.empty());
+
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(1, route("A"), route("B")));
+
+        assertEquals(2, result.created());
+        assertEquals(0, result.retired());
+        verify(routeEventPublisher, times(1)).publishEvent(any());
+    }
+
+    @Test
+    void absentRouteIsRetiredAndDesiredRouteIsUpserted() {
+        List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("A", true), entity("B", true)));
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(entity("A", true)));
+
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(2, route("A")));
+
+        assertEquals(1, result.retired());
+        verify(apiRouteRepo).save(argThatIdEquals("B"));
+    }
+
+    @Test
+    void retiredRouteIsMarkedInactiveAndFlaggedRetired() {
+        ApiRouteEntity toRetire = entity("B", true);
+        List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("A", true), toRetire));
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(entity("A", true)));
+
+        apiRouteService.reconcile(SERVICE, snapshot(2, route("A")));
+
+        assertEquals(Boolean.FALSE, toRetire.getActive());
+        assertEquals(Boolean.TRUE, toRetire.getRoute().getMetadata()
+                .get("x-registration-retired"));
+    }
+
+    @Test
+    void alreadyRetiredRouteIsNotRetiredAgain() {
+        ApiRouteEntity alreadyRetired = entity("B", false);
+        List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("A", true), alreadyRetired));
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(entity("A", true)));
+
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(2, route("A")));
+
+        assertEquals(0, result.retired());
+    }
+
+    @Test
+    void rejectsSnapshotIdMismatch() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        RouteSnapshotRequest tampered = new RouteSnapshotRequest(1, "sha256:wrong", List.of(route("A")));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.reconcile(SERVICE, tampered));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void rejectsLowerGenerationThanAlreadyApplied() {
+        ApiRouteEntity existing = entity("A", true);
+        existing.getRoute().getMetadata().put("x-registration-generation", 5L);
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(existing)));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.reconcile(SERVICE, snapshot(3, route("A"))));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void rejectsSameGenerationWithDifferentContent() {
+        ApiRouteEntity existing = entity("A", true);
+        existing.getRoute().getMetadata().put("x-registration-generation", 5L);
+        existing.getRoute().getMetadata().put("x-registration-snapshot-id", "sha256:previous");
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(existing)));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.reconcile(SERVICE, snapshot(5, route("A"), route("B"))));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void repeatingIdenticalSnapshotIsIdempotent() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        when(apiRouteRepo.findById(anyString())).thenReturn(Optional.empty());
+
+        // Each call builds its own request/route object graph, matching how two independent
+        // HTTP requests are each freshly deserialized server-side; reconcile() itself must not
+        // mutate shared/cached state in a way that breaks a legitimate identical retry.
+        RouteSnapshotResult first = apiRouteService.reconcile(SERVICE, snapshot(1, route("A")));
+        RouteSnapshotResult second = apiRouteService.reconcile(SERVICE, snapshot(1, route("A")));
+
+        assertEquals(1, first.created());
+        assertEquals(1, second.created());
+    }
+
+    @Test
+    void rejectsRouteIdOwnedByAnotherService() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        ApiRouteEntity foreign = entity("shared-id", true);
+        foreign.setService("other-service");
+        when(apiRouteRepo.findById("shared-id")).thenReturn(Optional.of(foreign));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.reconcile(SERVICE, snapshot(1, route("shared-id"))));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void rejectsEmptyRouteSet() {
+        RouteSnapshotRequest empty = new RouteSnapshotRequest(1, "sha256:anything", new ArrayList<>());
+        assertThrows(Exception.class, () -> apiRouteService.reconcile(SERVICE, empty));
+    }
+
+    @Test
+    void desiredUpsertFailureAbortsBeforeRetirement() {
+        List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("B", true)));
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.empty());
+        when(apiRouteRepo.save(argThatIdEquals("A"))).thenThrow(new RuntimeException("db down"));
+
+        assertThrows(RuntimeException.class, () -> apiRouteService.reconcile(SERVICE, snapshot(2, route("A"))));
+
+        verify(apiRouteRepo, never()).save(argThatIdEquals("B"));
+    }
+
+    @Test
+    void legacyUpsertIsRejectedAfterServiceAdoptsReconciliation() {
+        ApiRouteEntity reconciled = entity("A", true);
+        reconciled.getRoute().getMetadata().put("x-registration-generation", 1L);
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(reconciled)));
+
+        RouteDefinition legacyPost = route("C");
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.createOrUpdate(legacyPost));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void legacyUpsertStillWorksBeforeServiceAdoptsReconciliation() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        when(apiRouteRepo.findById(anyString())).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(route("C")));
+    }
+
+    private static ApiRouteEntity argThatIdEquals(String id) {
+        return Mockito.argThat(e -> e != null && id.equals(e.getId()));
+    }
+}

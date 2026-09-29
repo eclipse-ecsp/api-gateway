@@ -34,6 +34,12 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
+import org.eclipse.ecsp.register.customization.PathTemplateUtils;
+import org.eclipse.ecsp.register.customization.RewriteSpec;
+import org.eclipse.ecsp.register.customization.RouteCustomizerOpenApiCustomizer;
+import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
+import org.eclipse.ecsp.register.customization.RouteIdUtils;
+import org.eclipse.ecsp.register.customization.RouteMappingMatcher;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
@@ -67,6 +73,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -125,8 +132,11 @@ public class ApiRoutesLoader extends OpenApiResource {
     private String timeToLive;
     @Value("${api_gateway_cachesize:50MB}")
     private String cacheSize;
+    @Value("${api.registry.registration-mode:upsert}")
+    private String registrationMode;
     private URI serviceUrl;
     private Components components = null;
+    private final RouteCustomizerProperties routeCustomizerProperties;
 
     /**
      * Constructor for ApiRoutesLoader.
@@ -140,6 +150,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
+     * @param routeCustomizerProperties   optional route-path-exposure / filter-customization configuration
      */
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
@@ -147,7 +158,8 @@ public class ApiRoutesLoader extends OpenApiResource {
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
                            SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
-                           ApiRoutesConfig apiRoutesConfig) {
+                           ApiRoutesConfig apiRoutesConfig,
+                           Optional<RouteCustomizerProperties> routeCustomizerProperties) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
@@ -156,6 +168,7 @@ public class ApiRoutesLoader extends OpenApiResource {
         this.schemaObjectMapper = springDocConfigProperties.isOpenapi31()
             ? ObjectMapperUtil.getObjectMapper()
             : springDocProviders.jsonMapper();
+        this.routeCustomizerProperties = routeCustomizerProperties.orElse(null);
     }
 
     /**
@@ -164,13 +177,25 @@ public class ApiRoutesLoader extends OpenApiResource {
      * <p>This method initializes the API routes by calling the `prepareApiRoutes` and `prepareApiDocRoutes` methods.
      * It logs the application start and returns the list of API routes.
      *
+     * <p>Clears any routes computed by a previous invocation before recomputing: this method can
+     * be invoked more than once per application lifecycle (the caller listens for both
+     * {@code ApplicationReadyEvent} and {@code ContextRefreshedEvent}), and repeated invocations
+     * must be idempotent rather than accumulating duplicate routes.
+     *
      * @return List of `RouteDefinition` objects representing the API routes.
      * @throws URISyntaxException if there is an error in the URI syntax.
      */
     public List<RouteDefinition> getApiRoutes() throws URISyntaxException {
         LOGGER.info("Application started");
+        if (routeCustomizerProperties != null
+                && !RegistryCommonConstants.REGISTRATION_MODE_RECONCILE.equalsIgnoreCase(registrationMode)) {
+            throw new IllegalStateException("api.registry.route-customizer.enabled=true requires "
+                    + "api.registry.registration-mode=reconcile");
+        }
+        apiRoutes.clear();
         prepareApiRoutes();
         prepareApiDocRoutes();
+        RouteSetValidator.validate(apiRoutes);
         return apiRoutes;
     }
 
@@ -287,8 +312,9 @@ public class ApiRoutesLoader extends OpenApiResource {
             setCachingFilters(method, operation, route);
             setSecurityFilters(operation, route);
             setHeaderMetadata(operation, route);
-            setRewritePathFilter(route);
+            setRewritePathFilter(operation, path, route);
             setCustomGatewayFilters(operation, route);
+            setConfiguredFilters(operation, path, method, route);
             if (route.getFilters().isEmpty()) {
                 LOGGER.warn("API Route has no filter configured");
             }
@@ -314,7 +340,7 @@ public class ApiRoutesLoader extends OpenApiResource {
     private RouteDefinition createRouteDefinition(HttpMethod method, String path, Operation operation) {
         RouteDefinition route = new RouteDefinition();
         operation.setOperationId(operation.getOperationId().replace("_", "-"));
-        route.setId(operation.getTags().get(0) + "-" + operation.getOperationId());
+        route.setId(RouteIdUtils.requireRouteId(operation));
         LOGGER.info("Route id: " + route.getId());
         route.setService(appName);
         route.setUri(serviceUrl);
@@ -530,11 +556,22 @@ public class ApiRoutesLoader extends OpenApiResource {
     /**
      * Sets the rewrite path filter for the route.
      *
-     * <p>This method checks if the context path is not null or blank and sets the rewrite path filter for the route.
+     * <p>When the operation carries the {@code x-route-original-path} extension (i.e. it is a
+     * route-customizer alias), builds a targeted rewrite that translates the *exposed* path back
+     * to the *original* controller path before applying {@link #contextPath}. Otherwise falls
+     * back to exactly today's generic, path-agnostic rewrite &mdash; fully backward compatible.
      *
-     * @param route the RouteDefinition object
+     * @param operation the OpenAPI Operation object
+     * @param path      the OpenAPI path key this route is registered at
+     * @param route     the RouteDefinition object
      */
-    private void setRewritePathFilter(RouteDefinition route) {
+    private void setRewritePathFilter(Operation operation, String path, RouteDefinition route) {
+        Object originalPath = operation.getExtensions() == null ? null
+                : operation.getExtensions().get(RouteCustomizerOpenApiCustomizer.ORIGINAL_PATH_EXTENSION);
+        if (originalPath instanceof String original) {
+            addTargetedRewriteFilter(route, path, original);
+            return;
+        }
         if (this.contextPath != null && !this.contextPath.isBlank()) {
             FilterDefinition filter = new FilterDefinition();
             filter.setName(RegistryCommonConstants.REWRITE_PATH_FILTER);
@@ -544,6 +581,25 @@ public class ApiRoutesLoader extends OpenApiResource {
             route.getFilters().add(filter);
             LOGGER.info("Rewrite Path Filter: " + filter);
         }
+    }
+
+    /**
+     * Rewrites a customized {@code exposedPath} back to the controller's real
+     * {@code originalPath} (prefixed with {@link #contextPath} if set), preserving
+     * {@code {pathVariable}} segments by name via named regex groups.
+     *
+     * @param route        the RouteDefinition object
+     * @param exposedPath  the path the gateway actually matches
+     * @param originalPath the real controller path
+     */
+    private void addTargetedRewriteFilter(RouteDefinition route, String exposedPath, String originalPath) {
+        RewriteSpec rewrite = PathTemplateUtils.buildRewrite(exposedPath, originalPath, this.contextPath);
+        FilterDefinition filter = new FilterDefinition();
+        filter.setName(RegistryCommonConstants.REWRITE_PATH_FILTER);
+        filter.getArgs().put(RegistryCommonConstants.REGEX, rewrite.regex());
+        filter.getArgs().put(RegistryCommonConstants.REPLACEMENT, rewrite.replacement());
+        route.getFilters().add(filter);
+        LOGGER.info("Targeted Rewrite Path Filter: " + filter);
     }
 
     /**
@@ -668,5 +724,36 @@ public class ApiRoutesLoader extends OpenApiResource {
         }
         LOGGER.debug("Adding filter: {} with args: {}", filter.getName(), filter.getArgs());
         filters.add(filter);
+    }
+
+    /**
+     * Merges configuration-driven filters (see {@code RouteCustomizerProperties.mappings[].filters})
+     * into the route, alongside whatever annotation-driven ({@code @CustomGatewayFilter}) filters
+     * {@link #setCustomGatewayFilters(Operation, RouteDefinition)} already added.
+     *
+     * <p>Uses {@link RouteMappingMatcher} rather than a direct field comparison so that a mapping
+     * combining {@code exposeAs} and {@code filters} applies the filter to every fanned-out route
+     * produced from it, not just the original.
+     *
+     * @param operation the OpenAPI Operation object (original or a fan-out clone)
+     * @param path      the OpenAPI path key this route is registered at
+     * @param method    the HTTP method this route is registered under
+     * @param route     the RouteDefinition object
+     */
+    private void setConfiguredFilters(Operation operation, String path, HttpMethod method, RouteDefinition route) {
+        if (routeCustomizerProperties == null) {
+            return;
+        }
+        routeCustomizerProperties.getMappings().stream()
+                .filter(mapping -> RouteMappingMatcher.matches(mapping, operation, path, method))
+                .flatMap(mapping -> mapping.getFilters().stream())
+                .forEach(configuredFilter -> {
+                    FilterDefinition filter = new FilterDefinition();
+                    filter.setName(configuredFilter.getName());
+                    filter.getArgs().putAll(configuredFilter.getArgs());
+                    route.getFilters().add(filter);
+                    LOGGER.info("Configured filter '{}' applied to route {}", configuredFilter.getName(),
+                            route.getId());
+                });
     }
 }

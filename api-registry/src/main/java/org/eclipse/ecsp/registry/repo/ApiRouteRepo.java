@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.registry.repo;
 
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,6 +42,26 @@ public interface ApiRouteRepo {
      * @return a list of all ApiRouteEntities
      */
     List<ApiRouteEntity> findAll();
+
+    /**
+     * Finds all ApiRouteEntities owned by the given service, active or inactive.
+     *
+     * <p>Default implementation filters {@link #findAll()} in-memory; acceptable given the
+     * documented route-count scale (tens to low hundreds of routes per service).
+     * Implementations may override with an indexed query.
+     *
+     * @param service the service name
+     * @return entities whose {@code service} matches
+     */
+    default List<ApiRouteEntity> findAllByService(String service) {
+        List<ApiRouteEntity> result = new ArrayList<>();
+        for (ApiRouteEntity entity : findAll()) {
+            if (service.equals(entity.getService())) {
+                result.add(entity);
+            }
+        }
+        return result;
+    }
 
     /**
      * Saves an ApiRouteEntity to the database.

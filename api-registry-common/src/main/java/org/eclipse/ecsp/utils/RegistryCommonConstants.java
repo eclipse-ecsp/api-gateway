@@ -188,4 +188,42 @@ public class RegistryCommonConstants {
      */
     public static final String API_REGISTRY_WEB_CLIENT_PROPAGATION_PREFIX =
             API_REGISTRY_PREFIX + ".token-propagation.web-client";
+
+    /**
+     * Registration mode value that makes a submitted route set authoritative: absence of a
+     * previously-registered route id from the submitted set retires it (see route snapshot
+     * reconciliation).
+     */
+    public static final String REGISTRATION_MODE_RECONCILE = "reconcile";
+
+    /**
+     * URL prefix (before the {@code {service}} path segment) for the route snapshot
+     * reconciliation endpoint.
+     */
+    public static final String ROUTES_SERVICES_ENDPOINT_PREFIX = "/api/v1/routes/services/";
+
+    /**
+     * URL suffix (after the {@code {service}} path segment) for the route snapshot
+     * reconciliation endpoint.
+     */
+    public static final String SNAPSHOT_ENDPOINT_SUFFIX = "/snapshot";
+
+    /**
+     * {@code RouteDefinition.metadata} key storing the deployment generation that last applied
+     * (created, updated, or retired) a route via snapshot reconciliation.
+     */
+    public static final String REGISTRATION_GENERATION_METADATA_KEY = "x-registration-generation";
+
+    /**
+     * {@code RouteDefinition.metadata} key storing the {@code snapshotId} that last applied a
+     * route via snapshot reconciliation.
+     */
+    public static final String REGISTRATION_SNAPSHOT_ID_METADATA_KEY = "x-registration-snapshot-id";
+
+    /**
+     * {@code RouteDefinition.metadata} key marking a route as intentionally retired by snapshot
+     * reconciliation (as opposed to merely {@code inactive} due to transient service health).
+     * {@code ApiRoutesHealthMonitor} must never reactivate a route carrying this marker.
+     */
+    public static final String REGISTRATION_RETIRED_METADATA_KEY = "x-registration-retired";
 }

@@ -27,6 +27,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,5 +85,13 @@ class RouteSetValidatorTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> RouteSetValidator.validate(routes));
         assertTrue(ex.getMessage().contains("duplicate method/path"));
+    }
+
+    @Test
+    void templatesDifferingOnlyInVariableNamesCollide() {
+        List<RouteDefinition> routes = List.of(
+                route("Demo-byId", "GET", "/x/{id}"),
+                route("Demo-byName", "GET", "/x/{name}"));
+        assertEquals(1, RouteSetValidator.findConflicts(routes).size());
     }
 }

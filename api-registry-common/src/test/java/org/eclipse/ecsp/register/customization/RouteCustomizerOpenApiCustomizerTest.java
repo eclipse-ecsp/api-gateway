@@ -126,11 +126,8 @@ class RouteCustomizerOpenApiCustomizerTest {
 
     @Test
     void cloneRetagsSummaryWrittenAsMethodPlusClassLevelPrefixStrippedPath() {
-        // Some controllers hand-author @Operation(summary = "GET " + <method-mapping-only path>)
-        // omitting the class-level @RequestMapping prefix, so it never literally equals the full
-        // registered path (e.g. real path is /v1.0/findVehicleById/{id}, summary just says
-        // "GET /findVehicleById/{id}"). The literal full-path replace can't catch that; the
-        // leading "<METHOD> /" shape is what identifies it as this convention instead.
+        // Hand-written summaries often omit the class-level @RequestMapping prefix: the path in
+        // the summary is then only a suffix of the registered path.
         OpenAPI openApi = openApiWithOperation("/v1.0/findVehicleById/{id}", "Demo", "findVehicleById", false);
         Operation original = openApi.getPaths().get("/v1.0/findVehicleById/{id}").getGet();
         original.setSummary("GET /findVehicleById/{id}");
@@ -141,6 +138,34 @@ class RouteCustomizerOpenApiCustomizerTest {
         Operation clone = openApi.getPaths().get("/v1/vehicles/{id}").getGet();
         assertEquals("GET /v1/vehicles/{id}", clone.getSummary());
         assertEquals("GET /findVehicleById/{id}", original.getSummary());
+    }
+
+    @Test
+    void cloneKeepsDescriptiveSummaryAsWritten() {
+        OpenAPI openApi = openApiWithOperation("/v1.0/findVehicleById/{id}", "Demo", "findVehicleById", false);
+        openApi.getPaths().get("/v1.0/findVehicleById/{id}").getGet()
+                .setSummary("GET /findVehicleById/{id} - returns the vehicle profile");
+        properties.setMappings(List.of(mapping("Demo-findVehicleById", false, "/v1/vehicles/{id}")));
+
+        customizer.customise(openApi);
+
+        assertEquals("GET /findVehicleById/{id} - returns the vehicle profile",
+                openApi.getPaths().get("/v1/vehicles/{id}").getGet().getSummary());
+    }
+
+    @Test
+    void cloneRecordsTheIndexOfTheMappingThatProducedIt() {
+        OpenAPI openApi = openApiWithOperation("/v1/api/dothis", "Demo", "doThis", false);
+        properties.setMappings(List.of(
+                mapping("Demo-doThis", false, "/api/first"),
+                mapping("Demo-doThis", false, "/api/second")));
+
+        customizer.customise(openApi);
+
+        assertEquals(0, openApi.getPaths().get("/api/first").getGet().getExtensions()
+                .get(RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION));
+        assertEquals(1, openApi.getPaths().get("/api/second").getGet().getExtensions()
+                .get(RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION));
     }
 
     @Test

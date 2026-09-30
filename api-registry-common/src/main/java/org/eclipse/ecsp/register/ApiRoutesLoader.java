@@ -187,15 +187,20 @@ public class ApiRoutesLoader extends OpenApiResource {
      */
     public List<RouteDefinition> getApiRoutes() throws URISyntaxException {
         LOGGER.info("Application started");
-        if (routeCustomizerProperties != null
-                && !RegistryCommonConstants.REGISTRATION_MODE_RECONCILE.equalsIgnoreCase(registrationMode)) {
+        boolean reconcileMode = RegistryCommonConstants.REGISTRATION_MODE_RECONCILE.equalsIgnoreCase(registrationMode);
+        if (routeCustomizerProperties != null && !reconcileMode) {
             throw new IllegalStateException("api.registry.route-customizer.enabled=true requires "
                     + "api.registry.registration-mode=reconcile");
         }
         apiRoutes.clear();
         prepareApiRoutes();
         prepareApiDocRoutes();
-        RouteSetValidator.validate(apiRoutes);
+        if (reconcileMode) {
+            RouteSetValidator.validate(apiRoutes);
+        } else {
+            RouteSetValidator.findConflicts(apiRoutes)
+                    .forEach(conflict -> LOGGER.warn("ROUTE_SET_CONFLICT | {}", conflict));
+        }
         return apiRoutes;
     }
 
@@ -599,7 +604,8 @@ public class ApiRoutesLoader extends OpenApiResource {
         filter.getArgs().put(RegistryCommonConstants.REGEX, rewrite.regex());
         filter.getArgs().put(RegistryCommonConstants.REPLACEMENT, rewrite.replacement());
         route.getFilters().add(filter);
-        LOGGER.info("Targeted Rewrite Path Filter: " + filter);
+        LOGGER.info("Targeted RewritePath for route {}: {} -> {}",
+                route.getId(), rewrite.regex(), rewrite.replacement());
     }
 
     /**
@@ -729,11 +735,8 @@ public class ApiRoutesLoader extends OpenApiResource {
     /**
      * Merges configuration-driven filters (see {@code RouteCustomizerProperties.mappings[].filters})
      * into the route, alongside whatever annotation-driven ({@code @CustomGatewayFilter}) filters
-     * {@link #setCustomGatewayFilters(Operation, RouteDefinition)} already added.
-     *
-     * <p>Uses {@link RouteMappingMatcher} rather than a direct field comparison so that a mapping
-     * combining {@code exposeAs} and {@code filters} applies the filter to every fanned-out route
-     * produced from it, not just the original.
+     * {@link #setCustomGatewayFilters(Operation, RouteDefinition)} already added. See
+     * {@link RouteMappingMatcher} for which routes a mapping's filters apply to.
      *
      * @param operation the OpenAPI Operation object (original or a fan-out clone)
      * @param path      the OpenAPI path key this route is registered at
@@ -744,16 +747,19 @@ public class ApiRoutesLoader extends OpenApiResource {
         if (routeCustomizerProperties == null) {
             return;
         }
-        routeCustomizerProperties.getMappings().stream()
-                .filter(mapping -> RouteMappingMatcher.matches(mapping, operation, path, method))
-                .flatMap(mapping -> mapping.getFilters().stream())
-                .forEach(configuredFilter -> {
-                    FilterDefinition filter = new FilterDefinition();
-                    filter.setName(configuredFilter.getName());
-                    filter.getArgs().putAll(configuredFilter.getArgs());
-                    route.getFilters().add(filter);
-                    LOGGER.info("Configured filter '{}' applied to route {}", configuredFilter.getName(),
-                            route.getId());
-                });
+        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getMappings();
+        for (int index = 0; index < mappings.size(); index++) {
+            RouteCustomizerProperties.RouteMapping mapping = mappings.get(index);
+            if (!RouteMappingMatcher.matches(mapping, index, operation, path, method)) {
+                continue;
+            }
+            for (RouteCustomizerProperties.FilterOverride configuredFilter : mapping.getFilters()) {
+                FilterDefinition filter = new FilterDefinition();
+                filter.setName(configuredFilter.getName());
+                filter.getArgs().putAll(configuredFilter.getArgs());
+                route.getFilters().add(filter);
+                LOGGER.info("Configured filter '{}' applied to route {}", configuredFilter.getName(), route.getId());
+            }
+        }
     }
 }

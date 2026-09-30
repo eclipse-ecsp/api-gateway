@@ -57,6 +57,12 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
      */
     public static final String ORIGINAL_PATH_EXTENSION = "x-route-original-path";
 
+    /**
+     * Vendor extension carrying the index (in {@code mappings}) of the mapping that produced an
+     * alias, so that mapping's filters apply to its own aliases only.
+     */
+    public static final String MAPPING_INDEX_EXTENSION = "x-route-mapping-index";
+
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(RouteCustomizerOpenApiCustomizer.class);
     private static final List<HttpMethod> SCANNED_METHODS = List.of(HttpMethod.GET, HttpMethod.POST,
             HttpMethod.PUT, HttpMethod.DELETE, HttpMethod.PATCH, HttpMethod.OPTIONS);
@@ -84,11 +90,14 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
         if (paths == null || properties.getMappings().isEmpty()) {
             return;
         }
-        properties.getMappings().forEach(mapping -> applyMapping(paths, mapping));
+        List<RouteCustomizerProperties.RouteMapping> mappings = properties.getMappings();
+        for (int index = 0; index < mappings.size(); index++) {
+            applyMapping(paths, mappings.get(index), index);
+        }
     }
 
-    private void applyMapping(Paths paths, RouteCustomizerProperties.RouteMapping mapping) {
-        MatchedOperation match = findOperation(paths, mapping);
+    private void applyMapping(Paths paths, RouteCustomizerProperties.RouteMapping mapping, int mappingIndex) {
+        MatchedOperation match = findOperation(paths, mapping, mappingIndex);
         if (match == null) {
             LOGGER.warn("ROUTE_CUSTOMIZER_NO_MATCH | routeId={} | path={}",
                     mapping.getRouteId(), mapping.getPath());
@@ -155,14 +164,15 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
         }
     }
 
-    private MatchedOperation findOperation(Paths paths, RouteCustomizerProperties.RouteMapping mapping) {
+    private MatchedOperation findOperation(Paths paths, RouteCustomizerProperties.RouteMapping mapping,
+                                           int mappingIndex) {
         if (mapping.getRouteId() != null && !mapping.getRouteId().isBlank()) {
-            return findByRouteId(paths, mapping.getRouteId());
+            return findByRouteId(paths, mapping.getRouteId(), mappingIndex);
         }
-        return findByPath(paths, mapping.getPath(), mapping.getMethod());
+        return findByPath(paths, mapping.getPath(), mapping.getMethod(), mappingIndex);
     }
 
-    private MatchedOperation findByRouteId(Paths paths, String routeId) {
+    private MatchedOperation findByRouteId(Paths paths, String routeId, int mappingIndex) {
         for (Map.Entry<String, PathItem> entry : paths.entrySet()) {
             for (HttpMethod method : SCANNED_METHODS) {
                 Operation candidate = operationFor(entry.getValue(), method);
@@ -170,14 +180,14 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
                     continue;
                 }
                 if (routeId.equals(RouteIdUtils.computeRouteId(candidate))) {
-                    return new MatchedOperation(candidate, entry.getKey(), method, entry.getValue());
+                    return new MatchedOperation(candidate, entry.getKey(), method, entry.getValue(), mappingIndex);
                 }
             }
         }
         return null;
     }
 
-    private MatchedOperation findByPath(Paths paths, String path, String configuredMethod) {
+    private MatchedOperation findByPath(Paths paths, String path, String configuredMethod, int mappingIndex) {
         PathItem pathItem = paths.get(path);
         if (pathItem == null) {
             return null;
@@ -187,7 +197,7 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
             Operation candidate = operationFor(pathItem, method);
             boolean methodAccepted = configuredMethod == null || configuredMethod.equalsIgnoreCase(method.name());
             if (candidate != null && !isAliasClone(candidate) && methodAccepted) {
-                candidates.add(new MatchedOperation(candidate, path, method, pathItem));
+                candidates.add(new MatchedOperation(candidate, path, method, pathItem, mappingIndex));
             }
         }
         if (candidates.size() != 1) {
@@ -260,6 +270,7 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
         retagDocumentation(clone, match.httpMethod(), match.path(), targetPath, originalRouteId);
         clone.addExtension(ALIAS_OF_EXTENSION, originalRouteId);
         clone.addExtension(ORIGINAL_PATH_EXTENSION, match.path());
+        clone.addExtension(MAPPING_INDEX_EXTENSION, match.mappingIndex());
         putOperationWithPathMetadata(paths, targetPath, match, clone);
     }
 
@@ -279,12 +290,9 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
     }
 
     /**
-     * Handles two authoring conventions seen in {@code @Operation(summary = ...)} text: the full
-     * original path spelled out verbatim (straightforward literal replace), or just the HTTP
-     * method plus a hand-written, possibly class-level-prefix-stripped path (e.g. {@code "GET
-     * /findVehicleById/{vehicleId}"} on a controller mapped under {@code /v1.0}) &mdash; detected
-     * by the leading {@code "<METHOD> /"} shape rather than an exact path match, since the OpenAPI
-     * model no longer distinguishes the class-level prefix from the method-level mapping.
+     * Rewrites the summary when it spells out the full original path, or when it is exactly
+     * {@code "<METHOD> <path>"} with {@code <path>} a suffix of the original path (a hand-written
+     * summary that omits the controller's class-level prefix). Any other summary is left as written.
      */
     private static String retagSummary(String summary, HttpMethod httpMethod, String originalPath,
                                         String targetPath) {
@@ -295,10 +303,15 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
         if (!replaced.equals(summary)) {
             return replaced;
         }
-        String methodPrefix = httpMethod.name() + " /";
-        return summary.startsWith(methodPrefix) ? httpMethod.name() + " " + targetPath : summary;
+        String methodPrefix = httpMethod.name() + " ";
+        if (summary.startsWith(methodPrefix)) {
+            String summaryPath = summary.substring(methodPrefix.length()).trim();
+            if (summaryPath.startsWith("/") && originalPath.endsWith(summaryPath)) {
+                return methodPrefix + targetPath;
+            }
+        }
+        return summary;
     }
-
 
     private static String replaceIfPresent(String text, String oldValue, String newValue) {
         return text == null || oldValue == null || newValue == null ? text : text.replace(oldValue, newValue);
@@ -353,9 +366,10 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
 
     /**
      * A matched source operation, together with the OpenAPI path key, HTTP method, and
-     * {@link PathItem} it currently lives at.
+     * {@link PathItem} it currently lives at, and the index of the mapping that matched it.
      */
-    private record MatchedOperation(Operation operation, String path, HttpMethod httpMethod, PathItem pathItem) {
+    private record MatchedOperation(Operation operation, String path, HttpMethod httpMethod, PathItem pathItem,
+                                    int mappingIndex) {
 
         private String operationId() {
             return operation.getOperationId();

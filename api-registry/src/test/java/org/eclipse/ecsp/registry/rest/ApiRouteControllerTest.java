@@ -79,4 +79,10 @@ class ApiRouteControllerTest {
         apiRouteController.delete("routeId");
         verify(apiRouteService, Mockito.atLeastOnce()).delete(Mockito.anyString());
     }
+
+    @Test
+    void resetSnapshotGenerationDelegatesToService() {
+        apiRouteController.resetSnapshotGeneration("demo-service");
+        verify(apiRouteService).resetReconciliationGeneration("demo-service");
+    }
 }

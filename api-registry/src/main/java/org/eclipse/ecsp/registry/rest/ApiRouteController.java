@@ -72,7 +72,7 @@ public class ApiRouteController {
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
     public RouteDefinition create(@RequestBody @Validated RouteDefinition apiRoute) {
-        LOGGER.info("Upsert Route: {}", apiRoute);
+        LOGGER.info("Upsert Route: {}", apiRoute.getId());
         return apiRouteService.createOrUpdate(apiRoute);
     }
 
@@ -135,5 +135,21 @@ public class ApiRouteController {
                                                   @RequestBody @Validated RouteSnapshotRequest request) {
         LOGGER.info("Reconcile Route Snapshot: service={}, generation={}", service, request.generation());
         return apiRouteService.reconcile(service, request);
+    }
+
+    /**
+     * Clears the route snapshot generation watermark of a service. Recovery path when a service
+     * was registered with a too-high generation; the next snapshot is accepted at any positive
+     * generation.
+     *
+     * @param service the service name
+     */
+    @Hidden
+    @DeleteMapping(path = "/api/v1/routes/services/{service}/generation")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
+    public void resetSnapshotGeneration(@PathVariable String service) {
+        LOGGER.warn("Reset Route Snapshot Generation: service={}", service);
+        apiRouteService.resetReconciliationGeneration(service);
     }
 }

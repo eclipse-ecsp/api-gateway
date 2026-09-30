@@ -48,60 +48,77 @@ class RouteMappingMatcherTest {
         return operation;
     }
 
-    private Operation cloneOperation(String aliasOf, String originalPath) {
+    private Operation cloneOperation(String aliasOf, String originalPath, int producedByMappingIndex) {
         Operation operation = new Operation();
         operation.setTags(List.of("Demo"));
         operation.setOperationId("doThis-alias-abc123456789");
         operation.setExtensions(Map.of(
                 RouteCustomizerOpenApiCustomizer.ALIAS_OF_EXTENSION, aliasOf,
-                RouteCustomizerOpenApiCustomizer.ORIGINAL_PATH_EXTENSION, originalPath));
+                RouteCustomizerOpenApiCustomizer.ORIGINAL_PATH_EXTENSION, originalPath,
+                RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION, producedByMappingIndex));
         return operation;
     }
 
-    @Test
-    void matchesOriginalOperationByRouteId() {
-        assertTrue(RouteMappingMatcher.matches(
-                mappingByRouteId("Demo-doThis"), originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+    private RouteCustomizerProperties.RouteMapping exposingMapping() {
+        RouteCustomizerProperties.RouteMapping mapping = mappingByRouteId("Demo-doThis");
+        mapping.setExposeAs(List.of("/api/dothis"));
+        return mapping;
     }
 
     @Test
-    void matchesCloneByAliasOfExtension() {
-        Operation clone = cloneOperation("Demo-doThis", "/v1/api/dothis");
+    void filtersOnlyMappingMatchesOriginalOperationByRouteId() {
         assertTrue(RouteMappingMatcher.matches(
-                mappingByRouteId("Demo-doThis"), clone, "/api/dothis", HttpMethod.GET));
+                mappingByRouteId("Demo-doThis"), 0, originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+    }
+
+    @Test
+    void filtersOnlyMappingMatchesEveryAliasOfItsRoute() {
+        Operation clone = cloneOperation("Demo-doThis", "/v1/api/dothis", 1);
+        assertTrue(RouteMappingMatcher.matches(
+                mappingByRouteId("Demo-doThis"), 0, clone, "/api/dothis", HttpMethod.GET));
+    }
+
+    @Test
+    void exposingMappingMatchesOnlyTheAliasesItProduced() {
+        assertTrue(RouteMappingMatcher.matches(exposingMapping(), 1,
+                cloneOperation("Demo-doThis", "/v1/api/dothis", 1), "/api/dothis", HttpMethod.GET));
+        assertFalse(RouteMappingMatcher.matches(exposingMapping(), 1,
+                cloneOperation("Demo-doThis", "/v1/api/dothis", 2), "/api/other", HttpMethod.GET));
+        assertFalse(RouteMappingMatcher.matches(exposingMapping(), 1,
+                originalOperation(), "/v1/api/dothis", HttpMethod.GET));
     }
 
     @Test
     void doesNotMatchUnrelatedRouteId() {
         assertFalse(RouteMappingMatcher.matches(
-                mappingByRouteId("Other-op"), originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+                mappingByRouteId("Other-op"), 0, originalOperation(), "/v1/api/dothis", HttpMethod.GET));
     }
 
     @Test
     void matchesOriginalOperationByPath() {
         assertTrue(RouteMappingMatcher.matches(
-                mappingByPath("/v1/api/dothis", null), originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+                mappingByPath("/v1/api/dothis", null), 0, originalOperation(), "/v1/api/dothis", HttpMethod.GET));
     }
 
     @Test
-    void matchesCloneByOriginalPathExtension() {
-        Operation clone = cloneOperation("Demo-doThis", "/v1/api/dothis");
+    void pathMappingMatchesAliasByOriginalPathExtension() {
+        Operation clone = cloneOperation("Demo-doThis", "/v1/api/dothis", 1);
         assertTrue(RouteMappingMatcher.matches(
-                mappingByPath("/v1/api/dothis", null), clone, "/api/dothis", HttpMethod.GET));
+                mappingByPath("/v1/api/dothis", null), 0, clone, "/api/dothis", HttpMethod.GET));
     }
 
     @Test
     void pathMatchRespectsConfiguredMethod() {
         assertFalse(RouteMappingMatcher.matches(
-                mappingByPath("/v1/api/dothis", "POST"), originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+                mappingByPath("/v1/api/dothis", "POST"), 0, originalOperation(), "/v1/api/dothis", HttpMethod.GET));
         assertTrue(RouteMappingMatcher.matches(
-                mappingByPath("/v1/api/dothis", "GET"), originalOperation(), "/v1/api/dothis", HttpMethod.GET));
+                mappingByPath("/v1/api/dothis", "GET"), 0, originalOperation(), "/v1/api/dothis", HttpMethod.GET));
     }
 
     @Test
     void unrelatedUntaggedOperationNeverThrows() {
         Operation untagged = new Operation();
         assertFalse(RouteMappingMatcher.matches(
-                mappingByRouteId("Demo-doThis"), untagged, "/v1/api/dothis", HttpMethod.GET));
+                mappingByRouteId("Demo-doThis"), 0, untagged, "/v1/api/dothis", HttpMethod.GET));
     }
 }

@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -150,9 +151,9 @@ class ApiRouteServiceReconcileTest {
     @Test
     void alreadyRetiredRouteIsNotRetiredAgain() {
         ApiRouteEntity alreadyRetired = entity("B", false);
+        alreadyRetired.getRoute().getMetadata().put("x-registration-retired", Boolean.TRUE);
         List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("A", true), alreadyRetired));
         when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
-        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(entity("A", true)));
 
         RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(2, route("A")));
 
@@ -160,13 +161,26 @@ class ApiRouteServiceReconcileTest {
     }
 
     @Test
-    void rejectsSnapshotIdMismatch() {
-        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
-        RouteSnapshotRequest tampered = new RouteSnapshotRequest(1, "sha256:wrong", List.of(route("A")));
+    void healthInactiveAbsentRouteIsRetiredSoRecoveryCannotReactivateIt() {
+        ApiRouteEntity healthInactive = entity("B", false);
+        when(apiRouteRepo.findAllByService(SERVICE))
+                .thenReturn(new ArrayList<>(List.of(entity("A", true), healthInactive)));
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> apiRouteService.reconcile(SERVICE, tampered));
-        assertEquals(409, ex.getStatusCode().value());
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(2, route("A")));
+
+        assertEquals(1, result.retired());
+        assertEquals(Boolean.TRUE, healthInactive.getRoute().getMetadata().get("x-registration-retired"));
+    }
+
+    @Test
+    void snapshotIdIsAnOpaqueTokenAndNotRecomputed() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        RouteSnapshotRequest request = new RouteSnapshotRequest(1, "client-token", List.of(route("A")));
+
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, request);
+
+        assertEquals(1, result.created());
+        assertEquals("client-token", result.snapshotId());
     }
 
     @Test
@@ -178,6 +192,7 @@ class ApiRouteServiceReconcileTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> apiRouteService.reconcile(SERVICE, snapshot(3, route("A"))));
         assertEquals(409, ex.getStatusCode().value());
+        verify(meterRegistry).counter("api.route.snapshot.total", "outcome", "stale_snapshot");
     }
 
     @Test
@@ -217,6 +232,70 @@ class ApiRouteServiceReconcileTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> apiRouteService.reconcile(SERVICE, snapshot(1, route("shared-id"))));
         assertEquals(409, ex.getStatusCode().value());
+        assertEquals("route_id_conflict", ex.getReason());
+    }
+
+    @Test
+    void rowWithoutServiceIsConflictNotNullPointer() {
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
+        ApiRouteEntity legacyRow = entity("legacy-id", true);
+        legacyRow.setService(null);
+        when(apiRouteRepo.findById("legacy-id")).thenReturn(Optional.of(legacyRow));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.reconcile(SERVICE, snapshot(1, route("legacy-id"))));
+        assertEquals("route_id_conflict", ex.getReason());
+    }
+
+    @Test
+    void generationOnlyChangeRefreshesWatermarkWithoutRouteChangeOrEvent() {
+        ChecksumProperties enabled = new ChecksumProperties();
+        enabled.setEnabled(true);
+        final ApiRouteService service = new ApiRouteService(
+                apiRouteRepo, Optional.of(routeEventPublisher), enabled, checksumService, meterRegistry);
+        when(checksumService.compute(any())).thenAnswer(invocation -> {
+            RouteDefinition hashed = invocation.getArgument(0);
+            assertNull(hashed.getMetadata().get("x-registration-generation"), "checksum must precede stamping");
+            return Optional.of("same-content");
+        });
+        ApiRouteEntity existing = entity("A", true);
+        existing.setChecksum("same-content");
+        existing.getRoute().getMetadata().put("x-registration-generation", 1L);
+        existing.getRoute().getMetadata().put("x-registration-snapshot-id", "s1");
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(existing)));
+
+        RouteSnapshotResult result = service.reconcile(SERVICE, snapshot(2, route("A")));
+
+        assertEquals(1, result.unchanged());
+        assertEquals(0, result.updated());
+        assertEquals(2L, existing.getRoute().getMetadata().get("x-registration-generation"));
+        verify(apiRouteRepo, times(1)).save(existing);
+        verify(routeEventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void resetClearsGenerationSoLowerGenerationIsAcceptedAgain() {
+        ApiRouteEntity locked = entity("A", true);
+        locked.getRoute().getMetadata().put("x-registration-generation", Long.MAX_VALUE);
+        locked.getRoute().getMetadata().put("x-registration-snapshot-id", "sabotage");
+        when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(locked)));
+
+        assertEquals(1, apiRouteService.resetReconciliationGeneration(SERVICE));
+        RouteSnapshotResult result = apiRouteService.reconcile(SERVICE, snapshot(3, route("A")));
+
+        assertEquals(3L, result.generation());
+    }
+
+    @Test
+    void legacyUpsertOfAnExistingRouteDecidesWithoutScanningTheService() {
+        ApiRouteEntity reconciled = entity("A", true);
+        reconciled.getRoute().getMetadata().put("x-registration-generation", 1L);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(reconciled));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> apiRouteService.createOrUpdate(route("A")));
+        assertEquals("reconciliation_required", ex.getReason());
+        verify(apiRouteRepo, never()).findAllByService(anyString());
     }
 
     @Test

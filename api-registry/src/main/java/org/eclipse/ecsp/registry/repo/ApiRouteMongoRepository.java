@@ -18,6 +18,10 @@
 
 package org.eclipse.ecsp.registry.repo;
 
+import org.eclipse.ecsp.nosqldao.IgniteCriteria;
+import org.eclipse.ecsp.nosqldao.IgniteCriteriaGroup;
+import org.eclipse.ecsp.nosqldao.IgniteQuery;
+import org.eclipse.ecsp.nosqldao.Operator;
 import org.eclipse.ecsp.registry.condition.ConditionalOnNoSqlDatabase;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.springframework.stereotype.Repository;
@@ -30,6 +34,8 @@ import java.util.Optional;
 @ConditionalOnNoSqlDatabase
 @Repository("apiRouteMongoRepository")
 public class ApiRouteMongoRepository implements ApiRouteRepo {
+
+    private static final String SERVICE = "service";
 
     private final ApiRouteMongoDaoImpl apiRouteMongoDao;
 
@@ -50,6 +56,15 @@ public class ApiRouteMongoRepository implements ApiRouteRepo {
     @Override
     public List<ApiRouteEntity> findAll() {
         return apiRouteMongoDao.findAll();
+    }
+
+    @Override
+    public List<ApiRouteEntity> findAllByService(String service) {
+        IgniteQuery igniteQuery = new IgniteQuery(
+                new IgniteCriteriaGroup(new IgniteCriteria(SERVICE, Operator.EQ, service)));
+        igniteQuery.setPageNumber(1);
+        igniteQuery.setPageSize(Integer.MAX_VALUE);
+        return apiRouteMongoDao.find(igniteQuery);
     }
 
     @Override

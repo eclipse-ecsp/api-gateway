@@ -111,6 +111,35 @@ class PathTemplateUtilsTest {
     }
 
     @Test
+    void validateRejectsWhitespaceAndCommaSeparatedTargets() {
+        assertFalse(PathTemplateUtils.validate("/v1/api/dothis", "/a/b, /c/d").valid());
+        assertFalse(PathTemplateUtils.validate("/v1/api/dothis", "/api/do this").valid());
+    }
+
+    @Test
+    void validateRejectsPercentEncodedSpellings() {
+        assertFalse(PathTemplateUtils.validate("/v1/api/dothis", "/%61ctuator/health").valid());
+    }
+
+    @Test
+    void validateRejectsTrailingSeparatorAndRoot() {
+        assertFalse(PathTemplateUtils.validate("/v1/api/dothis", "/api/dothis/").valid());
+        assertFalse(PathTemplateUtils.validate("/v1/api/dothis", "/").valid());
+    }
+
+    @Test
+    void validateAcceptsUnreservedCharactersInLiterals() {
+        assertTrue(PathTemplateUtils.validate("/v1/api/do_this", "/api/do_this.v2~x:y@z").valid());
+    }
+
+    @Test
+    void validateRejectsWildcardOriginalPath() {
+        TargetPathValidation result = PathTemplateUtils.validate("/v1/files/**", "/files");
+        assertFalse(result.valid());
+        assertEquals("unsupported_original_path", result.reason());
+    }
+
+    @Test
     void validateRejectsReservedApiDocsPath() {
         TargetPathValidation result = PathTemplateUtils.validate("/v1/api/dothis", "/v3/api-docs/foo");
         assertFalse(result.valid());

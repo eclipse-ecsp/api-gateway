@@ -37,8 +37,11 @@ import java.util.regex.Pattern;
 public final class PathTemplateUtils {
 
     private static final String REASON_INVALID_TEMPLATE = "invalid_path_template";
+    private static final String REASON_UNSUPPORTED_ORIGINAL = "unsupported_original_path";
     private static final String REASON_RESERVED_PATH = "reserved_path";
     private static final List<String> RESERVED_PATH_PREFIXES = List.of("/v3/api-docs", "/actuator");
+    private static final Pattern LITERAL_SEGMENT = Pattern.compile("[A-Za-z0-9_.~:@-]+");
+    private static final Pattern VARIABLE_NAME = Pattern.compile("[A-Za-z0-9_.~-]+");
     private static final int MIN_BRACED_SEGMENT_LENGTH = 2;
     private static final int KEEP_TRAILING_EMPTY_SEGMENTS = -1;
 
@@ -49,9 +52,11 @@ public final class PathTemplateUtils {
      * Validates a configured {@code exposeAs} target path template against the original OpenAPI
      * path it is derived from.
      *
-     * <p>Rejects malformed braces, query/fragment text, wildcard segments, duplicate variable
-     * names, dot segments, repeated separators, a path not starting with {@code /}, a reserved
-     * internal path, or a variable-name set that differs from the original path's.
+     * <p>Both paths must be absolute, with at least one segment, and every segment either a
+     * {@code {name}} variable or a literal made only of unreserved characters plus {@code :} and
+     * {@code @}. That rejects whitespace, percent-encoding, wildcards, query/fragment text,
+     * repeated separators, dot segments and characters that would break the generated rewrite.
+     * The target must also avoid reserved internal paths and use exactly the original's variables.
      *
      * @param originalPath   the pre-fan-out OpenAPI path template, e.g. {@code /v1/api/dothis/{id}}
      * @param targetTemplate the configured target path, possibly with unresolved whitespace
@@ -59,6 +64,9 @@ public final class PathTemplateUtils {
      *     typed rejection reason
      */
     public static TargetPathValidation validate(String originalPath, String targetTemplate) {
+        if (originalPath == null || !isWellFormedAbsolutePath(originalPath)) {
+            return TargetPathValidation.invalid(REASON_UNSUPPORTED_ORIGINAL);
+        }
         if (targetTemplate == null || targetTemplate.isBlank()) {
             return TargetPathValidation.invalid(REASON_INVALID_TEMPLATE);
         }
@@ -161,11 +169,14 @@ public final class PathTemplateUtils {
     }
 
     private static boolean isWellFormedAbsolutePath(String path) {
-        if (!path.startsWith("/") || path.contains("?") || path.contains("#")
-                || path.contains("*") || path.contains("//")) {
+        if (!path.startsWith("/")) {
             return false;
         }
-        for (String segment : splitSegments(path)) {
+        List<String> segments = splitSegments(path);
+        if (segments.isEmpty()) {
+            return false;
+        }
+        for (String segment : segments) {
             if (!isWellFormedSegment(segment)) {
                 return false;
             }
@@ -174,20 +185,14 @@ public final class PathTemplateUtils {
     }
 
     private static boolean isWellFormedSegment(String segment) {
-        if (segment.isEmpty() || segment.equals(".") || segment.equals("..")) {
+        if (segment.equals(".") || segment.equals("..")) {
             return false;
-        }
-        boolean hasOpenBrace = segment.contains("{");
-        boolean hasCloseBrace = segment.contains("}");
-        if (hasOpenBrace != hasCloseBrace) {
-            return false;
-        }
-        if (!hasOpenBrace) {
-            return true;
         }
         String variableName = extractSingleVariable(segment);
-        return variableName != null && !variableName.isEmpty()
-                && !variableName.contains("{") && !variableName.contains("}");
+        if (variableName != null) {
+            return VARIABLE_NAME.matcher(variableName).matches();
+        }
+        return LITERAL_SEGMENT.matcher(segment).matches();
     }
 
     private static Set<String> extractVariableNames(String path) {

@@ -122,4 +122,46 @@ class ApiRoutesHealthMonitorTest {
         verify(apiRouteRepo, never()).save(Mockito.argThat(e -> "retired-route".equals(e.getId())));
     }
 
+    @Test
+    void retiredRowListedFirstDoesNotMaskOutage() {
+        when(apiRouteRepo.findAll()).thenReturn(new ArrayList<>(List.of(tombstone(), liveRoute())));
+        when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
+                .thenThrow(new RuntimeException("down"));
+
+        apiRoutesHealthMonitor.healthCheck();
+
+        verify(apiRouteRepo).save(Mockito.argThat(e -> "live-route".equals(e.getId())
+                && Boolean.FALSE.equals(e.getActive())));
+    }
+
+    @Test
+    void retiredRowListedFirstDoesNotTriggerSpuriousHealthEvents() {
+        when(apiRouteRepo.findAll()).thenReturn(new ArrayList<>(List.of(tombstone(), liveRoute())));
+        when(restTemplate.getForEntity(Mockito.anyString(), Mockito.any()))
+                .thenReturn(new ResponseEntity<>(HttpStatus.OK));
+
+        apiRoutesHealthMonitor.healthCheck();
+
+        verify(routeEventPublisher, never()).publishEvent(Mockito.any());
+        verify(apiRouteRepo, never()).save(Mockito.any());
+    }
+
+    private static ApiRouteEntity tombstone() {
+        ApiRouteEntity tombstone = RegistryTestUtil.getApiRouteEntity();
+        tombstone.setId("retired-route");
+        tombstone.setActive(Boolean.FALSE);
+        RouteDefinition definition = RegistryTestUtil.getRouteDefination();
+        definition.setUri(java.net.URI.create("http://decommissioned-host:9999/"));
+        definition.getMetadata().put("x-registration-retired", Boolean.TRUE);
+        tombstone.setRoute(definition);
+        return tombstone;
+    }
+
+    private static ApiRouteEntity liveRoute() {
+        ApiRouteEntity live = RegistryTestUtil.getApiRouteEntity();
+        live.setId("live-route");
+        live.setActive(Boolean.TRUE);
+        return live;
+    }
+
 }

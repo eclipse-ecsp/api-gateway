@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Validates a fully-assembled route set (auto-derived operations plus fully-static
@@ -40,6 +41,8 @@ import java.util.Set;
  */
 public final class RouteSetValidator {
 
+    private static final Pattern PATH_VARIABLE = Pattern.compile("\\{[^/}]+}");
+
     private RouteSetValidator() {
     }
 
@@ -51,11 +54,23 @@ public final class RouteSetValidator {
      * @throws IllegalStateException listing every conflict found, if any
      */
     public static void validate(List<RouteDefinition> routes) {
-        List<String> conflicts = new ArrayList<>(findDuplicateIds(routes));
-        conflicts.addAll(findDuplicateMethodPaths(routes));
+        List<String> conflicts = findConflicts(routes);
         if (!conflicts.isEmpty()) {
             throw new IllegalStateException("Route set validation failed: " + conflicts);
         }
+    }
+
+    /**
+     * Lists duplicate route ids and duplicate {@code (method, path shape)} pairs. The shape
+     * ignores path-variable names: {@code /x/{id}} and {@code /x/{name}} overlap at the gateway.
+     *
+     * @param routes the complete, final list of routes about to be registered
+     * @return one human-readable entry per conflict; empty if none
+     */
+    public static List<String> findConflicts(List<RouteDefinition> routes) {
+        List<String> conflicts = new ArrayList<>(findDuplicateIds(routes));
+        conflicts.addAll(findDuplicateMethodPaths(routes));
+        return conflicts;
     }
 
     private static List<String> findDuplicateIds(List<RouteDefinition> routes) {
@@ -96,6 +111,7 @@ public final class RouteSetValidator {
                 path = predicate.getArgs().get(RegistryCommonConstants.KEY_0);
             }
         }
-        return (method == null || path == null) ? null : method.toUpperCase(Locale.ROOT) + " " + path;
+        return (method == null || path == null) ? null
+                : method.toUpperCase(Locale.ROOT) + " " + PATH_VARIABLE.matcher(path).replaceAll("{}");
     }
 }

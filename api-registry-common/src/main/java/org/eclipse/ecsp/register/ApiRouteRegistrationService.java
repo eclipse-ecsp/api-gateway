@@ -18,20 +18,17 @@
 
 package org.eclipse.ecsp.register;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
 import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.security.Scopes;
-import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,6 +36,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -50,7 +48,6 @@ import java.util.List;
 @ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
 public class ApiRouteRegistrationService {
     private static final IgniteLogger LOGGER = IgniteLoggerFactory.getLogger(ApiRouteRegistrationService.class);
-    private static final ObjectMapper MAPPER = ObjectMapperUtil.getObjectMapper();
 
     @Value("${api.registry.service_name}")
     private String registryServiceName;
@@ -76,21 +73,17 @@ public class ApiRouteRegistrationService {
     }
 
     /**
-     * registers the routes to the Api Gateway.
+     * Registers the routes with api-registry once per startup. {@code ContextRefreshedEvent} is not
+     * used: child contexts (e.g. a separate management port) publish it too.
      *
-     * @throws URISyntaxException throws wxception
+     * @throws URISyntaxException throws exception
      */
-    @EventListener(classes = {ApplicationReadyEvent.class, ContextRefreshedEvent.class})
+    @EventListener(ApplicationReadyEvent.class)
     public void register() throws URISyntaxException {
         LOGGER.info("Loading APIs to registry...");
         List<RouteDefinition> apiRoutes = apiRoutesLoader.getApiRoutes();
-        apiRoutes.forEach(route -> {
-            try {
-                LOGGER.info("Route : {}", MAPPER.writeValueAsString(route));
-            } catch (JsonProcessingException ex) {
-                LOGGER.warn("Failed to register application: {}", ex);
-            }
-        });
+        apiRoutes.forEach(route -> LOGGER.info("Route : id={} | predicates={} | filters={}",
+                route.getId(), route.getPredicates(), filterNames(route)));
         if (RegistryCommonConstants.REGISTRATION_MODE_RECONCILE.equalsIgnoreCase(registrationMode)) {
             registerSnapshot(apiRoutes);
         } else {
@@ -101,7 +94,7 @@ public class ApiRouteRegistrationService {
 
     private void registerApiRoutes(final List<RouteDefinition> apiRoutes) {
         apiRoutes.forEach(route -> {
-            LOGGER.info("Registering route: {}", route);
+            LOGGER.info("Registering route: {}", route.getId());
             HttpEntity<RouteDefinition> entity = new HttpEntity<>(route, registryHeaders());
             String apiRegistryUrl = registryServiceName
                     + RegistryCommonConstants.COLON
@@ -110,7 +103,7 @@ public class ApiRouteRegistrationService {
             LOGGER.info("Registry POST-API: {}", apiRegistryUrl);
             ResponseEntity<String> response = restTemplate.postForEntity(apiRegistryUrl, entity, String.class);
             if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-                LOGGER.warn("Error while adding route: {}", route);
+                LOGGER.warn("Error while adding route: {}", route.getId());
             }
         });
     }
@@ -122,8 +115,9 @@ public class ApiRouteRegistrationService {
      * service that this snapshot does not include.
      *
      * <p>Never falls back to {@link #registerApiRoutes(List)} on failure &mdash; doing so would
-     * recreate the exact stale-route bug this mode exists to fix. The caller must fix the
-     * configuration/deployment and retry; a retry with identical content is idempotent.
+     * recreate the exact stale-route bug this mode exists to fix. A rejection fails startup with
+     * a typed error; in a rolling deployment the new pods crash-loop while the old ones keep
+     * serving. A retry with identical content is idempotent.
      *
      * @param apiRoutes the complete desired route set for this deployment
      */
@@ -148,13 +142,27 @@ public class ApiRouteRegistrationService {
                 + RegistryCommonConstants.SNAPSHOT_ENDPOINT_SUFFIX;
         LOGGER.info("Registry PUT-Snapshot-API: {}, generation={}, snapshotId={}",
                 snapshotUrl, registrationGeneration, snapshotId);
-        ResponseEntity<RouteSnapshotResult> response =
-                restTemplate.exchange(snapshotUrl, HttpMethod.PUT, entity, RouteSnapshotResult.class);
+        ResponseEntity<RouteSnapshotResult> response;
+        try {
+            response = restTemplate.exchange(snapshotUrl, HttpMethod.PUT, entity, RouteSnapshotResult.class);
+        } catch (HttpStatusCodeException ex) {
+            throw snapshotRejected(service, ex.getStatusCode().value(), ex.getResponseBodyAsString(), ex);
+        }
         if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-            LOGGER.warn("Error while reconciling route snapshot for service: {}", service);
-            return;
+            throw snapshotRejected(service, response == null ? 0 : response.getStatusCode().value(), "", null);
         }
         LOGGER.info("Route snapshot reconciled: {}", response.getBody());
+    }
+
+    private IllegalStateException snapshotRejected(String service, int status, String reason, Exception cause) {
+        LOGGER.error("ROUTE_SNAPSHOT_REJECTED | service={} | generation={} | status={} | reason={}",
+                service, registrationGeneration, status, reason);
+        return new IllegalStateException("api-registry rejected the route snapshot of service " + service
+                + " at generation " + registrationGeneration + " (HTTP " + status + " " + reason + ")", cause);
+    }
+
+    private static List<String> filterNames(RouteDefinition route) {
+        return route.getFilters().stream().map(FilterDefinition::getName).toList();
     }
 
     private HttpHeaders registryHeaders() {

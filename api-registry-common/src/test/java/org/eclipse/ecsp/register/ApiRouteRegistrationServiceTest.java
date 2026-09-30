@@ -19,6 +19,7 @@
 package org.eclipse.ecsp.register;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,9 +27,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.OngoingStubbing;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,5 +75,56 @@ class ApiRouteRegistrationServiceTest {
         apiRouteRegistrationService.register();
         verify(restTemplate, Mockito.atLeastOnce())
                 .postForEntity(Mockito.anyString(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void reconcileModeSendsOneSnapshotAndNoLegacyPosts() throws Exception {
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
+        reconcileMode(3L);
+        whenSnapshotPut().thenReturn(ResponseEntity.ok(new RouteSnapshotResult("demo-service", 3, "id", 1, 0, 0, 0)));
+
+        apiRouteRegistrationService.register();
+
+        verify(restTemplate).exchange(eq("http://registry:7000/api/v1/routes/services/demo-service/snapshot"),
+                eq(HttpMethod.PUT), any(HttpEntity.class), eq(RouteSnapshotResult.class));
+        verify(restTemplate, never()).postForEntity(anyString(), any(), any());
+    }
+
+    @Test
+    void reconcileModeRequiresPositiveGeneration() throws Exception {
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
+        reconcileMode(0L);
+
+        assertThrows(IllegalStateException.class, () -> apiRouteRegistrationService.register());
+    }
+
+    @Test
+    void rejectedSnapshotFailsStartupWithTheRegistryReason() throws Exception {
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
+        reconcileMode(3L);
+        byte[] body = "{\"error\":\"generation_conflict\"}".getBytes(StandardCharsets.UTF_8);
+        whenSnapshotPut().thenThrow(HttpClientErrorException.create(
+                HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, body, StandardCharsets.UTF_8));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> apiRouteRegistrationService.register());
+        assertTrue(ex.getMessage().contains("409") && ex.getMessage().contains("generation_conflict"));
+    }
+
+    private OngoingStubbing<ResponseEntity<RouteSnapshotResult>> whenSnapshotPut() {
+        return when(restTemplate.exchange(anyString(), eq(HttpMethod.PUT), any(HttpEntity.class),
+                eq(RouteSnapshotResult.class)));
+    }
+
+    private void reconcileMode(long generation) {
+        ReflectionTestUtils.setField(apiRouteRegistrationService, "registryServiceName", "http://registry");
+        ReflectionTestUtils.setField(apiRouteRegistrationService, "registrationMode", "reconcile");
+        ReflectionTestUtils.setField(apiRouteRegistrationService, "registrationGeneration", generation);
+    }
+
+    private static RouteDefinition serviceRoute() {
+        RouteDefinition route = RegistryCommonTestUtil.getRouteDefination();
+        route.setService("demo-service");
+        return route;
     }
 }

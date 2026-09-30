@@ -20,36 +20,45 @@ package org.eclipse.ecsp.register.customization;
 
 import io.swagger.v3.oas.models.Operation;
 import org.springframework.http.HttpMethod;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import java.util.Map;
 
 /**
- * Shared matching rule between the original (never-cloned) operation and its fan-out clones.
+ * Decides which routes a mapping's configured {@code filters} apply to.
  *
- * <p>A naive match on {@code routeId}/{@code path} alone only ever matches the original
- * operation, because a clone deliberately carries a different {@code operationId}/route id and
- * lives at a different path key. This matcher additionally consults the
- * {@code x-route-alias-of} / {@code x-route-original-path} traceability extensions so that a
- * mapping combining {@code exposeAs} and {@code filters} applies filters to every route the
- * mapping produced, not just the original.
+ * <ul>
+ *   <li>A mapping with {@code exposeAs} applies its filters only to the aliases it produced
+ *       (identified by the {@code x-route-mapping-index} extension), so a filter can target one
+ *       alias without touching the original or aliases produced by other mappings.</li>
+ *   <li>A filters-only mapping applies to the matched operation and to every alias of it (via
+ *       {@code x-route-alias-of} / {@code x-route-original-path}), so a route-wide filter can never
+ *       be bypassed through an alias.</li>
+ * </ul>
  */
 public final class RouteMappingMatcher {
+
+    private static final int NOT_AN_ALIAS = -1;
 
     private RouteMappingMatcher() {
     }
 
     /**
-     * Determines whether the given operation (original or fan-out clone) is targeted by the
-     * given mapping.
+     * Determines whether the given mapping's filters apply to the given operation (original or
+     * fan-out alias).
      *
-     * @param mapping   the configured mapping
-     * @param operation the candidate operation
-     * @param path      the OpenAPI path key the operation is currently registered at
-     * @param method    the resolved HTTP method for the operation
-     * @return {@code true} if the mapping targets this operation
+     * @param mapping      the configured mapping
+     * @param mappingIndex the mapping's index in {@code mappings}
+     * @param operation    the candidate operation
+     * @param path         the OpenAPI path key the operation is currently registered at
+     * @param method       the resolved HTTP method for the operation
+     * @return {@code true} if the mapping's filters apply to this operation
      */
-    public static boolean matches(RouteCustomizerProperties.RouteMapping mapping,
-                                   Operation operation, String path, HttpMethod method) {
+    public static boolean matches(RouteCustomizerProperties.RouteMapping mapping, int mappingIndex,
+                                  Operation operation, String path, HttpMethod method) {
+        if (!CollectionUtils.isEmpty(mapping.getExposeAs())) {
+            return producingMappingIndex(operation) == mappingIndex;
+        }
         if (StringUtils.hasText(mapping.getRouteId())) {
             return matchesByRouteId(mapping.getRouteId(), operation);
         }
@@ -74,6 +83,11 @@ public final class RouteMappingMatcher {
     private static String originalPathOf(Operation operation, String path) {
         Object originalPath = extension(operation, RouteCustomizerOpenApiCustomizer.ORIGINAL_PATH_EXTENSION);
         return originalPath instanceof String original ? original : path;
+    }
+
+    private static int producingMappingIndex(Operation operation) {
+        Object index = extension(operation, RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION);
+        return index instanceof Number number ? number.intValue() : NOT_AN_ALIAS;
     }
 
     private static Object extension(Operation operation, String key) {

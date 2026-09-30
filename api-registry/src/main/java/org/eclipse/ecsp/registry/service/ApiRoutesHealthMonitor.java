@@ -18,14 +18,13 @@
 
 package org.eclipse.ecsp.registry.service;
 
-import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.events.data.ServiceHealthEventData;
 import org.eclipse.ecsp.registry.metrics.ServiceMetricsEvent;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
+import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
-import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -96,6 +95,10 @@ public class ApiRoutesHealthMonitor {
         Set<String> changedServices = new HashSet<>();
         // find out servers and each server apis
         entities.forEach(entity -> {
+            // a retired row's stale uri/active flag must not drive the service's health state
+            if (ApiRouteUtil.isRetired(entity)) {
+                return;
+            }
             String url = entity.getRoute().getUri().toString();
             // append with contextPath
             String contextPath = entity.getContextPath();
@@ -156,14 +159,10 @@ public class ApiRoutesHealthMonitor {
     }
 
     private void update(String service, Boolean active) {
-        // inactive all the APIs of this server, except routes intentionally retired by
-        // route-snapshot reconciliation: those must never be resurrected by service recovery.
+        // inactive all the APIs of this server (retired routes were already excluded in healthCheck)
         List<ApiRouteEntity> apiRoutes = serviceApiRoutes.get(service);
         if (apiRoutes != null && !apiRoutes.isEmpty()) {
             apiRoutes.forEach(apiRoute -> {
-                if (isRetired(apiRoute)) {
-                    return;
-                }
                 if (!apiRoute.getActive().equals(active)) {
                     apiRoute.setActive(active);
                     apiRouteRepo.save(apiRoute);
@@ -176,13 +175,5 @@ public class ApiRoutesHealthMonitor {
         eventPublisher.publishEvent(
                 new ServiceMetricsEvent(this, service, active,
                         apiRoutes != null ? apiRoutes.size() : 0));
-    }
-
-    private static boolean isRetired(ApiRouteEntity entity) {
-        RouteDefinition route = entity.getRoute();
-        if (route == null || route.getMetadata() == null) {
-            return false;
-        }
-        return Boolean.TRUE.equals(route.getMetadata().get(RegistryCommonConstants.REGISTRATION_RETIRED_METADATA_KEY));
     }
 }

@@ -28,6 +28,7 @@ import org.eclipse.ecsp.registry.config.ChecksumProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
+import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -39,9 +40,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -287,15 +291,28 @@ class ApiRouteServiceReconcileTest {
     }
 
     @Test
-    void legacyUpsertOfAnExistingRouteDecidesWithoutScanningTheService() {
+    void legacyUpsertOfReconciledRouteIsAcceptedWithoutScanningTheService() {
         ApiRouteEntity reconciled = entity("A", true);
         reconciled.getRoute().getMetadata().put("x-registration-generation", 1L);
         when(apiRouteRepo.findById("A")).thenReturn(Optional.of(reconciled));
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> apiRouteService.createOrUpdate(route("A")));
-        assertEquals("reconciliation_required", ex.getReason());
+        assertDoesNotThrow(() -> apiRouteService.createOrUpdate(route("A")));
+
+        verify(apiRouteRepo).save(reconciled);
         verify(apiRouteRepo, never()).findAllByService(anyString());
+    }
+
+    @Test
+    void legacyUpsertReactivatesRouteRetiredBySnapshotWhenServiceRollsBackToOldClient() {
+        ApiRouteEntity retired = entity("A", false);
+        retired.getRoute().getMetadata().put("x-registration-generation", 2L);
+        retired.getRoute().getMetadata().put("x-registration-retired", Boolean.TRUE);
+        when(apiRouteRepo.findById("A")).thenReturn(Optional.of(retired));
+
+        apiRouteService.createOrUpdate(route("A"));
+
+        assertTrue(retired.getActive());
+        assertFalse(ApiRouteUtil.isRetired(retired));
     }
 
     @Test
@@ -317,15 +334,15 @@ class ApiRouteServiceReconcileTest {
     }
 
     @Test
-    void legacyUpsertIsRejectedAfterServiceAdoptsReconciliation() {
+    void legacyUpsertOfNewRouteIsAcceptedAfterServiceAdoptsReconciliation() {
         ApiRouteEntity reconciled = entity("A", true);
         reconciled.getRoute().getMetadata().put("x-registration-generation", 1L);
         when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>(List.of(reconciled)));
+        when(apiRouteRepo.findById("C")).thenReturn(Optional.empty());
 
-        RouteDefinition legacyPost = route("C");
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> apiRouteService.createOrUpdate(legacyPost));
-        assertEquals(409, ex.getStatusCode().value());
+        assertDoesNotThrow(() -> apiRouteService.createOrUpdate(route("C")));
+
+        verify(apiRouteRepo).save(argThatIdEquals("C"));
     }
 
     @Test
@@ -333,7 +350,7 @@ class ApiRouteServiceReconcileTest {
         when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(new ArrayList<>());
         when(apiRouteRepo.findById(anyString())).thenReturn(Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> apiRouteService.createOrUpdate(route("C")));
+        assertDoesNotThrow(() -> apiRouteService.createOrUpdate(route("C")));
     }
 
     private static ApiRouteEntity argThatIdEquals(String id) {

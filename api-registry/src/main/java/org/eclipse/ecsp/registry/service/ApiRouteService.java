@@ -123,7 +123,7 @@ public class ApiRouteService {
             throw new IllegalArgumentException("Invalid route request");
         }
         Optional<ApiRouteEntity> existing = apiRouteRepo.findById(model.getId());
-        rejectLegacyUpsertAfterReconciliation(model, existing);
+        existing.ifPresent(ApiRouteService::warnOnLegacyUpsertOfReconciledRoute);
         if (!checksumProperties.isEnabled()) {
             return saveUnconditionally(model, existing);
         }
@@ -131,31 +131,16 @@ public class ApiRouteService {
     }
 
     /**
-     * Rejects a legacy single-route upsert for a service that has already adopted route
-     * snapshot reconciliation (FR: E-16). Once any active route for the service carries a
-     * reconciliation generation, absence-based retirement is that service's contract; a legacy
-     * upsert cannot express absence and would let an old pod silently resurrect a retired route.
+     * Legacy upserts stay accepted for reconciled services so microservices on (or rolled back to)
+     * an older api-registry-common keep registering; the upsert replaces the row's reconciliation
+     * metadata, reactivating a retired route, until the service's next snapshot.
      *
-     * <p>Every row of a reconciled service carries the generation, so an existing row decides
-     * on its own; only a new route id needs the (indexed) service-level lookup.
-     *
-     * @param model    incoming route definition
-     * @param existing the stored row with the same id, if any
+     * @param existing the stored row with the same id
      */
-    private void rejectLegacyUpsertAfterReconciliation(RouteDefinition model, Optional<ApiRouteEntity> existing) {
-        boolean usesReconciliation;
-        if (existing.isPresent()) {
-            usesReconciliation = metadataValue(existing.get(),
-                    RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY) != null;
-        } else if (model.getService() != null) {
-            usesReconciliation = apiRouteRepo.findAllByService(model.getService()).stream()
-                    .anyMatch(entity -> metadataValue(entity,
-                            RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY) != null);
-        } else {
-            usesReconciliation = false;
-        }
-        if (usesReconciliation) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "reconciliation_required");
+    private static void warnOnLegacyUpsertOfReconciledRoute(ApiRouteEntity existing) {
+        if (metadataValue(existing, RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY) != null) {
+            LOGGER.warn("LEGACY_UPSERT_OF_RECONCILED_ROUTE | routeId={} | service={} | retired={}",
+                    existing.getId(), existing.getService(), ApiRouteUtil.isRetired(existing));
         }
     }
 
@@ -450,8 +435,8 @@ public class ApiRouteService {
 
     /**
      * Clears the reconciliation generation watermark of a service so the next snapshot is
-     * accepted at any positive generation. Recovery path for an accidentally too-high generation;
-     * also re-permits legacy single-route upserts for the service. Retired markers are kept.
+     * accepted at any positive generation. Recovery path for an accidentally too-high generation.
+     * Retired markers are kept.
      *
      * @param service the service name
      * @return number of routes whose watermark was cleared

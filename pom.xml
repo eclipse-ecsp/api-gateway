@@ -63,7 +63,7 @@
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <jackson-bom.version>2.22.2</jackson-bom.version>
         <jackson-annotations.version>2.22</jackson-annotations.version>
-        <tools-jackson-bom.version>3.2.2</tools-jackson-bom.version>
+        <tools-jackson-bom.version>3.2.3</tools-jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.46</lombok.version>
         <spring-boot.version>4.1.1</spring-boot.version>

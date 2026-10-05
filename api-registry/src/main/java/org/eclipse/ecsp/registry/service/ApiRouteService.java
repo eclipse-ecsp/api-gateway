@@ -123,25 +123,10 @@ public class ApiRouteService {
             throw new IllegalArgumentException("Invalid route request");
         }
         Optional<ApiRouteEntity> existing = apiRouteRepo.findById(model.getId());
-        existing.ifPresent(ApiRouteService::warnOnLegacyUpsertOfReconciledRoute);
         if (!checksumProperties.isEnabled()) {
             return saveUnconditionally(model, existing);
         }
         return saveWithChangeDetection(model, existing);
-    }
-
-    /**
-     * Legacy upserts stay accepted for reconciled services so microservices on (or rolled back to)
-     * an older api-registry-common keep registering; the upsert replaces the row's reconciliation
-     * metadata, reactivating a retired route, until the service's next snapshot.
-     *
-     * @param existing the stored row with the same id
-     */
-    private static void warnOnLegacyUpsertOfReconciledRoute(ApiRouteEntity existing) {
-        if (metadataValue(existing, RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY) != null) {
-            LOGGER.warn("LEGACY_UPSERT_OF_RECONCILED_ROUTE | routeId={} | service={} | retired={}",
-                    existing.getId(), existing.getService(), ApiRouteUtil.isRetired(existing));
-        }
     }
 
     /**

@@ -24,10 +24,10 @@ package org.eclipse.ecsp.register.model;
  * @param service    the reconciled service name
  * @param generation the applied deployment generation
  * @param snapshotId the applied snapshot id
- * @param created    number of routes newly created
- * @param updated    number of routes updated
+ * @param created    always zero; route creation is handled by individual POST registrations
+ * @param updated    always zero; route updates are handled by individual POST registrations
  * @param retired    number of previously active routes marked inactive/retired
- * @param unchanged  number of routes left untouched
+ * @param unchanged  number of desired routes whose definitions were left unchanged
  */
 public record RouteSnapshotResult(
         String service, long generation, String snapshotId,

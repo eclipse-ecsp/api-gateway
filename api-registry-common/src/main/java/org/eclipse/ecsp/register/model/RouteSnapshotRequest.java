@@ -18,7 +18,6 @@
 
 package org.eclipse.ecsp.register.model;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
@@ -33,15 +32,12 @@ import java.util.List;
  * {@code ApiRouteService#reconcile}).
  *
  * @param generation monotonically increasing per-service deployment generation
- * @param snapshotId SHA-256 digest of canonical {@code (generation, routes)} content
- *                    ({@link org.eclipse.ecsp.register.SnapshotDigestUtil}), recomputed and
- *                    verified server-side; distinguishes an idempotent retry from conflicting
- *                    content submitted at the same generation
- * @param routes     the complete desired route set for the service, including static,
- *                    OpenAPI-derived, alias, and API-doc routes
+ * @param snapshotId client-generated identifier for the generation and route ID set
+ * @param routeIds   IDs of the complete desired route set, registered individually before
+ *                   submitting this snapshot
  */
 public record RouteSnapshotRequest(
         @Positive long generation,
         @NotBlank String snapshotId,
-        @NotEmpty @Valid List<RouteDefinition> routes) {
+        @NotEmpty List<@NotBlank String> routeIds) {
 }

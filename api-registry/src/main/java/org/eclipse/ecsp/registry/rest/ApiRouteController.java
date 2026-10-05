@@ -117,13 +117,12 @@ public class ApiRouteController {
     }
 
     /**
-     * Reconciles the authoritative route snapshot for one service: upserts every desired route,
-     * then retires any previously-active route for the service that this snapshot does not
-     * include. See the Route Path Exposure &amp; Filter Customization design for the full
-     * generation/snapshotId fencing contract.
+    * Reconciles the authoritative route ID snapshot for one service. Routes must first be
+    * registered individually through POST. Retires any stored route for the service whose ID
+    * this snapshot does not include, without changing the desired routes' definitions.
      *
-     * @param service the service name; every route in {@code request} must belong to it
-     * @param request the complete desired route snapshot
+    * @param service the service name; every ID must refer to a route belonging to it
+    * @param request the complete desired route ID snapshot
      * @return the reconciliation result counts
      */
     @Hidden

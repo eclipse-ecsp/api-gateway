@@ -93,6 +93,10 @@ public class ApiRouteRegistrationService {
     }
 
     private void registerApiRoutes(final List<RouteDefinition> apiRoutes) {
+        registerApiRoutes(apiRoutes, false);
+    }
+
+    private void registerApiRoutes(final List<RouteDefinition> apiRoutes, boolean failOnError) {
         apiRoutes.forEach(route -> {
             LOGGER.info("Registering route: {}", route.getId());
             HttpEntity<RouteDefinition> entity = new HttpEntity<>(route, registryHeaders());
@@ -104,20 +108,20 @@ public class ApiRouteRegistrationService {
             ResponseEntity<String> response = restTemplate.postForEntity(apiRegistryUrl, entity, String.class);
             if (response == null || !response.getStatusCode().is2xxSuccessful()) {
                 LOGGER.warn("Error while adding route: {}", route.getId());
+                if (failOnError) {
+                    throw new IllegalStateException("api-registry failed to register route " + route.getId());
+                }
             }
         });
     }
 
     /**
-     * Submits the complete, de-duplicated desired route set for the service as one authoritative
-     * snapshot (route snapshot reconciliation). Unlike {@link #registerApiRoutes(List)}, absence
-     * from this set is meaningful: api-registry retires any previously-active route for the
-     * service that this snapshot does not include.
+    * Registers each desired route individually, then submits their IDs as an authoritative
+    * snapshot. Absence from this set is meaningful: api-registry retires any previously
+    * registered route for the service that this snapshot does not include.
      *
-     * <p>Never falls back to {@link #registerApiRoutes(List)} on failure &mdash; doing so would
-     * recreate the exact stale-route bug this mode exists to fix. A rejection fails startup with
-     * a typed error; in a rolling deployment the new pods crash-loop while the old ones keep
-     * serving. A retry with identical content is idempotent.
+    * <p>A registration failure prevents snapshot submission. A snapshot rejection fails startup;
+    * a retry with the same generation and route IDs is idempotent.
      *
      * @param apiRoutes the complete desired route set for this deployment
      */
@@ -131,8 +135,10 @@ public class ApiRouteRegistrationService {
             return;
         }
         String service = apiRoutes.get(0).getService();
-        String snapshotId = SnapshotDigestUtil.compute(registrationGeneration, apiRoutes);
-        RouteSnapshotRequest request = new RouteSnapshotRequest(registrationGeneration, snapshotId, apiRoutes);
+        List<String> routeIds = apiRoutes.stream().map(RouteDefinition::getId).toList();
+        String snapshotId = SnapshotDigestUtil.computeRouteIds(registrationGeneration, routeIds);
+        registerApiRoutes(apiRoutes, true);
+        RouteSnapshotRequest request = new RouteSnapshotRequest(registrationGeneration, snapshotId, routeIds);
         HttpEntity<RouteSnapshotRequest> entity = new HttpEntity<>(request, registryHeaders());
         String snapshotUrl = registryServiceName
                 + RegistryCommonConstants.COLON

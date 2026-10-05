@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.registry.rest;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.registry.service.ApiRouteService;
 import org.eclipse.ecsp.registry.utils.RegistryTestUtil;
 import org.junit.jupiter.api.Assertions;
@@ -29,10 +31,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Test class for ApiRouteController.
@@ -84,5 +90,35 @@ class ApiRouteControllerTest {
     void resetSnapshotGenerationDelegatesToService() {
         apiRouteController.resetSnapshotGeneration("demo-service");
         verify(apiRouteService).resetReconciliationGeneration("demo-service");
+    }
+
+    @Test
+    void idOnlySnapshotDelegatesToService() {
+        RouteSnapshotRequest request = new RouteSnapshotRequest(1, "token", List.of("routeId"));
+        RouteSnapshotResult result = new RouteSnapshotResult("demo-service", 1, "token", 0, 0, 1, 1);
+        when(apiRouteService.reconcile("demo-service", request)).thenReturn(result);
+
+        Assertions.assertEquals(result, apiRouteController.reconcileSnapshot("demo-service", request));
+
+        verify(apiRouteService).reconcile("demo-service", request);
+    }
+
+    @Test
+    void snapshotEndpointAcceptsIdsAndRejectsFullRoutePayload() throws Exception {
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(apiRouteController).build();
+        RouteSnapshotRequest request = new RouteSnapshotRequest(1, "token", List.of("routeId"));
+        when(apiRouteService.reconcile("demo-service", request))
+                .thenReturn(new RouteSnapshotResult("demo-service", 1, "token", 0, 0, 0, 1));
+
+        mvc.perform(put("/api/v1/routes/services/demo-service/snapshot")
+                .contentType("application/json")
+                .content("{\"generation\":1,\"snapshotId\":\"token\",\"routeIds\":[\"routeId\"]}"))
+                .andExpect(status().isOk());
+        verify(apiRouteService).reconcile("demo-service", request);
+
+        mvc.perform(put("/api/v1/routes/services/demo-service/snapshot")
+                .contentType("application/json")
+                .content("{\"generation\":1,\"snapshotId\":\"token\",\"routes\":[{\"id\":\"routeId\"}]}"))
+                .andExpect(status().isBadRequest());
     }
 }

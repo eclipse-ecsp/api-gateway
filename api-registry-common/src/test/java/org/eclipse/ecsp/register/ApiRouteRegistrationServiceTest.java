@@ -19,11 +19,16 @@
 package org.eclipse.ecsp.register;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
 import org.eclipse.ecsp.register.model.RouteSnapshotResult;
+import org.eclipse.ecsp.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.RegistryCommonTestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,12 +44,14 @@ import org.springframework.web.client.RestTemplate;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +66,9 @@ class ApiRouteRegistrationServiceTest {
     
     @Mock
     private RestTemplate restTemplate;
+
+    @Captor
+    private ArgumentCaptor<HttpEntity<RouteSnapshotRequest>> snapshot;
     
     private ApiRouteRegistrationService apiRouteRegistrationService;
     
@@ -78,16 +88,40 @@ class ApiRouteRegistrationServiceTest {
     }
 
     @Test
-    void reconcileModeSendsOneSnapshotAndNoLegacyPosts() throws Exception {
-        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
+    void reconcileModeRegistersRoutesBeforeSendingSnapshot() throws Exception {
+        RouteDefinition first = serviceRoute();
+        RouteDefinition second = serviceRoute();
+        second.setId("second-route");
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(first, second));
         reconcileMode(3L);
+        when(restTemplate.postForEntity(anyString(), any(), eq(String.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body("registered"));
         whenSnapshotPut().thenReturn(ResponseEntity.ok(new RouteSnapshotResult("demo-service", 3, "id", 1, 0, 0, 0)));
 
         apiRouteRegistrationService.register();
 
-        verify(restTemplate).exchange(eq("http://registry:7000/api/v1/routes/services/demo-service/snapshot"),
-                eq(HttpMethod.PUT), any(HttpEntity.class), eq(RouteSnapshotResult.class));
-        verify(restTemplate, never()).postForEntity(anyString(), any(), any());
+        InOrder order = Mockito.inOrder(restTemplate);
+        order.verify(restTemplate, times(2)).postForEntity(eq("http://registry:7000/api/v1/routes"),
+            any(HttpEntity.class), eq(String.class));
+        order.verify(restTemplate).exchange(eq("http://registry:7000/api/v1/routes/services/demo-service/snapshot"),
+            eq(HttpMethod.PUT), snapshot.capture(), eq(RouteSnapshotResult.class));
+        RouteSnapshotRequest request = snapshot.getValue().getBody();
+        assertEquals(List.of(first.getId(), second.getId()), request.routeIds());
+        assertEquals(SnapshotDigestUtil.computeRouteIds(3L, request.routeIds()), request.snapshotId());
+        String json = ObjectMapperUtil.getObjectMapper().writeValueAsString(request);
+        assertTrue(json.contains("\"routeIds\""));
+        assertTrue(!json.contains("\"routes\"") && !json.contains("\"uri\""));
+    }
+
+    @Test
+    void failedRouteRegistrationDoesNotSendSnapshot() throws Exception {
+        when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
+        reconcileMode(3L);
+
+        assertThrows(IllegalStateException.class, () -> apiRouteRegistrationService.register());
+
+        verify(restTemplate, never()).exchange(anyString(), eq(HttpMethod.PUT), any(HttpEntity.class),
+            eq(RouteSnapshotResult.class));
     }
 
     @Test
@@ -102,6 +136,8 @@ class ApiRouteRegistrationServiceTest {
     void rejectedSnapshotFailsStartupWithTheRegistryReason() throws Exception {
         when(apiRoutesLoader.getApiRoutes()).thenReturn(List.of(serviceRoute()));
         reconcileMode(3L);
+        when(restTemplate.postForEntity(anyString(), any(), eq(String.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body("registered"));
         byte[] body = "{\"error\":\"generation_conflict\"}".getBytes(StandardCharsets.UTF_8);
         whenSnapshotPut().thenThrow(HttpClientErrorException.create(
                 HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, body, StandardCharsets.UTF_8));

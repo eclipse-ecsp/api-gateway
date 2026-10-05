@@ -33,10 +33,7 @@ import java.util.List;
  * Computes the canonical content digest ({@code snapshotId}) of a route-snapshot reconciliation
  * request.
  *
- * <p>Used identically on both sides: the client ({@code ApiRouteRegistrationService}) computes
- * it before sending; the server ({@code ApiRouteService.reconcile}) independently recomputes it
- * over the received request and rejects a mismatch, so the digest can never be spoofed by a
- * client bug or tampering in transit.
+ * <p>The client computes the digest before sending. The registry treats it as an opaque token.
  *
  * <p>Canonicalization sorts routes by id and recursively sorts JSON object field names, so byte-
  * identical route content always produces the same digest regardless of map/list iteration order.
@@ -62,6 +59,20 @@ public final class SnapshotDigestUtil {
         JsonNode routesNode = ObjectMapperUtil.getObjectMapper().valueToTree(sorted);
         String canonical = generation + "|" + canonicalize(routesNode);
         return DIGEST_PREFIX + digestHex(canonical);
+    }
+
+    /**
+     * Computes an order-independent digest for an ID-only route snapshot.
+     *
+     * @param generation the deployment generation
+     * @param routeIds the complete desired route IDs
+     * @return the digest, prefixed with {@value #DIGEST_PREFIX}
+     */
+    public static String computeRouteIds(long generation, List<String> routeIds) {
+        List<String> sorted = new ArrayList<>(routeIds);
+        sorted.sort(Comparator.naturalOrder());
+        JsonNode idsNode = ObjectMapperUtil.getObjectMapper().valueToTree(sorted);
+        return DIGEST_PREFIX + digestHex(generation + "|" + canonicalize(idsNode));
     }
 
     private static String digestHex(String input) {

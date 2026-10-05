@@ -400,12 +400,11 @@ public class ApiRouteService {
      * Reconciles the authoritative desired route set for one service (route snapshot
      * reconciliation).
      *
-     * <p>Validates the request (ownership, duplicate ids, generation/snapshot-id fencing),
-     * upserts every desired route, then retires (marks inactive and
+    * <p>Validates that each desired ID is already registered to the service, refreshes its
+    * reconciliation metadata, then retires (marks inactive and
      * {@value RegistryCommonConstants#REGISTRATION_RETIRED_METADATA_KEY}) every not-yet-retired
-     * route for the service that is absent from the desired set. Retirement is only attempted
-     * after every desired route has been upserted successfully, so a partial failure never
-     * removes a route the caller still wants (availability-first ordering).
+    * route for the service that is absent from the desired set. Retirement is only attempted
+    * after every desired route has been validated and stamped successfully.
      *
      * <p>Reconciles for the same service are serialized within this registry instance so the
      * generation check and the writes cannot interleave.
@@ -472,56 +471,58 @@ public class ApiRouteService {
         List<ApiRouteEntity> existingRoutes = apiRouteRepo.findAllByService(service);
         Map<String, ApiRouteEntity> existingById = new HashMap<>();
         existingRoutes.forEach(entity -> existingById.put(entity.getId(), entity));
-        rejectForeignOwnership(request, existingById);
+        validateRegisteredRoutes(service, request, existingById);
         rejectStaleOrConflictingGeneration(request, existingRoutes);
 
-        RouteChangeCounters counters = new RouteChangeCounters();
-        for (RouteDefinition desired : request.routes()) {
-            applyDesiredRoute(desired, request, existingById.get(desired.getId()), counters);
+        for (String routeId : request.routeIds()) {
+            ApiRouteEntity entity = existingById.get(routeId);
+            if (!isStampedWith(entity, request)) {
+                stampReconciliationMetadata(entity.getRoute(), request);
+                apiRouteRepo.save(entity);
+            }
         }
-        Set<String> desiredIds = new HashSet<>();
-        request.routes().forEach(route -> desiredIds.add(route.getId()));
+        Set<String> desiredIds = new HashSet<>(request.routeIds());
         int retired = retireAbsentRoutes(service, existingRoutes, desiredIds, request);
 
-        publishSnapshotEvent(service, request, counters, retired);
+        publishSnapshotEvent(service, request, retired);
         LOGGER.info("ROUTE_SNAPSHOT_RECONCILED | service={} | generation={} | snapshotId={} "
                         + "| created={} | updated={} | retired={} | unchanged={}",
                 service, request.generation(), request.snapshotId(),
-                counters.created, counters.updated, retired, counters.unchanged);
+                0, 0, retired, desiredIds.size());
         return new RouteSnapshotResult(service, request.generation(), request.snapshotId(),
-                counters.created, counters.updated, retired, counters.unchanged);
+                0, 0, retired, desiredIds.size());
     }
 
     private void validateSnapshotRequest(String service, RouteSnapshotRequest request) {
         if (service == null || service.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "service must not be blank");
         }
-        if (request == null || request.routes() == null || request.routes().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "routes must not be empty");
+        if (request == null || request.routeIds() == null || request.routeIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "routeIds must not be empty");
         }
         Set<String> seenIds = new HashSet<>();
-        for (RouteDefinition route : request.routes()) {
-            if (route.getId() == null || !seenIds.add(route.getId())) {
+        for (String routeId : request.routeIds()) {
+            if (routeId == null || routeId.isBlank() || !seenIds.add(routeId)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "duplicate or missing route id");
-            }
-            if (!service.equals(route.getService())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "route " + route.getId() + " does not belong to service " + service);
             }
         }
     }
 
-    private void rejectForeignOwnership(RouteSnapshotRequest request, Map<String, ApiRouteEntity> existingById) {
-        for (RouteDefinition desired : request.routes()) {
-            if (existingById.containsKey(desired.getId())) {
+    private void validateRegisteredRoutes(String service, RouteSnapshotRequest request,
+                                         Map<String, ApiRouteEntity> existingById) {
+        for (String routeId : request.routeIds()) {
+            ApiRouteEntity registered = existingById.get(routeId);
+            if (registered != null && registered.getRoute() != null && !ApiRouteUtil.isRetired(registered)) {
                 continue;
             }
-            Optional<ApiRouteEntity> other = apiRouteRepo.findById(desired.getId());
-            if (other.isPresent() && !Objects.equals(other.get().getService(), desired.getService())) {
+            Optional<ApiRouteEntity> other = apiRouteRepo.findById(routeId);
+            if (other.isPresent() && !Objects.equals(other.get().getService(), service)) {
                 LOGGER.warn("ROUTE_SNAPSHOT_REJECTED | service={} | reason={} | routeId={} | owner={}",
-                        desired.getService(), REASON_ROUTE_ID_CONFLICT, desired.getId(), other.get().getService());
+                        service, REASON_ROUTE_ID_CONFLICT, routeId, other.get().getService());
                 throw new ResponseStatusException(HttpStatus.CONFLICT, REASON_ROUTE_ID_CONFLICT);
             }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "route " + routeId + " must be registered before reconciliation");
         }
     }
 
@@ -536,56 +537,14 @@ public class ApiRouteService {
             }
         }
         if (request.generation() < highestGeneration) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, REASON_STALE_SNAPSHOT);
+            LOGGER.warn("the snapshot generation id: {} is lower than the earlier saved snapshot: {}",
+                    request.generation(), highestGeneration);
         }
         if (request.generation() == highestGeneration && highestGenerationSnapshotId != null
                 && !highestGenerationSnapshotId.equals(request.snapshotId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, REASON_GENERATION_CONFLICT);
+            LOGGER.warn("the snapshot generation id: {} is same as the earlier saved snapshot: {}",
+                    request.generation(), highestGeneration);
         }
-    }
-
-    /**
-     * Upserts one desired route. The functional checksum is computed before the reconciliation
-     * metadata is stamped, so a new generation alone is not a route change: the row only gets its
-     * watermark refreshed, without an UPDATED classification or a gateway refresh.
-     */
-    private void applyDesiredRoute(RouteDefinition desired, RouteSnapshotRequest request,
-                                   ApiRouteEntity existing, RouteChangeCounters counters) {
-        Optional<String> newChecksum = checksumProperties.isEnabled()
-                ? checksumService.compute(desired) : Optional.empty();
-        stampReconciliationMetadata(desired, request);
-        if (existing != null && isUnchanged(existing, newChecksum)) {
-            counters.unchanged++;
-            incrementMetric(RouteChangeType.UNCHANGED);
-            if (!isStampedWith(existing, request)) {
-                populateEntity(existing, desired, newChecksum.orElse(null));
-                apiRouteRepo.save(existing);
-            }
-            return;
-        }
-        boolean isNew = existing == null;
-        ApiRouteEntity entity = isNew ? new ApiRouteEntity() : existing;
-        final String previousChecksum = entity.getChecksum();
-        if (isNew) {
-            entity.setId(desired.getId());
-        }
-        populateEntity(entity, desired, newChecksum.orElse(null));
-        apiRouteRepo.save(entity);
-        RouteChangeType changeType = isNew ? RouteChangeType.NEW : RouteChangeType.UPDATED;
-        logChangeEvent(changeType, entity, desired, previousChecksum, entity.getChecksum(), request.snapshotId());
-        incrementMetric(changeType);
-        if (isNew) {
-            counters.created++;
-        } else {
-            counters.updated++;
-        }
-    }
-
-    private boolean isUnchanged(ApiRouteEntity existing, Optional<String> newChecksum) {
-        if (!checksumProperties.isEnabled() || newChecksum.isEmpty()) {
-            return false;
-        }
-        return Boolean.TRUE.equals(existing.getActive()) && newChecksum.get().equals(existing.getChecksum());
     }
 
     private static boolean isStampedWith(ApiRouteEntity entity, RouteSnapshotRequest request) {
@@ -631,10 +590,8 @@ public class ApiRouteService {
         apiRouteRepo.save(entity);
     }
 
-    private void publishSnapshotEvent(String service, RouteSnapshotRequest request,
-                                       RouteChangeCounters counters, int retired) {
-        boolean anyChange = counters.created > 0 || counters.updated > 0 || retired > 0;
-        if (eventPublisher != null && anyChange) {
+    private void publishSnapshotEvent(String service, RouteSnapshotRequest request, int retired) {
+        if (eventPublisher != null && retired > 0) {
             RouteChangeEventData eventData = new RouteChangeEventData(
                     List.of(service), List.of(), RouteChangeType.UPDATED, request.snapshotId(), null, null);
             eventPublisher.publishEvent(eventData);
@@ -685,10 +642,4 @@ public class ApiRouteService {
         return route.getMetadata().get(key);
     }
 
-    /** Mutable per-reconciliation change counters. */
-    private static final class RouteChangeCounters {
-        private int created;
-        private int updated;
-        private int unchanged;
-    }
 }

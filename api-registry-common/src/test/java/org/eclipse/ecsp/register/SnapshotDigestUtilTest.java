@@ -67,4 +67,13 @@ class SnapshotDigestUtilTest {
         List<RouteDefinition> routes = List.of(route("a"), route("b"));
         assertEquals(SnapshotDigestUtil.compute(5, routes), SnapshotDigestUtil.compute(5, routes));
     }
+
+    @Test
+    void routeIdDigestIsOrderIndependentAndDependsOnGenerationAndIds() {
+        String digest = SnapshotDigestUtil.computeRouteIds(1, List.of("a", "b"));
+        assertEquals(digest, SnapshotDigestUtil.computeRouteIds(1, List.of("b", "a")));
+        assertNotEquals(digest, SnapshotDigestUtil.computeRouteIds(2, List.of("a", "b")));
+        assertNotEquals(digest, SnapshotDigestUtil.computeRouteIds(1, List.of("a")));
+        assertTrue(digest.startsWith("sha256:"));
+    }
 }

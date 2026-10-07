@@ -154,8 +154,8 @@ public class ApiRouteRegistrationService {
         } catch (HttpStatusCodeException ex) {
             throw snapshotRejected(service, ex.getStatusCode().value(), ex.getResponseBodyAsString(), ex);
         }
-        if (response == null || !response.getStatusCode().is2xxSuccessful()) {
-            throw snapshotRejected(service, response == null ? 0 : response.getStatusCode().value(), "", null);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw snapshotRejected(service, response.getStatusCode().value(), "", null);
         }
         LOGGER.info("Route snapshot reconciled: {}", response.getBody());
     }

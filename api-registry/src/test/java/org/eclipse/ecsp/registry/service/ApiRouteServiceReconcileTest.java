@@ -238,8 +238,9 @@ class ApiRouteServiceReconcileTest {
         foreign.setService("other-service");
         when(apiRouteRepo.findById("shared-id")).thenReturn(Optional.of(foreign));
 
+        RouteSnapshotRequest routes = snapshot(1, route("shared-id"));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> apiRouteService.reconcile(SERVICE, snapshot(1, route("shared-id"))));
+                () -> apiRouteService.reconcile(SERVICE, routes));
         assertEquals(409, ex.getStatusCode().value());
         assertEquals("route_id_conflict", ex.getReason());
     }
@@ -250,9 +251,9 @@ class ApiRouteServiceReconcileTest {
         ApiRouteEntity legacyRow = entity("legacy-id", true);
         legacyRow.setService(null);
         when(apiRouteRepo.findById("legacy-id")).thenReturn(Optional.of(legacyRow));
-
+        RouteSnapshotRequest routesSnapshot = snapshot(1, route("legacy-id"))
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> apiRouteService.reconcile(SERVICE, snapshot(1, route("legacy-id"))));
+                () -> apiRouteService.reconcile(SERVICE, routesSnapshot));
         assertEquals("route_id_conflict", ex.getReason());
     }
 

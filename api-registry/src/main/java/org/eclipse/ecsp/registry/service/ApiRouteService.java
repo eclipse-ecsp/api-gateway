@@ -607,7 +607,7 @@ public class ApiRouteService {
         if (value instanceof String text) {
             try {
                 return Long.parseLong(text);
-            } catch (NumberFormatException ex) {
+            } catch (NumberFormatException _) {
                 return 0;
             }
         }

@@ -65,6 +65,7 @@ class ApiGatewayControllerTest {
 
     @Test
     void testReload() {
+        ReflectionTestUtils.setField(apiGatewayController, "isReloadEnabled", true);
         apiGatewayController.reload();
         verify(igniteRouteLocator, times(1)).refreshRoutes();
     }

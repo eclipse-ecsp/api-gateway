@@ -69,13 +69,6 @@ class EventDrivenRouteRefreshIntegrationTest {
 
     @SuppressWarnings("resource")
     @Container
-    static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
-            .withExposedPorts(27017)
-            .withEnv("MONGO_INITDB_ROOT_USERNAME", "test")
-            .withEnv("MONGO_INITDB_ROOT_PASSWORD", "test");
-
-    @SuppressWarnings("resource")
-    @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT);
 
@@ -83,14 +76,6 @@ class EventDrivenRouteRefreshIntegrationTest {
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-
-        registry.add("mongodb.hosts", mongo::getHost);
-        registry.add("mongodb.port", () -> String.valueOf(mongo.getMappedPort(27017)));
-        registry.add("mongodb_database", () -> "ecsp");
-
-        registry.add("mongodb.username", () -> "test");
-        registry.add("mongodb.password", () -> "test");
-        registry.add("mongodb.auth.db", () -> "admin");
     }
 
     @AfterAll

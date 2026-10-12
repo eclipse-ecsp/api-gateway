@@ -34,7 +34,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -68,9 +67,14 @@ class EventDrivenRouteRefreshIntegrationTest {
     private static final long SUBSCRIPTION_START_WAIT_MS = 200L;
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
 
+    @SuppressWarnings("resource")
     @Container
-    static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:7"));
+    static GenericContainer<?> mongo = new GenericContainer<>(DockerImageName.parse("mongo:7"))
+            .withExposedPorts(27017)
+            .withEnv("MONGO_INITDB_ROOT_USERNAME", "test")
+            .withEnv("MONGO_INITDB_ROOT_PASSWORD", "test");
 
+    @SuppressWarnings("resource")
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT);

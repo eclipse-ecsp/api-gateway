@@ -61,7 +61,7 @@
         <ecsp.token-validator.version>0.0.4</ecsp.token-validator.version>
         <!-- dependant versions ordered by artifactId -->
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
-        <jackson-bom.version>2.22.2</jackson-bom.version>
+        <jackson-bom.version>2.22.3</jackson-bom.version>
         <jackson-annotations.version>2.22</jackson-annotations.version>
         <tools-jackson-bom.version>3.2.3</tools-jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>

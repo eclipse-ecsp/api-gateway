@@ -20,6 +20,7 @@ package org.eclipse.ecsp.registry.integration;
 
 import org.eclipse.ecsp.registry.events.RouteEventPublisher;
 import org.eclipse.ecsp.registry.events.RouteEventThrottler;
+import org.eclipse.ecsp.registry.repo.ApiRouteMongoDaoImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +32,14 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +73,9 @@ class EventDrivenRouteRefreshIntegrationTest {
     @SuppressWarnings("resource")
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("redis-server"))
+            .withCommand("--save", "", "--appendonly", "no", "--protected-mode", "no")
+            .withTmpFs(Map.of("/data", "rw"))
             .withExposedPorts(REDIS_PORT);
 
     @DynamicPropertySource
@@ -91,6 +97,9 @@ class EventDrivenRouteRefreshIntegrationTest {
 
     @Autowired
     private RouteEventThrottler eventThrottler;
+
+    @MockitoBean
+    private ApiRouteMongoDaoImpl apiRouteMongoDao;
 
     @Autowired
     private StringRedisTemplate redisTemplate;

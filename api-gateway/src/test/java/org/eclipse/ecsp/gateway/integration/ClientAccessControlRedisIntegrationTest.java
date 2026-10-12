@@ -46,6 +46,7 @@ import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,6 +74,9 @@ class ClientAccessControlRedisIntegrationTest {
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
+            .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("redis-server"))
+            .withCommand("--save", "", "--appendonly", "no", "--protected-mode", "no")
+            .withTmpFs(Map.of("/data", "rw"))
             .withExposedPorts(REDIS_PORT);
 
     @DynamicPropertySource

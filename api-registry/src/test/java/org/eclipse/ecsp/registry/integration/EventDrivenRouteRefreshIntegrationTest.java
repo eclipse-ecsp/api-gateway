@@ -34,6 +34,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -68,6 +69,9 @@ class EventDrivenRouteRefreshIntegrationTest {
     private static final long EVENT_RECEIPT_WAIT_MS = 2000L;
 
     @Container
+    static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:7"));
+
+    @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT);
 
@@ -75,6 +79,14 @@ class EventDrivenRouteRefreshIntegrationTest {
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+
+        registry.add("mongodb.hosts", mongo::getHost);
+        registry.add("mongodb.port", () -> String.valueOf(mongo.getMappedPort(27017)));
+        registry.add("mongodb_database", () -> "ecsp");
+
+        registry.add("mongodb.username", () -> "test");
+        registry.add("mongodb.password", () -> "test");
+        registry.add("mongodb.auth.db", () -> "admin");
     }
 
     @AfterAll

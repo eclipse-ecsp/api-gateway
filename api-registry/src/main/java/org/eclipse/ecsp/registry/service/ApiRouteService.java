@@ -607,7 +607,8 @@ public class ApiRouteService {
         if (value instanceof String text) {
             try {
                 return Long.parseLong(text);
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException e) {
+                LOGGER.debug("Parsing failed for generation metadata key: {}, error: {}", text, e);
                 return 0;
             }
         }

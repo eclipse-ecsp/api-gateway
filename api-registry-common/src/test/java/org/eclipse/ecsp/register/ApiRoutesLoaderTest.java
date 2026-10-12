@@ -557,7 +557,7 @@ class ApiRoutesLoaderTest {
 
         ApiRoutesLoader openApi31Loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, new ApiRoutesConfig());
+                springDocProviders, springDocCustomizers, new ApiRoutesConfig(), Optional.empty());
 
         Assertions.assertSame(ObjectMapperUtil.getObjectMapper(),
                 ReflectionTestUtils.getField(openApi31Loader, "schemaObjectMapper"));

@@ -23,7 +23,6 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
@@ -70,17 +69,9 @@ public class GatewayUtils {
     public static String getClientIpAddress(ServerHttpRequest request) {
         String clientIp = "unknown";
         try {
-            // Check X-Forwarded-For header first (common in proxy setups)
-            String forwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
-            if (StringUtils.isNotEmpty(forwardedFor)) {
-                // X-Forwarded-For can contain multiple IPs, take the first one
-                clientIp = forwardedFor.split(",")[0].trim();
-            } else {
-                // Fallback to remote address
-                if (request.getRemoteAddress() != null 
-                        && request.getRemoteAddress().getAddress() != null) {
-                    clientIp = request.getRemoteAddress().getAddress().getHostAddress();
-                }
+            if (request.getRemoteAddress() != null
+                    && request.getRemoteAddress().getAddress() != null) {
+                clientIp = request.getRemoteAddress().getAddress().getHostAddress();
             }
         } catch (Exception ex) {
             LOGGER.debug("Unable to extract client IP address: {}", ex.getMessage());

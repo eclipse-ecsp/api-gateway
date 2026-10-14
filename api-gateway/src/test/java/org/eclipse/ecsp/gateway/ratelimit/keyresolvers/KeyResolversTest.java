@@ -75,33 +75,35 @@ class KeyResolversTest {
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolverWithXForwardedForReturnsFirstIp() {
+    void clientIpKeyResolverIgnoresUntrustedXForwardedFor() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
         headers.add("X-Forwarded-For", "192.168.1.100, 10.0.0.1");
+        when(request.getRemoteAddress()).thenReturn(new InetSocketAddress("10.20.30.40", PORT_8080));
 
         // Act
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
         StepVerifier.create(result)
-                .expectNext("192.168.1.100")
+                .expectNext("10.20.30.40")
                 .verifyComplete();
     }
 
     @Test
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-    void clientIpKeyResolverWithSingleXForwardedForReturnsTrimmedIp() {
+    void clientIpKeyResolverIgnoresClientSuppliedXForwardedForValue() {
         // Arrange
         ClientIpKeyResolver resolver = new ClientIpKeyResolver();
-        headers.add("X-Forwarded-For", "  172.16.0.50  ");
+        headers.add("X-Forwarded-For", "  attacker-controlled-value  ");
+        when(request.getRemoteAddress()).thenReturn(new InetSocketAddress("10.20.30.40", PORT_8080));
 
         // Act
         Mono<String> result = resolver.resolve(exchange);
 
         // Assert
         StepVerifier.create(result)
-                .expectNext("172.16.0.50")
+                .expectNext("10.20.30.40")
                 .verifyComplete();
     }
 

@@ -57,8 +57,8 @@ public class ClaimHeaderMappingContext {
     private final String scopeString;
 
     /**
-     * Union of validated user scopes and route-configured scopes.
-     * Written to the downstream {@code override-scope} header.
+     * Validated effective user scopes.
+     * Written to the downstream {@code override-scope} header without adding route scopes.
      */
     private final Set<String> overrideScopes;
 
@@ -68,7 +68,7 @@ public class ClaimHeaderMappingContext {
      * @param claims              verified JWT claims
      * @param claimToHeaderMapping  configured claim-to-header name mapping
      * @param scopeString         effective comma-separated scope string
-     * @param overrideScopes      union of user scopes and route scopes
+     * @param overrideScopes      validated user scopes
      */
     public ClaimHeaderMappingContext(Claims claims,
                                      Map<String, String> claimToHeaderMapping,

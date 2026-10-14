@@ -27,9 +27,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -45,9 +45,6 @@ class GatewayUtilsTest {
 
     @Mock
     private ServerHttpRequest request;
-
-    @Mock
-    private HttpHeaders headers;
 
     @Mock
     private InetSocketAddress remoteAddress;
@@ -119,20 +116,22 @@ class GatewayUtilsTest {
     }
 
     /**
-     * Test getClientIpAddress with X-Forwarded-For header containing various IP formats.
+        * Test getClientIpAddress ignores untrusted X-Forwarded-For values.
      */
     @ParameterizedTest
     @CsvSource({
-        "'192.168.1.100', '192.168.1.100'",
-        "'192.168.1.100, 10.0.0.1, 172.16.0.1', '192.168.1.100'",
-        "'  192.168.1.100  , 10.0.0.1', '192.168.1.100'"
+        "'192.168.1.100'",
+        "'192.168.1.100, 10.0.0.1, 172.16.0.1'",
+        "'  attacker-controlled-value  , 10.0.0.1'"
     })
-    void testGetClientIpAddressWithForwardedForVariousFormats(String forwardedForHeader, String expectedIp) {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn(forwardedForHeader);
+    void testGetClientIpAddressWithForwardedForUsesConnectionPeer(String forwardedForHeader) {
+        ServerHttpRequest requestWithForwardedHeader = MockServerHttpRequest.get("/")
+            .remoteAddress(new InetSocketAddress("10.0.0.100", 8080))
+            .header("X-Forwarded-For", forwardedForHeader)
+            .build();
 
-        String result = GatewayUtils.getClientIpAddress(request);
-        assertEquals(expectedIp, result);
+        String result = GatewayUtils.getClientIpAddress(requestWithForwardedHeader);
+        assertEquals("10.0.0.100", result);
     }
 
     /**
@@ -140,8 +139,6 @@ class GatewayUtilsTest {
      */
     @Test
     void testGetClientIpAddressWithRemoteAddress() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddress()).thenReturn(remoteAddress);
         when(remoteAddress.getAddress()).thenReturn(inetAddress);
         when(inetAddress.getHostAddress()).thenReturn("10.0.0.100");
@@ -151,12 +148,10 @@ class GatewayUtilsTest {
     }
 
     /**
-     * Test getClientIpAddress with empty X-Forwarded-For header and remote address.
+        * Test getClientIpAddress with a remote address.
      */
     @Test
     void testGetClientIpAddressWithEmptyForwardedForAndRemoteAddress() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn("");
         when(request.getRemoteAddress()).thenReturn(remoteAddress);
         when(remoteAddress.getAddress()).thenReturn(inetAddress);
         when(inetAddress.getHostAddress()).thenReturn("10.0.0.100");
@@ -170,8 +165,6 @@ class GatewayUtilsTest {
      */
     @Test
     void testGetClientIpAddressWithNullRemoteAddress() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddress()).thenReturn(null);
 
         String result = GatewayUtils.getClientIpAddress(request);
@@ -183,8 +176,6 @@ class GatewayUtilsTest {
      */
     @Test
     void testGetClientIpAddressWithNullInetAddress() {
-        when(request.getHeaders()).thenReturn(headers);
-        when(headers.getFirst("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddress()).thenReturn(remoteAddress);
         when(remoteAddress.getAddress()).thenReturn(null);
 
@@ -197,7 +188,7 @@ class GatewayUtilsTest {
      */
     @Test
     void testGetClientIpAddressWithException() {
-        when(request.getHeaders()).thenThrow(new RuntimeException("Test exception"));
+        when(request.getRemoteAddress()).thenThrow(new RuntimeException("Test exception"));
 
         String result = GatewayUtils.getClientIpAddress(request);
         assertEquals("unknown", result);

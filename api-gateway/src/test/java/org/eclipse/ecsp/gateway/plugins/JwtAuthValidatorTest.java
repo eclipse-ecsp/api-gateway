@@ -316,6 +316,23 @@ class JwtAuthValidatorTest {
     }
 
     @Test
+    void overrideScopeContainsOnlyScopesFromTheValidatedToken() {
+        JwtAuthFilter.Config config = new JwtAuthFilter.Config();
+        config.setScope("SelfManage,IgniteSystem");
+        jwtAuthValidator.apply(config);
+        jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
+
+        String token = JwtTestTokenGenerator.createToken(
+                "admin", "https://auth.example.com", "test-audience", "SelfManage", "user1", "test-key-id");
+        ServerWebExchange exchange = createExchangeWithCustomToken(token);
+        ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate();
+
+        jwtAuthFilter.filter(exchange, gatewayFilterChain);
+
+        Mockito.verify(requestBuilder).header(GatewayConstants.OVERRIDE_SCOPE, "SelfManage");
+    }
+
+    @Test
     void testInvalidTokenWithNewArchitecture() {
         JwtAuthFilter.Config config = new JwtAuthFilter.Config();
         config.setScope("SelfManage");

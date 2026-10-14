@@ -60,7 +60,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Gateway filter that orchestrates the full JWT authentication pipeline.
@@ -175,7 +174,7 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
     
             // Step 3 — Resolve public key (key management is gateway-internal, not an SPI)
             String issuer = Optional.ofNullable(decoded.getRawClaims().get("iss"))
-                    .map(Object::toString)
+                    .map(value -> value == null ? "" : value.toString())
                     .orElse("");
             // Parse token and extract metadata for key lookup and refresh flow.
             TokenMetadata metadata = new TokenMetadata(decoded.getKid(), decoded.getTenantId(), issuer);
@@ -207,10 +206,10 @@ public class JwtAuthFilter implements GatewayFilter, Ordered {
                     scope, GatewayUtils.getLogMessage(routeId, requestPath, requestId));
     
             // Step 8 — Map claim values to downstream request headers
-            Set<String> overrideScopes = Stream.concat(
-                    Arrays.stream(scope.split(",")).map(String::trim),
-                    routeScopes.stream()
-            ).collect(Collectors.toSet());
+            Set<String> overrideScopes = Arrays.stream(scope.split(","))
+                    .filter(StringUtils::isNotBlank)
+                    .map(StringUtils::trim)
+                    .collect(Collectors.toSet());
     
             Builder builder = exchange.getRequest().mutate();
             tokenClaimHeaderMapper.map(builder, new ClaimHeaderMappingContext(

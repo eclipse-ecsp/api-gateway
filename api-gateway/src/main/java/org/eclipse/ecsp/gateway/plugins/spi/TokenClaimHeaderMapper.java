@@ -27,13 +27,12 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
  * JWT token:
  * <ul>
  *   <li>The {@code scope} header — the effective user scope string</li>
- *   <li>The {@code override-scope} header — the union of user scopes and route scopes</li>
+ *   <li>The {@code override-scope} header — validated user scopes only</li>
  *   <li>All configured claim-to-header mappings (e.g., {@code sub → user-id})</li>
  * </ul>
  *
- * <p>The default implementation replicates the existing header-writing loop in
- * {@link org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter#filter} exactly,
- * ensuring 100% backwards compatibility.
+ * <p>The default implementation removes mapped inbound headers when claims are absent
+ * and does not add route-configured scopes to downstream user scopes.
  *
  * <p>Register a Spring bean implementing this interface to customise what is forwarded
  * to downstream services — for example to add derived headers, remap claim names, or

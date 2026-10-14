@@ -32,13 +32,13 @@ import java.util.stream.Collectors;
 /**
  * Default implementation of {@link TokenClaimHeaderMapper}.
  *
- * <p>Replicates the downstream header-writing logic previously embedded in
- * {@link org.eclipse.ecsp.gateway.plugins.filters.JwtAuthFilter#filter}, specifically:
+ * <p>Maps verified token data to downstream headers using safe default semantics,
+ * specifically:
  * <ul>
  *   <li>Writing the {@code scope} header with the effective user scope string</li>
- *   <li>Writing the {@code override-scope} header with the union of user and route scopes</li>
+ *   <li>Writing the {@code override-scope} header with validated user scopes</li>
  *   <li>Iterating the configured {@code claimToHeaderMapping} and adding each
- *       non-blank claim value as a request header</li>
+ *       claim value as a request header, removing any inbound value when absent</li>
  * </ul>
  *
  * <p>This bean is registered only when no other {@link TokenClaimHeaderMapper} bean is
@@ -64,6 +64,7 @@ public class DefaultTokenClaimHeaderMapper implements TokenClaimHeaderMapper {
             String claimKey = entry.getKey();
             String headerName = entry.getValue();
             String claimValue = getClaimValue(claims, claimKey);
+            builder.headers(headers -> headers.remove(headerName));
             if (!StringUtils.isBlank(claimValue)) {
                 builder.header(headerName, claimValue);
                 LOGGER.debug("Mapped claim '{}' -> header '{}' with value: '{}'", claimKey, headerName, claimValue);

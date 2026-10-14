@@ -48,22 +48,13 @@ public class ClientIpKeyResolver implements KeyResolver {
      */
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        String forwardedForHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        // Check X-Forwarded-For header first
-        if (forwardedForHeader != null && !forwardedForHeader.isEmpty()) {
-            String clientIp = forwardedForHeader.split(",")[0].trim();
-            LOGGER.debug("Client Key from X-Forwarded-For -> {}", clientIp);
-            return Mono.just(clientIp);
-        }
-
-        // Fallback to remote address if X-Forwarded-For is not present
         InetSocketAddress remoteAddress = exchange.getRequest().getRemoteAddress();
         if (remoteAddress == null || remoteAddress.getAddress() == null) {
             LOGGER.error("Remote Address is null");
             return Mono.empty();
         }
         String hostName = remoteAddress.getAddress().getHostAddress();
-        LOGGER.debug("Client Key -> {}", hostName);
+        LOGGER.debug("Client rate-limit key from connection peer -> {}", hostName);
         return Mono.just(hostName);
     }
 }

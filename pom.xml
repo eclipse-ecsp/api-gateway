@@ -83,7 +83,7 @@
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
 
         <!--Checkstyle plugin properties -->
-        <checkstyle.version>11.0.0</checkstyle.version>
+        <checkstyle.version>14.3.0</checkstyle.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <checkstyle.suppressions.location>checkstyle-suppressions.xml</checkstyle.suppressions.location>
@@ -139,7 +139,7 @@
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
         <wiremock.version>3.13.2</wiremock.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-javadoc-plugin.version>3.11.3</maven-javadoc-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <license-tool-plugin.version>1.1.0</license-tool-plugin.version>
         <skipDash>true</skipDash>
         <failWhenReviewNeeded>false</failWhenReviewNeeded>
@@ -152,7 +152,7 @@
         <skipMavenPublishing>true</skipMavenPublishing>
         <central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
         <tomcat.version>11.0.25</tomcat.version>
-        <postgresql.version>42.7.12</postgresql.version>
+        <postgresql.version>42.7.14</postgresql.version>
         <netty.version>4.2.18.Final</netty.version>
         <reactor-test.version>3.7.11</reactor-test.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>

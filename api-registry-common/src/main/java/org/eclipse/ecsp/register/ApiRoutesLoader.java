@@ -753,6 +753,10 @@ public class ApiRoutesLoader extends OpenApiResource {
             if (!RouteMappingMatcher.matches(mapping, index, operation, path, method)) {
                 continue;
             }
+            if (mapping.getOrder() != null) {
+                route.setOrder(mapping.getOrder());
+            }
+            route.getMetadata().putAll(mapping.getMetadata());
             for (RouteCustomizerProperties.FilterOverride configuredFilter : mapping.getFilters()) {
                 FilterDefinition filter = new FilterDefinition();
                 filter.setName(configuredFilter.getName());

@@ -329,7 +329,7 @@ class JwtAuthValidatorTest {
 
         jwtAuthFilter.filter(exchange, gatewayFilterChain);
 
-        Mockito.verify(requestBuilder).header(GatewayConstants.OVERRIDE_SCOPE, "SelfManage");
+        verify(requestBuilder).header(GatewayConstants.OVERRIDE_SCOPE, "SelfManage");
     }
 
     @Test
@@ -1023,6 +1023,16 @@ class JwtAuthValidatorTest {
         jwtAuthValidator.apply(config);
         jwtAuthFilter = new JwtAuthFilter(config, publicKeyService, jwtProperties, validationComponents);
 
+        
+        // Mock public key service to handle token without kid (should fallback to DEFAULT)
+        PublicKey publicKey = JwtTestTokenGenerator.getTestPublicKey();
+        PublicKeyInfo defaultPublicKeyInfo = new PublicKeyInfo();
+        defaultPublicKeyInfo.setKid("DEFAULT");
+        defaultPublicKeyInfo.setSourceId("test-source-1");
+        defaultPublicKeyInfo.setPublicKey(publicKey);
+        when(publicKeyService.findPublicKey("DEFAULT", null))
+            .thenReturn(Optional.of(defaultPublicKeyInfo));
+        
         // Create exchange with token without kid
         ServerWebExchangeImpl tokenWithoutKidExchange = new ServerWebExchangeImpl() {
             @Override
@@ -1046,16 +1056,6 @@ class JwtAuthValidatorTest {
                 return mockRequest;
             }
         };
-
-        // Mock public key service to handle token without kid (should fallback to DEFAULT)
-        PublicKey publicKey = JwtTestTokenGenerator.getTestPublicKey();
-        PublicKeyInfo defaultPublicKeyInfo = new PublicKeyInfo();
-        defaultPublicKeyInfo.setKid("DEFAULT");
-        defaultPublicKeyInfo.setSourceId("test-source-1");
-        defaultPublicKeyInfo.setPublicKey(publicKey);
-        when(publicKeyService.findPublicKey("DEFAULT", null))
-                .thenReturn(Optional.of(defaultPublicKeyInfo));
-
         // Test that token without kid should be handled properly (either success or specific error)
         try {
             jwtAuthFilter.filter(tokenWithoutKidExchange, gatewayFilterChain);

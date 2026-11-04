@@ -19,6 +19,8 @@
 package org.eclipse.ecsp.gateway.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
@@ -57,12 +59,21 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Flux;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -70,7 +81,7 @@ import java.util.TreeSet;
  * Dynamically load routes from api-registry.
  */
 @Service
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "null"})
 @ConditionalOnProperty(value = "api.dynamic.routes.enabled", havingValue = "true", matchIfMissing = false)
 @ConfigurationProperties(prefix = "api")
 public class IgniteRouteLocator implements RouteLocator {
@@ -220,11 +231,41 @@ public class IgniteRouteLocator implements RouteLocator {
         // Build api-gateway routes on the ApiRoutes received from api-registry
         Flux<Route> routes = apiRoutes
                 .filter(r -> validateRouteFilters(r, r.getFilters()))
-                .map(apiRoute -> routesBuilder.route(apiRoute.getId(),
-                        predicateSpec -> setPredicateSpec(apiRoute, predicateSpec)))
-                .collectList().flatMapMany(builders -> routesBuilder.build().getRoutes());
+                .collectList()
+                .flatMapMany(routeDefinitions -> {
+                    List<IgniteRouteDefinition> prioritizedRoutes = sortRoutesBySpecificity(routeDefinitions);
+                    for (int index = 0; index < prioritizedRoutes.size(); index++) {
+                        IgniteRouteDefinition apiRoute = prioritizedRoutes.get(index);
+                        int routeOrder = index;
+                        routesBuilder.route(apiRoute.getId(),
+                                predicateSpec -> setPredicateSpec(apiRoute, predicateSpec, routeOrder));
+                    }
+                    return routesBuilder.build().getRoutes();
+                });
         LOGGER.debug("Loaded Routes...!");
         return routes;
+    }
+
+    /**
+     * Orders exact and more specific path patterns before less specific patterns.
+     *
+     * @param routes route definitions from the API registry
+     * @return routes ordered by path specificity, then configured order
+     */
+    static List<IgniteRouteDefinition> sortRoutesBySpecificity(List<IgniteRouteDefinition> routes) {
+        Map<IgniteRouteDefinition, PathPattern> pathPatterns = new IdentityHashMap<>();
+        for (IgniteRouteDefinition route : routes) {
+            String path = RouteUtils.getRoutePath(route.getPredicates());
+            if (StringUtils.hasText(path)) {
+                pathPatterns.put(route, PathPatternParser.defaultInstance.parse(path));
+            }
+        }
+        Comparator<PathPattern> specificityComparator =
+                Comparator.nullsLast(PathPattern.SPECIFICITY_COMPARATOR);
+        return routes.stream()
+                .sorted(Comparator.comparingInt(RouteDefinition::getOrder)
+                        .thenComparing(pathPatterns::get, specificityComparator))
+                .toList();
     }
 
     private boolean validateRouteFilters(IgniteRouteDefinition route, List<FilterDefinition> filters) {
@@ -245,12 +286,15 @@ public class IgniteRouteLocator implements RouteLocator {
      *
      * @param apiRoute      RouteDefinition object
      * @param predicateSpec PredicateSpec object
+     * @param routeOrder    order assigned after sorting routes by path specificity
      * @return returns {@link Buildable} of {@link Route}
      */
     private Buildable<Route> setPredicateSpec(IgniteRouteDefinition apiRoute,
-                                              PredicateSpec predicateSpec) {
+                                              PredicateSpec predicateSpec,
+                                              int routeOrder) {
         LOGGER.debug("set predicate spec {} ", predicateSpec);
         LOGGER.debug("ApiRoute -> {} ,{}", apiRoute.getId(), apiRoute.getPredicates());
+        predicateSpec.order(routeOrder);
         //set api doc route
         setApiDocRoute(apiRoute);
 
@@ -278,7 +322,8 @@ public class IgniteRouteLocator implements RouteLocator {
             }
         }
         
-        Buildable<Route> route = booleanSpec.uri(apiRoute.getUri());
+        URI routeUri = Objects.requireNonNull(apiRoute.getUri(), "uri must not be null");
+        Buildable<Route> route = booleanSpec.uri(routeUri);
         LOGGER.debug("route---{}", route);
         if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
             setCacheFilter(apiRoute);
@@ -350,7 +395,7 @@ public class IgniteRouteLocator implements RouteLocator {
     private List<GatewayFilter> getFilters(RouteDefinition apiRoute) {
         LOGGER.debug("Fetching gateway filters");
         List<GatewayFilter> filters = new ArrayList<>();
-        if (apiRoute.getFilters() != null && !apiRoute.getFilters().isEmpty()) {
+        if (!CollectionUtils.isEmpty(apiRoute.getFilters())) {
             List<FilterDefinition> filterDefinitions = new ArrayList<>();
             apiRoute.getFilters().forEach(filter -> {
                 FilterDefinition fd = new FilterDefinition();

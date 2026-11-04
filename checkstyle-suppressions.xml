@@ -5,6 +5,9 @@
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
+    <suppress checks="SummaryJavadoc"
+              lines="1"
+              message="First sentence of Javadoc is missing an ending period"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.RegistryApplication"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.gateway.ApiGatewayApplication"/>
     <suppress checks="HideUtilityClassConstructor" files="org.eclipse.ecsp.registry.utils.RegistryUtils"/>

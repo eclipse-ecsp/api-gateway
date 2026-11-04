@@ -42,7 +42,9 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.gateway.support.ConfigurationService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.server.PathContainer;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -267,6 +269,72 @@ class IgniteRouteLocatorTest {
         StepVerifier.create(routes)
                 .expectNextCount(1)
                 .verifyComplete();
+    }
+
+    @Test
+    void exactPathRoutePrecedesParameterizedRouteAndUsesItsScope() {
+        String basePath = "/v1/vehicles/{vehicleId}/store/entitlements";
+        IgniteRouteDefinition productRoute = routeWithScope(
+                "entitlements-by-product", basePath + "/{productId}", "product-scope");
+        IgniteRouteDefinition searchRoute = routeWithScope(
+                "entitlements-search", basePath + "/search", "search-scope");
+
+        List<IgniteRouteDefinition> prioritizedRoutes =
+                IgniteRouteLocator.sortRoutesBySpecificity(List.of(productRoute, searchRoute));
+
+        PathContainer searchPath = PathContainer.parsePath("/v1/vehicles/v1/store/entitlements/search");
+        PathPatternParser parser = PathPatternParser.defaultInstance;
+        assertTrue(parser.parse(basePath + "/{productId}").matches(searchPath));
+        assertTrue(parser.parse(basePath + "/search").matches(searchPath));
+        assertEquals(List.of("entitlements-search", "entitlements-by-product"),
+                prioritizedRoutes.stream().map(IgniteRouteDefinition::getId).toList());
+        assertEquals("search-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/search"));
+        assertEquals("product-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/product-123"));
+    }
+
+    @Test
+    void configuredRouteOrderOverridesPathSpecificity() {
+        String basePath = "/v1/vehicles/{vehicleId}/store/entitlements";
+        IgniteRouteDefinition productRoute = routeWithScope(
+                "entitlements-by-product", basePath + "/{productId}", "product-scope");
+        productRoute.setOrder(-1);
+        IgniteRouteDefinition searchRoute = routeWithScope(
+                "entitlements-search", basePath + "/search", "search-scope");
+        searchRoute.setOrder(1);
+
+        List<IgniteRouteDefinition> prioritizedRoutes =
+                IgniteRouteLocator.sortRoutesBySpecificity(List.of(searchRoute, productRoute));
+
+        assertEquals(List.of("entitlements-by-product", "entitlements-search"),
+                prioritizedRoutes.stream().map(IgniteRouteDefinition::getId).toList());
+        assertEquals("product-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/search"));
+    }
+
+    private static IgniteRouteDefinition routeWithScope(String routeId, String path, String scope) {
+        IgniteRouteDefinition route = new IgniteRouteDefinition();
+        route.setId(routeId);
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("pattern", path);
+        route.setPredicates(List.of(pathPredicate));
+        FilterDefinition scopeFilter = new FilterDefinition();
+        scopeFilter.setName("JwtAuthValidator");
+        scopeFilter.addArg("scope", scope);
+        route.setFilters(List.of(scopeFilter));
+        return route;
+    }
+
+    private static String scopeOfRouteMatching(List<IgniteRouteDefinition> routes, String requestPath) {
+        PathContainer path = PathContainer.parsePath(requestPath);
+        PathPatternParser parser = PathPatternParser.defaultInstance;
+        return routes.stream()
+                .filter(route -> parser.parse(route.getPredicates().get(0).getArgs().get("pattern")).matches(path))
+                .findFirst()
+                .orElseThrow()
+                .getFilters().get(0).getArgs().get("scope");
     }
 
     @Test

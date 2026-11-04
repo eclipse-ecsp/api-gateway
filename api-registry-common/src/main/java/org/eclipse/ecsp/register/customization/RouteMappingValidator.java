@@ -48,8 +48,9 @@ public class RouteMappingValidator
                                                ConstraintValidatorContext context) {
         boolean hasTargets = mapping.getExposeAs() != null && !mapping.getExposeAs().isEmpty();
         boolean hasFilters = mapping.getFilters() != null && !mapping.getFilters().isEmpty();
-        if (!hasTargets && !hasFilters) {
-            return violation(context, "mapping must configure at least one exposeAs target or filter");
+        boolean hasMetadata = mapping.getMetadata() != null && !mapping.getMetadata().isEmpty();
+        if (!hasTargets && !hasFilters && mapping.getOrder() == null && !hasMetadata) {
+            return violation(context, "mapping must configure exposeAs, filters, order, or metadata");
         }
         if (mapping.isReplaceOriginal() && !hasTargets) {
             return violation(context, "replaceOriginal requires at least one exposeAs target");

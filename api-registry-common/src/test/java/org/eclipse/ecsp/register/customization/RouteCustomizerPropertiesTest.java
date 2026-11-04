@@ -116,4 +116,20 @@ class RouteCustomizerPropertiesTest {
         mapping.setFilters(List.of(filter));
         assertTrue(validator.validate(mapping).isEmpty());
     }
+
+    @Test
+    void acceptsOrderOnlyMapping() {
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setRouteId("Demo-doThis");
+        mapping.setOrder(-1);
+        assertTrue(validator.validate(mapping).isEmpty());
+    }
+
+    @Test
+    void acceptsMetadataOnlyMapping() {
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setRouteId("Demo-doThis");
+        mapping.getMetadata().put("custom-key", "custom-value");
+        assertTrue(validator.validate(mapping).isEmpty());
+    }
 }

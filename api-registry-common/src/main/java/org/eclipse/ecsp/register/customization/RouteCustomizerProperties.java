@@ -57,7 +57,10 @@ public class RouteCustomizerProperties {
     @Valid
     private List<RouteMapping> mappings = new ArrayList<>();
 
-    /** One override entry: match key + {@code exposeAs} target path(s) + {@code replaceOriginal} + filters. */
+    /**
+     * One override entry: match key plus optional {@code exposeAs} target path(s),
+     * {@code replaceOriginal}, order, metadata, and filters.
+     */
     @ValidRouteMapping
     @Getter
     @Setter
@@ -83,6 +86,16 @@ public class RouteCustomizerProperties {
 
         /** {@code true} removes the original path/operation after fan-out; {@code false} (default) keeps both. */
         private boolean replaceOriginal = false;
+
+        /** Optional Spring Cloud Gateway order; lower values are evaluated first. */
+        private Integer order;
+
+        /**
+         * Additional route metadata merged into every route matched by this mapping.
+         * When mappings set the same key, the later matching mapping wins.
+         */
+        @NotNull
+        private Map<String, Object> metadata = new LinkedHashMap<>();
 
         /** Additional filters merged into every route produced from this mapping. */
         @NotNull

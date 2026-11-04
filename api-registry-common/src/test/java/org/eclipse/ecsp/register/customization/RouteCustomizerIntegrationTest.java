@@ -62,8 +62,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
     "api.registry.route-customizer.mappings[0].filters[0].name=RouteWideFilter",
     "api.registry.route-customizer.mappings[1].route-id=route-customizer-test-controller-findVehicle",
     "api.registry.route-customizer.mappings[1].expose-as[0]=/api/vehicles/{vehicleId}",
+    "api.registry.route-customizer.mappings[1].order=42",
     "api.registry.route-customizer.mappings[1].filters[0].name=AliasOnlyFilter",
-    "api.registry.route-customizer.mappings[1].filters[0].args.limit=10"
+    "api.registry.route-customizer.mappings[1].filters[0].args.limit=10",
+    "api.registry.route-customizer.mappings[2].route-id=route-customizer-test-controller-findVehicle",
+    "api.registry.route-customizer.mappings[2].order=17",
+    "api.registry.route-customizer.mappings[3].route-id=route-customizer-test-controller-findVehicle",
+    "api.registry.route-customizer.mappings[3].metadata.custom-key=custom-value",
+    "api.registry.route-customizer.mappings[3].metadata.feature-enabled=true"
 })
 class RouteCustomizerIntegrationTest {
 
@@ -98,8 +104,20 @@ class RouteCustomizerIntegrationTest {
         assertEquals("/svc/route-customizer/vehicles/${v0}",
                 rewrite.getArgs().get(RegistryCommonConstants.REPLACEMENT));
         assertEquals("SelfManage", filter(alias, "JwtAuthValidator").getArgs().get("scope"));
+        assertEquals(17, alias.getOrder());
+        assertEquals("custom-value", alias.getMetadata().get("custom-key"));
+        assertEquals("true", alias.getMetadata().get("feature-enabled"));
         assertTrue(filterNames(alias).contains("RouteWideFilter"));
         assertEquals("10", filter(alias, "AliasOnlyFilter").getArgs().get("limit"));
+    }
+
+    @Test
+    void orderOnlyMappingAppliesToOriginalRoute() throws URISyntaxException {
+        RouteDefinition original = route(apiRoutesLoader.getApiRoutes(), ORIGINAL_ROUTE_ID);
+
+        assertEquals(17, original.getOrder());
+        assertEquals("custom-value", original.getMetadata().get("custom-key"));
+        assertEquals("true", original.getMetadata().get("feature-enabled"));
     }
 
     private static RouteDefinition route(List<RouteDefinition> routes, String id) {

@@ -19,8 +19,6 @@
 package org.eclipse.ecsp.gateway.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
-import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;

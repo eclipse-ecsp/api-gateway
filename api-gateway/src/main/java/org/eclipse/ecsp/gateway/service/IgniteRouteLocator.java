@@ -33,6 +33,7 @@ import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.openapi4j.schema.validator.v3.SchemaValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -64,8 +65,6 @@ import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Flux;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -120,6 +119,8 @@ public class IgniteRouteLocator implements RouteLocator {
 
     List<RouteCustomizer> routeCustomizers;
 
+    private RouteOrderResolver routeOrderResolver;
+
     /**
      * Constructor to initialize the IgniteRouteLocator with required dependencies.
      *
@@ -166,6 +167,16 @@ public class IgniteRouteLocator implements RouteLocator {
             LOGGER.info("Registered filter name : {}", factory)
         );
         this.gatewayProperties = gatewayProperties;
+    }
+
+    /**
+     * Sets the route order resolver, available only when the route order override is enabled.
+     *
+     * @param routeOrderResolver the route order resolver
+     */
+    @Autowired(required = false)
+    void setRouteOrderResolver(RouteOrderResolver routeOrderResolver) {
+        this.routeOrderResolver = routeOrderResolver;
     }
 
     /**
@@ -231,6 +242,9 @@ public class IgniteRouteLocator implements RouteLocator {
                 .filter(r -> validateRouteFilters(r, r.getFilters()))
                 .collectList()
                 .flatMapMany(routeDefinitions -> {
+                    if (routeOrderResolver != null) {
+                        routeOrderResolver.applyOverrides(routeDefinitions);
+                    }
                     List<IgniteRouteDefinition> prioritizedRoutes = sortRoutesBySpecificity(routeDefinitions);
                     for (int index = 0; index < prioritizedRoutes.size(); index++) {
                         IgniteRouteDefinition apiRoute = prioritizedRoutes.get(index);

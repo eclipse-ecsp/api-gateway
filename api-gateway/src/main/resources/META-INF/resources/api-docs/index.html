@@ -12,12 +12,31 @@
 <body class="nb-theme-light">
 <div class="header" id="myHeader">
     <div class="header-left">
-        API Group <select class="api-group" id="api-group"></select>
+        <label class="group-label" for="api-group">API Group</label>
+        <div class="select-wrap">
+            <select class="api-group" id="api-group"></select>
+        </div>
     </div>
     <div class="header-right">
-        <input id="jwtToken" name="jwtToken" placeholder="[Enter JWT Token here]" type="text">
-        <button class="ibutton" id="jwtTokenSave">Save</button>
-        <button class="ibutton" id="jwtTokenClear">Clear</button>
+        <div class="token-box" id="tokenBox">
+            <svg aria-hidden="true" class="token-icon" fill="none" height="16" stroke="currentColor"
+                 stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="16">
+                <rect height="11" rx="2" width="16" x="4" y="11"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+            </svg>
+            <input autocapitalize="off" autocomplete="off" id="jwtToken" name="jwtToken"
+                   placeholder="Paste JWT token" spellcheck="false" type="password">
+            <button aria-label="Show token" class="token-eye" id="jwtTokenToggle" title="Show / hide token"
+                    type="button">
+                <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                     stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="16">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
+        <button class="ibutton ibutton-primary" id="jwtTokenSave" type="button">Save</button>
+        <button class="ibutton" id="jwtTokenClear" type="button">Clear</button>
     </div>
 </div>
 <div class="content">
@@ -89,20 +108,5 @@
     <openapi-explorer hide-authentication="true" hide-server-selection="true" spec-url=""></openapi-explorer>
 </div>
 
-<script>
-    window.onscroll = function () {
-        myFunction()
-    };
-    var header = document.getElementById("myHeader");
-    var sticky = header.offsetTop;
-
-    function myFunction() {
-        if (window.pageYOffset > sticky) {
-            header.classList.add("sticky");
-        } else {
-            header.classList.remove("sticky");
-        }
-    }
-</script>
 </body>
 </html>

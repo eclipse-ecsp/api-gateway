@@ -49,6 +49,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -107,6 +108,9 @@ class PublicKeyCacheMetricsIntegrationTest {
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("redis-server"))
+            .withCommand("--save", "", "--appendonly", "no", "--protected-mode", "no")
+            .withTmpFs(Map.of("/data", "rw"))
             .withExposedPorts(REDIS_PORT);
 
     @DynamicPropertySource

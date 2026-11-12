@@ -21,6 +21,7 @@ package org.eclipse.ecsp.gateway.rest;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.Health;
 import org.eclipse.ecsp.gateway.service.IgniteRouteLocator;
+import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.Set;
@@ -43,6 +45,9 @@ public class ApiGatewayController {
 
     @Value("${api.registered.services}")
     private String registeredServices;
+
+    @Value("${api-gateway.reload-endpoint.enabled:false}")
+    private boolean isReloadEnabled;
 
     private final IgniteRouteLocator igniteRouteLocator;
 
@@ -72,6 +77,9 @@ public class ApiGatewayController {
     @GetMapping(path = "/api-gateway/reload", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reload() {
+        if (!isReloadEnabled) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, GatewayConstants.REQUEST_NOT_FOUND);
+        }
         LOGGER.info("Refresh Routes");
         if (igniteRouteLocator != null) {
             igniteRouteLocator.refreshRoutes();

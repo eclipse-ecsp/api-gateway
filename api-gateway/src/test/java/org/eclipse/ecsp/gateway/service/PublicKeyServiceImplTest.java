@@ -473,27 +473,27 @@ class PublicKeyServiceImplTest {
     @Test
     void removePublicKeysBySourceIdWhenNoKeysMatchSourceThenReturnsZero() {
         // Given
-        String sourceId = "non-existent-source";
         String existingSourceId = "existing-source";
-
+        
         PublicKeyInfo keyInfo = new PublicKeyInfo();
         keyInfo.setKid("key1");
         keyInfo.setSourceId(existingSourceId);
         keyInfo.setPublicKey(testPublicKey);
-
+        
         Set<Map.Entry<String, PublicKeyInfo>> entrySet = Set.of(
-                Map.entry("key1", keyInfo)
+            Map.entry("key1", keyInfo)
         );
-
+        
         when(publicKeyCache.entrySet()).thenReturn(entrySet);
-
+        
         // When - use reflection to call private method
         try {
             java.lang.reflect.Method method = PublicKeyServiceImpl.class
-                    .getDeclaredMethod("removePublicKeysBySourceId", String.class);
+                .getDeclaredMethod("removePublicKeysBySourceId", String.class);
             method.setAccessible(true);
+            String sourceId = "non-existent-source";
             int result = (int) method.invoke(publicKeyService, sourceId);
-
+            
             // Then
             assertEquals(0, result);
             verify(publicKeyCache, never()).remove(anyString());

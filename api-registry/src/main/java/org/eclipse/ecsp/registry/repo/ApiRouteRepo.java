@@ -43,6 +43,15 @@ public interface ApiRouteRepo {
     List<ApiRouteEntity> findAll();
 
     /**
+     * Finds all ApiRouteEntities owned by the given service, active or inactive, using the
+     * {@code service} index.
+     *
+     * @param service the service name
+     * @return entities whose {@code service} matches
+     */
+    List<ApiRouteEntity> findAllByService(String service);
+
+    /**
      * Saves an ApiRouteEntity to the database.
      *
      * @param entity the ApiRouteEntity to save

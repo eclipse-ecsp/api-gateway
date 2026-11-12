@@ -23,6 +23,7 @@ import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.events.data.ServiceHealthEventData;
 import org.eclipse.ecsp.registry.metrics.ServiceMetricsEvent;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
+import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
@@ -94,6 +95,10 @@ public class ApiRoutesHealthMonitor {
         Set<String> changedServices = new HashSet<>();
         // find out servers and each server apis
         entities.forEach(entity -> {
+            // a retired row's stale uri/active flag must not drive the service's health state
+            if (ApiRouteUtil.isRetired(entity)) {
+                return;
+            }
             String url = entity.getRoute().getUri().toString();
             // append with contextPath
             String contextPath = entity.getContextPath();
@@ -154,7 +159,7 @@ public class ApiRoutesHealthMonitor {
     }
 
     private void update(String service, Boolean active) {
-        // inactive all the APIs of this server
+        // inactive all the APIs of this server (retired routes were already excluded in healthCheck)
         List<ApiRouteEntity> apiRoutes = serviceApiRoutes.get(service);
         if (apiRoutes != null && !apiRoutes.isEmpty()) {
             apiRoutes.forEach(apiRoute -> {

@@ -21,6 +21,8 @@ package org.eclipse.ecsp.registry.rest;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.registry.service.ApiRouteService;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
 import org.eclipse.ecsp.security.Scopes;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -69,7 +72,7 @@ public class ApiRouteController {
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
     public RouteDefinition create(@RequestBody @Validated RouteDefinition apiRoute) {
-        LOGGER.info("Upsert Route: {}", apiRoute);
+        LOGGER.info("Upsert Route: {}", apiRoute.getId());
         return apiRouteService.createOrUpdate(apiRoute);
     }
 
@@ -111,5 +114,41 @@ public class ApiRouteController {
     public void delete(@PathVariable String name) {
         LOGGER.info("Delete Route: {}", name);
         apiRouteService.delete(name);
+    }
+
+    /**
+    * Reconciles the authoritative route ID snapshot for one service. Routes must first be
+    * registered individually through POST. Retires any stored route for the service whose ID
+    * this snapshot does not include, without changing the desired routes' definitions.
+     *
+    * @param service the service name; every ID must refer to a route belonging to it
+    * @param request the complete desired route ID snapshot
+     * @return the reconciliation result counts
+     */
+    @Hidden
+    @PutMapping(path = "/api/v1/routes/services/{service}/snapshot",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
+    public RouteSnapshotResult reconcileSnapshot(@PathVariable String service,
+                                                  @RequestBody @Validated RouteSnapshotRequest request) {
+        LOGGER.info("Reconcile Route Snapshot: service={}, generation={}", service, request.generation());
+        return apiRouteService.reconcile(service, request);
+    }
+
+    /**
+     * Clears the route snapshot generation watermark of a service. Recovery path when a service
+     * was registered with a too-high generation; the next snapshot is accepted at any positive
+     * generation.
+     *
+     * @param service the service name
+     */
+    @Hidden
+    @DeleteMapping(path = "/api/v1/routes/services/{service}/generation")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = RegistryConstants.REGISTRY, scopes = {Scopes.Fields.SYSTEM_MANAGE})
+    public void resetSnapshotGeneration(@PathVariable String service) {
+        LOGGER.warn("Reset Route Snapshot Generation: service={}", service);
+        apiRouteService.resetReconciliationGeneration(service);
     }
 }

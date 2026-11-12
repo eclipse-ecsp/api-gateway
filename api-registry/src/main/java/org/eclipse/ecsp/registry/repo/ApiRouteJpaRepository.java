@@ -22,6 +22,7 @@ import org.eclipse.ecsp.registry.condition.ConditionalOnSqlDatabase;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 /**
  * ApiRouteRepo to update the route definitions to SQL DB.
@@ -30,4 +31,6 @@ import org.springframework.stereotype.Repository;
 @Repository("apiRouteJpaRepository")
 public interface ApiRouteJpaRepository extends ApiRouteRepo, CrudRepository<ApiRouteEntity, String> {
 
+    @Override
+    List<ApiRouteEntity> findAllByService(String service);
 }

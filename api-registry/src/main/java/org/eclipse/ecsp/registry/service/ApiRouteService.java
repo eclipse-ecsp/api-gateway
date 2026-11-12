@@ -20,6 +20,8 @@ package org.eclipse.ecsp.registry.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteSnapshotRequest;
+import org.eclipse.ecsp.register.model.RouteSnapshotResult;
 import org.eclipse.ecsp.registry.config.ChecksumProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
@@ -27,13 +29,22 @@ import org.eclipse.ecsp.registry.events.data.RouteChangeEventData;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Service to create, read, update, and delete routes.
@@ -55,7 +66,17 @@ public class ApiRouteService {
 
     private static final String METRIC_ROUTE_CHANGE = "api.route.change.total";
     private static final String TAG_CHANGE_TYPE = "changeType";
+    private static final String CHANGE_TYPE_RETIRED = "retired";
+    private static final String METRIC_ROUTE_SNAPSHOT = "api.route.snapshot.total";
+    private static final String TAG_OUTCOME = "outcome";
+    private static final String REASON_STALE_SNAPSHOT = "stale_snapshot";
+    private static final String REASON_GENERATION_CONFLICT = "generation_conflict";
+    private static final String REASON_ROUTE_ID_CONFLICT = "route_id_conflict";
+    private static final Set<String> TYPED_REJECTIONS =
+            Set.of(REASON_STALE_SNAPSHOT, REASON_GENERATION_CONFLICT, REASON_ROUTE_ID_CONFLICT);
+    private static final int RECONCILE_LOCK_STRIPES = 32;
 
+    private final ReentrantLock[] reconcileLocks = createReconcileLocks();
     private final ApiRouteRepo apiRouteRepo;
     private final EventPublisherContext eventPublisher;
     private final ChecksumProperties checksumProperties;
@@ -349,7 +370,262 @@ public class ApiRouteService {
      * @param changeType resolved change type
      */
     private void incrementMetric(RouteChangeType changeType) {
-        meterRegistry.counter(METRIC_ROUTE_CHANGE, TAG_CHANGE_TYPE,
-                changeType.name().toLowerCase()).increment();
+        incrementMetric(changeType.name().toLowerCase());
     }
+
+    private void incrementMetric(String changeType) {
+        meterRegistry.counter(METRIC_ROUTE_CHANGE, TAG_CHANGE_TYPE, changeType).increment();
+    }
+
+    // -------------------------------------------------------------------------
+    // Route snapshot reconciliation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Reconciles the authoritative desired route set for one service (route snapshot
+     * reconciliation).
+     *
+    * <p>Validates that each desired ID is already registered to the service, refreshes its
+    * reconciliation metadata, then retires (marks inactive and
+     * {@value RegistryCommonConstants#REGISTRATION_RETIRED_METADATA_KEY}) every not-yet-retired
+    * route for the service that is absent from the desired set. Retirement is only attempted
+    * after every desired route has been validated and stamped successfully.
+     *
+     * <p>Reconciles for the same service are serialized within this registry instance so the
+     * generation check and the writes cannot interleave.
+     *
+     * @param service the path-segment service name; every route in the request must belong to it
+     * @param request the complete desired route snapshot
+     * @return reconciliation result counts
+     */
+    public RouteSnapshotResult reconcile(String service, RouteSnapshotRequest request) {
+        ReentrantLock lock = reconcileLockFor(service);
+        lock.lock();
+        try {
+            RouteSnapshotResult result = reconcileExclusively(service, request);
+            boolean changed = result.created() + result.updated() + result.retired() > 0;
+            recordSnapshotOutcome(changed ? "applied" : "noop");
+            return result;
+        } catch (ResponseStatusException ex) {
+            recordSnapshotOutcome(TYPED_REJECTIONS.contains(ex.getReason()) ? ex.getReason() : "invalid_request");
+            throw ex;
+        } catch (RuntimeException ex) {
+            recordSnapshotOutcome("error");
+            throw ex;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Clears the reconciliation generation watermark of a service so the next snapshot is
+     * accepted at any positive generation. Recovery path for an accidentally too-high generation.
+     * Retired markers are kept.
+     *
+     * @param service the service name
+     * @return number of routes whose watermark was cleared
+     */
+    public int resetReconciliationGeneration(String service) {
+        ReentrantLock lock = reconcileLockFor(service);
+        lock.lock();
+        try {
+            int reset = 0;
+            for (ApiRouteEntity entity : apiRouteRepo.findAllByService(service)) {
+                RouteDefinition route = entity.getRoute();
+                if (route == null || route.getMetadata() == null) {
+                    continue;
+                }
+                Object generation = route.getMetadata()
+                        .remove(RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY);
+                Object snapshotId = route.getMetadata()
+                        .remove(RegistryCommonConstants.REGISTRATION_SNAPSHOT_ID_METADATA_KEY);
+                if (generation != null || snapshotId != null) {
+                    apiRouteRepo.save(entity);
+                    reset++;
+                }
+            }
+            LOGGER.warn("ROUTE_SNAPSHOT_GENERATION_RESET | service={} | routes={}", service, reset);
+            return reset;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private RouteSnapshotResult reconcileExclusively(String service, RouteSnapshotRequest request) {
+        validateSnapshotRequest(service, request);
+        List<ApiRouteEntity> existingRoutes = apiRouteRepo.findAllByService(service);
+        Map<String, ApiRouteEntity> existingById = new HashMap<>();
+        existingRoutes.forEach(entity -> existingById.put(entity.getId(), entity));
+        validateRegisteredRoutes(service, request, existingById);
+        rejectStaleOrConflictingGeneration(request, existingRoutes);
+
+        for (String routeId : request.routeIds()) {
+            ApiRouteEntity entity = existingById.get(routeId);
+            if (!isStampedWith(entity, request)) {
+                stampReconciliationMetadata(entity.getRoute(), request);
+                apiRouteRepo.save(entity);
+            }
+        }
+        Set<String> desiredIds = new HashSet<>(request.routeIds());
+        int retired = retireAbsentRoutes(service, existingRoutes, desiredIds, request);
+
+        publishSnapshotEvent(service, request, retired);
+        LOGGER.info("ROUTE_SNAPSHOT_RECONCILED | service={} | generation={} | snapshotId={} "
+                        + "| created={} | updated={} | retired={} | unchanged={}",
+                service, request.generation(), request.snapshotId(),
+                0, 0, retired, desiredIds.size());
+        return new RouteSnapshotResult(service, request.generation(), request.snapshotId(),
+                0, 0, retired, desiredIds.size());
+    }
+
+    private void validateSnapshotRequest(String service, RouteSnapshotRequest request) {
+        if (service == null || service.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "service must not be blank");
+        }
+        if (request == null || request.routeIds() == null || request.routeIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "routeIds must not be empty");
+        }
+        Set<String> seenIds = new HashSet<>();
+        for (String routeId : request.routeIds()) {
+            if (routeId == null || routeId.isBlank() || !seenIds.add(routeId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "duplicate or missing route id");
+            }
+        }
+    }
+
+    private void validateRegisteredRoutes(String service, RouteSnapshotRequest request,
+                                         Map<String, ApiRouteEntity> existingById) {
+        for (String routeId : request.routeIds()) {
+            ApiRouteEntity registered = existingById.get(routeId);
+            if (registered != null && registered.getRoute() != null && !ApiRouteUtil.isRetired(registered)) {
+                continue;
+            }
+            Optional<ApiRouteEntity> other = apiRouteRepo.findById(routeId);
+            if (other.isPresent() && !Objects.equals(other.get().getService(), service)) {
+                LOGGER.warn("ROUTE_SNAPSHOT_REJECTED | service={} | reason={} | routeId={} | owner={}",
+                        service, REASON_ROUTE_ID_CONFLICT, routeId, other.get().getService());
+                throw new ResponseStatusException(HttpStatus.CONFLICT, REASON_ROUTE_ID_CONFLICT);
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "route " + routeId + " must be registered before reconciliation");
+        }
+    }
+
+    private void rejectStaleOrConflictingGeneration(RouteSnapshotRequest request, List<ApiRouteEntity> existing) {
+        long highestGeneration = 0;
+        String highestGenerationSnapshotId = null;
+        for (ApiRouteEntity entity : existing) {
+            long generation = generationOf(entity);
+            if (generation > highestGeneration) {
+                highestGeneration = generation;
+                highestGenerationSnapshotId = snapshotIdOf(entity);
+            }
+        }
+        if (request.generation() < highestGeneration) {
+            LOGGER.warn("the snapshot generation id: {} is lower than the earlier saved snapshot: {}",
+                    request.generation(), highestGeneration);
+        }
+        if (request.generation() == highestGeneration && highestGenerationSnapshotId != null
+                && !highestGenerationSnapshotId.equals(request.snapshotId())) {
+            LOGGER.warn("the snapshot generation id: {} is same as the earlier saved snapshot: {}",
+                    request.generation(), highestGeneration);
+        }
+    }
+
+    private static boolean isStampedWith(ApiRouteEntity entity, RouteSnapshotRequest request) {
+        return generationOf(entity) == request.generation() && request.snapshotId().equals(snapshotIdOf(entity));
+    }
+
+    private void stampReconciliationMetadata(RouteDefinition route, RouteSnapshotRequest request) {
+        Map<String, Object> metadata = route.getMetadata() == null ? new HashMap<>() : route.getMetadata();
+        metadata.put(RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY, request.generation());
+        metadata.put(RegistryCommonConstants.REGISTRATION_SNAPSHOT_ID_METADATA_KEY, request.snapshotId());
+        metadata.remove(RegistryCommonConstants.REGISTRATION_RETIRED_METADATA_KEY);
+        route.setMetadata(metadata);
+    }
+
+    private int retireAbsentRoutes(String service, List<ApiRouteEntity> existingRoutes,
+                                    Set<String> desiredIds, RouteSnapshotRequest request) {
+        int retired = 0;
+        for (ApiRouteEntity entity : existingRoutes) {
+            // health-inactive rows are retired too, otherwise service recovery would reactivate them
+            if (desiredIds.contains(entity.getId()) || ApiRouteUtil.isRetired(entity)) {
+                continue;
+            }
+            retireRoute(entity, request);
+            retired++;
+            incrementMetric(CHANGE_TYPE_RETIRED);
+            LOGGER.info("{} | eventId={} | routeId={} | service={} | changeType=RETIRED",
+                    RegistryConstants.LOG_EVENT_ROUTE_CHANGE, request.snapshotId(), entity.getId(), service);
+        }
+        return retired;
+    }
+
+    private void retireRoute(ApiRouteEntity entity, RouteSnapshotRequest request) {
+        entity.setActive(Boolean.FALSE);
+        RouteDefinition route = entity.getRoute();
+        if (route != null) {
+            Map<String, Object> metadata = route.getMetadata() == null ? new HashMap<>() : route.getMetadata();
+            metadata.put(RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY, request.generation());
+            metadata.put(RegistryCommonConstants.REGISTRATION_SNAPSHOT_ID_METADATA_KEY, request.snapshotId());
+            metadata.put(RegistryCommonConstants.REGISTRATION_RETIRED_METADATA_KEY, Boolean.TRUE);
+            route.setMetadata(metadata);
+            entity.setRoute(route);
+        }
+        apiRouteRepo.save(entity);
+    }
+
+    private void publishSnapshotEvent(String service, RouteSnapshotRequest request, int retired) {
+        if (eventPublisher != null && retired > 0) {
+            RouteChangeEventData eventData = new RouteChangeEventData(
+                    List.of(service), List.of(), RouteChangeType.UPDATED, request.snapshotId(), null, null);
+            eventPublisher.publishEvent(eventData);
+        }
+    }
+
+    private void recordSnapshotOutcome(String outcome) {
+        meterRegistry.counter(METRIC_ROUTE_SNAPSHOT, TAG_OUTCOME, outcome).increment();
+    }
+
+    private ReentrantLock reconcileLockFor(String service) {
+        return reconcileLocks[Math.floorMod(Objects.hashCode(service), RECONCILE_LOCK_STRIPES)];
+    }
+
+    private static ReentrantLock[] createReconcileLocks() {
+        ReentrantLock[] locks = new ReentrantLock[RECONCILE_LOCK_STRIPES];
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = new ReentrantLock();
+        }
+        return locks;
+    }
+
+    private static long generationOf(ApiRouteEntity entity) {
+        Object value = metadataValue(entity, RegistryCommonConstants.REGISTRATION_GENERATION_METADATA_KEY);
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException e) {
+                LOGGER.debug("Parsing failed for generation metadata key: {}, error: {}", text, e);
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static String snapshotIdOf(ApiRouteEntity entity) {
+        Object value = metadataValue(entity, RegistryCommonConstants.REGISTRATION_SNAPSHOT_ID_METADATA_KEY);
+        return value instanceof String text ? text : null;
+    }
+
+    private static Object metadataValue(ApiRouteEntity entity, String key) {
+        RouteDefinition route = entity.getRoute();
+        if (route == null || route.getMetadata() == null) {
+            return null;
+        }
+        return route.getMetadata().get(key);
+    }
+
 }

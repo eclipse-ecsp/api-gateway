@@ -20,6 +20,7 @@ package org.eclipse.ecsp.gateway.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
+import org.eclipse.ecsp.gateway.config.RouteOrderOverrideProperties;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
 import org.eclipse.ecsp.gateway.customizers.RouteCustomizer;
 import org.eclipse.ecsp.gateway.model.ApiService;
@@ -29,6 +30,7 @@ import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openapi4j.schema.validator.ValidationData;
@@ -42,7 +44,9 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.gateway.support.ConfigurationService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.server.PathContainer;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -57,6 +61,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -267,6 +273,169 @@ class IgniteRouteLocatorTest {
         StepVerifier.create(routes)
                 .expectNextCount(1)
                 .verifyComplete();
+    }
+
+    @Test
+    void exactPathRoutePrecedesParameterizedRouteAndUsesItsScope() {
+        String basePath = "/v1/vehicles/{vehicleId}/store/entitlements";
+        IgniteRouteDefinition productRoute = routeWithScope(
+                "entitlements-by-product", basePath + "/{productId}", "product-scope");
+        IgniteRouteDefinition searchRoute = routeWithScope(
+                "entitlements-search", basePath + "/search", "search-scope");
+
+        List<IgniteRouteDefinition> prioritizedRoutes =
+                IgniteRouteLocator.sortRoutesBySpecificity(List.of(productRoute, searchRoute));
+
+        PathContainer searchPath = PathContainer.parsePath("/v1/vehicles/v1/store/entitlements/search");
+        PathPatternParser parser = PathPatternParser.defaultInstance;
+        assertTrue(parser.parse(basePath + "/{productId}").matches(searchPath));
+        assertTrue(parser.parse(basePath + "/search").matches(searchPath));
+        assertEquals(List.of("entitlements-search", "entitlements-by-product"),
+                prioritizedRoutes.stream().map(IgniteRouteDefinition::getId).toList());
+        assertEquals("search-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/search"));
+        assertEquals("product-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/product-123"));
+    }
+
+    @Test
+    void configuredRouteOrderOverridesPathSpecificity() {
+        String basePath = "/v1/vehicles/{vehicleId}/store/entitlements";
+        IgniteRouteDefinition productRoute = routeWithScope(
+                "entitlements-by-product", basePath + "/{productId}", "product-scope");
+        productRoute.setOrder(-1);
+        IgniteRouteDefinition searchRoute = routeWithScope(
+                "entitlements-search", basePath + "/search", "search-scope");
+        searchRoute.setOrder(1);
+
+        List<IgniteRouteDefinition> prioritizedRoutes =
+                IgniteRouteLocator.sortRoutesBySpecificity(List.of(searchRoute, productRoute));
+
+        assertEquals(List.of("entitlements-by-product", "entitlements-search"),
+                prioritizedRoutes.stream().map(IgniteRouteDefinition::getId).toList());
+        assertEquals("product-scope",
+                scopeOfRouteMatching(prioritizedRoutes, "/v1/vehicles/v1/store/entitlements/search"));
+    }
+
+    @Test
+    void getRoutesWithOrderOverrideBuildsRoutesInOverriddenOrder() {
+        igniteRouteLocator = newLocatorForOrderTests();
+        igniteRouteLocator.setRouteOrderResolver(orderResolver("legacy-search", 10));
+        IgniteRouteDefinition searchRoute = orderTestRoute("legacy-search", "/v1/items/search");
+        IgniteRouteDefinition itemRoute = orderTestRoute("legacy-item", "/v1/items/{itemId}");
+        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(itemRoute, searchRoute));
+        RouteLocatorBuilder.Builder builder = mockOrderTestBuilder();
+
+        StepVerifier.create(igniteRouteLocator.getRoutes()).verifyComplete();
+
+        InOrder inOrder = inOrder(builder);
+        inOrder.verify(builder).route(eq("legacy-item"), any());
+        inOrder.verify(builder).route(eq("legacy-search"), any());
+        assertEquals(10, searchRoute.getOrder());
+    }
+
+    @Test
+    void getRoutesWithOrderOverrideMovesGeneralRouteAheadOfSpecificRoute() {
+        igniteRouteLocator = newLocatorForOrderTests();
+        igniteRouteLocator.setRouteOrderResolver(orderResolver("legacy-item", -5));
+        IgniteRouteDefinition searchRoute = orderTestRoute("legacy-search", "/v1/items/search");
+        IgniteRouteDefinition itemRoute = orderTestRoute("legacy-item", "/v1/items/{itemId}");
+        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(searchRoute, itemRoute));
+        RouteLocatorBuilder.Builder builder = mockOrderTestBuilder();
+
+        StepVerifier.create(igniteRouteLocator.getRoutes()).verifyComplete();
+
+        InOrder inOrder = inOrder(builder);
+        inOrder.verify(builder).route(eq("legacy-item"), any());
+        inOrder.verify(builder).route(eq("legacy-search"), any());
+    }
+
+    @Test
+    void getRoutesWithoutOrderResolverKeepsSpecificityOrder() {
+        igniteRouteLocator = newLocatorForOrderTests();
+        IgniteRouteDefinition searchRoute = orderTestRoute("legacy-search", "/v1/items/search");
+        IgniteRouteDefinition itemRoute = orderTestRoute("legacy-item", "/v1/items/{itemId}");
+        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(itemRoute, searchRoute));
+        RouteLocatorBuilder.Builder builder = mockOrderTestBuilder();
+
+        StepVerifier.create(igniteRouteLocator.getRoutes()).verifyComplete();
+
+        InOrder inOrder = inOrder(builder);
+        inOrder.verify(builder).route(eq("legacy-search"), any());
+        inOrder.verify(builder).route(eq("legacy-item"), any());
+        assertEquals(0, searchRoute.getOrder());
+        assertEquals(0, itemRoute.getOrder());
+    }
+
+    private IgniteRouteLocator newLocatorForOrderTests() {
+        return new IgniteRouteLocator(
+                configurationService,
+                gatewayFilterFactories,
+                gatewayProperties,
+                false,
+                pluginLoader,
+                apiRegistryClient,
+                routeLocatorBuilder,
+                applicationEventPublisher,
+                springCloudGatewayConfig,
+                new ArrayList<>()
+        );
+    }
+
+    private static RouteOrderResolver orderResolver(String routeId, int order) {
+        RouteOrderOverrideProperties.Mapping mapping = new RouteOrderOverrideProperties.Mapping();
+        mapping.setRouteId(routeId);
+        mapping.setOrder(order);
+        RouteOrderOverrideProperties properties = new RouteOrderOverrideProperties();
+        properties.setEnabled(true);
+        properties.setMappings(List.of(mapping));
+        return new RouteOrderResolver(properties);
+    }
+
+    private static IgniteRouteDefinition orderTestRoute(String routeId, String path) {
+        IgniteRouteDefinition route = new IgniteRouteDefinition();
+        route.setId(routeId);
+        route.setUri(URI.create("http://localhost:8080"));
+        route.setFilters(new ArrayList<>());
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("pattern", path);
+        route.setPredicates(List.of(pathPredicate));
+        return route;
+    }
+
+    private RouteLocatorBuilder.Builder mockOrderTestBuilder() {
+        RouteLocatorBuilder.Builder builder = mock(RouteLocatorBuilder.Builder.class);
+        when(routeLocatorBuilder.routes()).thenReturn(builder);
+        when(builder.route(any(String.class), any())).thenReturn(builder);
+        RouteLocator mockLocator = mock(RouteLocator.class);
+        when(mockLocator.getRoutes()).thenReturn(Flux.empty());
+        when(builder.build()).thenReturn(mockLocator);
+        return builder;
+    }
+
+    private static IgniteRouteDefinition routeWithScope(String routeId, String path, String scope) {
+        IgniteRouteDefinition route = new IgniteRouteDefinition();
+        route.setId(routeId);
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("pattern", path);
+        route.setPredicates(List.of(pathPredicate));
+        FilterDefinition scopeFilter = new FilterDefinition();
+        scopeFilter.setName("JwtAuthValidator");
+        scopeFilter.addArg("scope", scope);
+        route.setFilters(List.of(scopeFilter));
+        return route;
+    }
+
+    private static String scopeOfRouteMatching(List<IgniteRouteDefinition> routes, String requestPath) {
+        PathContainer path = PathContainer.parsePath(requestPath);
+        PathPatternParser parser = PathPatternParser.defaultInstance;
+        return routes.stream()
+                .filter(route -> parser.parse(route.getPredicates().get(0).getArgs().get("pattern")).matches(path))
+                .findFirst()
+                .orElseThrow()
+                .getFilters().get(0).getArgs().get("scope");
     }
 
     @Test

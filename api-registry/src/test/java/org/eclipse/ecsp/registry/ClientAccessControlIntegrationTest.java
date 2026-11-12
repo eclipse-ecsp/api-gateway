@@ -50,6 +50,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.fasterxml.jackson.core.JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION;
@@ -104,6 +105,9 @@ class ClientAccessControlIntegrationTest {
     @SuppressWarnings("resource") // Managed by Testcontainers framework
     @Container
     static RedisContainer redis = new RedisContainer("redis:8-alpine")
+            .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("redis-server"))
+            .withCommand("--save", "", "--appendonly", "no", "--protected-mode", "no")
+            .withTmpFs(Map.of("/data", "rw"))
             .withExposedPorts(6379);
 
     /**

@@ -356,4 +356,9 @@ public class GatewayConstants {
      * Prefix for client access control properties.
      */
     public static final String CLIENT_ACCESS_CONTROL_PREFIX = "api.gateway.client-access-control";
+
+    /**
+     * Prefix for route order override properties.
+     */
+    public static final String ROUTE_ORDER_OVERRIDE_PREFIX = "api.gateway.routes.order-override";
 }

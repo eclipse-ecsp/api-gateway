@@ -138,6 +138,9 @@ api:
           max-interval-ms: ${RETRY_MAX_INTERVAL:16000}
         polling:
           cron-expression: ${ROUTE_REFRESH_POLLING_CRON:*/30 * * * * *}
+      order-override: ## Route order override for services not deployed with the latest api-registry-common
+        enabled: ${ROUTE_ORDER_OVERRIDE_ENABLED:false}
+        mappings: []
     rate-limit: ## Rate Limiting Configuration
       enabled: true 
       max-burst-capacity: 10000

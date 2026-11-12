@@ -34,6 +34,9 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.eclipse.ecsp.register.customization.RouteCustomizerOpenApiCustomizer;
+import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
+import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
@@ -44,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.springdoc.core.customizers.OpenApiLocaleCustomizer;
 import org.springdoc.core.customizers.SpringDocCustomizers;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.properties.SpringDocConfigProperties;
@@ -53,12 +57,14 @@ import org.springdoc.core.service.GenericResponseService;
 import org.springdoc.core.service.OpenAPIService;
 import org.springdoc.core.service.OperationService;
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -112,13 +118,15 @@ class ApiRoutesLoaderTest {
         OpenAPI openApi = getOpenApiObj();
         when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         ApplicationContext mockedApplicationContext = mock(ApplicationContext.class);
+        when(mockedApplicationContext.getBeanProvider(OpenApiLocaleCustomizer.class))
+                .thenReturn(new StaticListableBeanFactory().getBeanProvider(OpenApiLocaleCustomizer.class));
         when(openApiService.getContext()).thenReturn(mockedApplicationContext);
         when(springDocProviders.jsonMapper()).thenReturn(Json.mapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig);
+                springDocProviders, springDocCustomizers, apiRouteConfig, Optional.empty());
     }
 
     @Test
@@ -188,6 +196,122 @@ class ApiRoutesLoaderTest {
         Assertions.assertNotNull(apiRoutesLoader.getServerUrl(null, null));
     }
 
+    @Test
+    void aliasGetsTargetedRewriteWithContextPath() {
+        ApiRoutesLoader loader = loaderWith(null);
+        ReflectionTestUtils.setField(loader, "contextPath", "/svc");
+
+        ReflectionTestUtils.invokeMethod(loader, "setOperation", HttpMethod.GET, "/api/vehicles/{id}",
+                aliasOperation("/v1/vehicles/{id}", 0));
+
+        FilterDefinition rewrite = filterNamed(routesOf(loader).get(0), RegistryCommonConstants.REWRITE_PATH_FILTER);
+        Assertions.assertEquals("^\\Q/api/vehicles/\\E(?<v0>[^/]+)$",
+                rewrite.getArgs().get(RegistryCommonConstants.REGEX));
+        Assertions.assertEquals("/svc/v1/vehicles/${v0}", rewrite.getArgs().get(RegistryCommonConstants.REPLACEMENT));
+    }
+
+    @Test
+    void aliasGetsTargetedRewriteWithoutContextPath() {
+        ApiRoutesLoader loader = loaderWith(null);
+        ReflectionTestUtils.setField(loader, "contextPath", null);
+
+        ReflectionTestUtils.invokeMethod(loader, "setOperation", HttpMethod.GET, "/api/vehicles/{id}",
+                aliasOperation("/v1/vehicles/{id}", 0));
+
+        FilterDefinition rewrite = filterNamed(routesOf(loader).get(0), RegistryCommonConstants.REWRITE_PATH_FILTER);
+        Assertions.assertEquals("/v1/vehicles/${v0}", rewrite.getArgs().get(RegistryCommonConstants.REPLACEMENT));
+    }
+
+    @Test
+    void configuredFiltersFollowTheMappingThatProducedEachRoute() {
+        RouteCustomizerProperties properties = new RouteCustomizerProperties();
+        properties.setMappings(List.of(
+                customizerMapping(List.of(), "RouteWide"),
+                customizerMapping(List.of("/api/vehicles/{id}"), "AliasOnly")));
+        ApiRoutesLoader loader = loaderWith(properties);
+        ReflectionTestUtils.setField(loader, "contextPath", null);
+
+        ReflectionTestUtils.invokeMethod(loader, "setOperation", HttpMethod.GET, "/v1/vehicles/{id}",
+                vehicleOperation());
+        ReflectionTestUtils.invokeMethod(loader, "setOperation", HttpMethod.GET, "/api/vehicles/{id}",
+                aliasOperation("/v1/vehicles/{id}", 1));
+
+        Assertions.assertEquals(List.of("RouteWide"), configuredFilterNames(routesOf(loader).get(0)));
+        Assertions.assertEquals(List.of("RouteWide", "AliasOnly"), configuredFilterNames(routesOf(loader).get(1)));
+    }
+
+    @Test
+    void routeCustomizerRequiresReconcileMode() {
+        ApiRoutesLoader loader = loaderWith(new RouteCustomizerProperties());
+        Assertions.assertThrows(IllegalStateException.class, loader::getApiRoutes);
+    }
+
+    @Test
+    void routeSetConflictsFailStartupOnlyInReconcileMode() {
+        ReflectionTestUtils.setField(apiRoutesLoader, "contextPath", "test-api");
+        ApiRoutesConfig duplicates = new ApiRoutesConfig();
+        duplicates.setRoutes(List.of(RegistryCommonTestUtil.getRouteDefination(),
+                RegistryCommonTestUtil.getRouteDefination()));
+        ReflectionTestUtils.setField(apiRoutesLoader, "apiRoutesConfig", duplicates);
+
+        Assertions.assertDoesNotThrow(() -> apiRoutesLoader.getApiRoutes());
+
+        ReflectionTestUtils.setField(apiRoutesLoader, "registrationMode", "reconcile");
+        Assertions.assertThrows(IllegalStateException.class, () -> apiRoutesLoader.getApiRoutes());
+    }
+
+    private ApiRoutesLoader loaderWith(RouteCustomizerProperties properties) {
+        ApiRoutesConfig noStaticRoutes = new ApiRoutesConfig();
+        noStaticRoutes.setRoutes(List.of());
+        ApiRoutesLoader loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
+                abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
+                springDocProviders, springDocCustomizers, noStaticRoutes, Optional.ofNullable(properties));
+        ReflectionTestUtils.setField(loader, "appName", "demo-service");
+        ReflectionTestUtils.setField(loader, "serviceUrl", URI.create("http://demo-service:8080/"));
+        return loader;
+    }
+
+    private static Operation vehicleOperation() {
+        Operation operation = new Operation();
+        operation.setTags(List.of("Demo"));
+        operation.setOperationId("findVehicle");
+        return operation;
+    }
+
+    private static Operation aliasOperation(String originalPath, int producedByMappingIndex) {
+        Operation alias = vehicleOperation();
+        alias.setOperationId("findVehicle-alias-0123456789ab");
+        alias.setExtensions(new HashMap<>(Map.of(
+                RouteCustomizerOpenApiCustomizer.ALIAS_OF_EXTENSION, "Demo-findVehicle",
+                RouteCustomizerOpenApiCustomizer.ORIGINAL_PATH_EXTENSION, originalPath,
+                RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION, producedByMappingIndex)));
+        return alias;
+    }
+
+    private static RouteCustomizerProperties.RouteMapping customizerMapping(List<String> exposeAs, String filterName) {
+        RouteCustomizerProperties.FilterOverride filter = new RouteCustomizerProperties.FilterOverride();
+        filter.setName(filterName);
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setRouteId("Demo-findVehicle");
+        mapping.setExposeAs(exposeAs);
+        mapping.setFilters(List.of(filter));
+        return mapping;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<RouteDefinition> routesOf(ApiRoutesLoader loader) {
+        return (List<RouteDefinition>) ReflectionTestUtils.getField(loader, "apiRoutes");
+    }
+
+    private static FilterDefinition filterNamed(RouteDefinition route, String name) {
+        return route.getFilters().stream().filter(f -> name.equals(f.getName())).findFirst().orElseThrow();
+    }
+
+    private static List<String> configuredFilterNames(RouteDefinition route) {
+        return route.getFilters().stream().map(FilterDefinition::getName)
+                .filter(name -> !RegistryCommonConstants.REWRITE_PATH_FILTER.equals(name)).toList();
+    }
+
     private OpenAPI getOpenApiObj() {
         OpenAPI openApi = new OpenAPI();
         Paths paths = getPathsObj();
@@ -203,19 +327,23 @@ class ApiRoutesLoaderTest {
 
     private Paths getPathsObj() {
         Paths paths = new Paths();
-        paths.addPathItem("POST", new PathItem().post(getOperationObj()));
-        paths.addPathItem("GET", new PathItem().get(getOperationObj()));
-        paths.addPathItem("PUT", new PathItem().put(getOperationObj()));
-        paths.addPathItem("DELETE", new PathItem().delete(getOperationObj()));
-        paths.addPathItem("PATCH", new PathItem().patch(getOperationObj()));
-        paths.addPathItem("OPTIONS", new PathItem().options(getOperationObj()));
+        paths.addPathItem("POST", new PathItem().post(getOperationObj("createPost")));
+        paths.addPathItem("GET", new PathItem().get(getOperationObj("createGet")));
+        paths.addPathItem("PUT", new PathItem().put(getOperationObj("createPut")));
+        paths.addPathItem("DELETE", new PathItem().delete(getOperationObj("createDelete")));
+        paths.addPathItem("PATCH", new PathItem().patch(getOperationObj("createPatch")));
+        paths.addPathItem("OPTIONS", new PathItem().options(getOperationObj("createOptions")));
         return paths;
     }
 
     private Operation getOperationObj() {
+        return getOperationObj("create");
+    }
+
+    private Operation getOperationObj(String operationId) {
         Operation operation = new Operation();
         operation.setTags(List.of("test-controller", "get"));
-        operation.setOperationId("create");
+        operation.setOperationId(operationId);
         operation.setRequestBody(getRequestBodyObj());
         operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
         return operation;
@@ -433,7 +561,7 @@ class ApiRoutesLoaderTest {
 
         ApiRoutesLoader openApi31Loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, new ApiRoutesConfig());
+                springDocProviders, springDocCustomizers, new ApiRoutesConfig(), Optional.empty());
 
         Assertions.assertSame(ObjectMapperUtil.getObjectMapper(),
                 ReflectionTestUtils.getField(openApi31Loader, "schemaObjectMapper"));

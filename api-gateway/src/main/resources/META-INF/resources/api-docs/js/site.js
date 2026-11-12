@@ -3,20 +3,79 @@ $(document).ready(function () {
         localStorage.clear();
     }
     ;
+    // The Advanced Search dialog lives in the explorer's shadow DOM and exposes no ::part hooks,
+    // so its look is applied through an adopted stylesheet.
+    const ADVANCED_SEARCH_CSS = `
+        .dialog-box-overlay { background: rgba(15, 23, 42, .45); backdrop-filter: blur(3px); }
+        .dialog-box { border: 0; border-radius: 12px; background: #fff; overflow: hidden;
+                      box-shadow: 0 24px 60px rgba(15, 23, 42, .3); }
+        .dialog-box-header { padding: 0 24px; min-height: 60px; border-bottom: 1px solid #eceff3; }
+        .dialog-box-title { font-size: 16px; font-weight: 600; color: #1d2433; }
+        .dialog-box-header button.m-btn { width: 30px; height: 30px; padding: 0; font-size: 18px; line-height: 1;
+                                          color: #6b7385; background: transparent; border: 0; border-radius: 8px;
+                                          cursor: pointer; }
+        .dialog-box-header button.m-btn:hover { background: #eef0f4; color: #1d2433; }
+        .dialog-box-content { padding: 20px 24px 24px; }
+        #advanced-search-dialog-input { width: 100%; height: 40px; padding: 0 14px; font-size: 14px;
+                                        color: #1d2433; background: #f7f8fa; border: 1px solid #e4e7ec;
+                                        border-radius: 8px; outline: none;
+                                        transition: border-color .15s, box-shadow .15s, background .15s; }
+        #advanced-search-dialog-input:focus { background: #fff; border-color: var(--primary-color);
+                                              box-shadow: 0 0 0 3px rgba(62, 96, 119, .2); }
+        .advanced-search-locations { margin-top: 14px; display: grid; gap: 10px 20px;
+                                     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+        .advanced-search-locations label { font-size: 13px; color: #4a5265; cursor: pointer; }
+    `;
+
+    function styleAdvancedSearch() {
+        const root = document.querySelector('openapi-explorer').shadowRoot;
+        if (!root || !('adoptedStyleSheets' in root)) {
+            return;
+        }
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(ADVANCED_SEARCH_CSS);
+        root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    }
+
+    customElements.whenDefined('openapi-explorer').then(styleAdvancedSearch);
+
+    function renderTokenState() {
+        const saved = !!localStorage.access_token;
+        $('#tokenBox').toggleClass('saved', saved);
+        $("#jwtToken").attr('readonly', saved);
+        $('#jwtTokenSave').prop('disabled', saved);
+        $('#jwtTokenClear').prop('disabled', !saved && !$("#jwtToken").val());
+        $('#jwtTokenSave').text(saved ? 'Saved' : 'Save');
+    }
+
     $('#jwtTokenSave').click(function () {
+        // Accept a pasted "Bearer <token>" value as well as a bare token
+        const token = $("#jwtToken").val().trim().replace(/^bearer\s+/i, '');
+        if (!token) {
+            $("#jwtToken").focus();
+            return;
+        }
         localStorage.clear();
-        //localStorage.role = role;
-        localStorage.access_token = $("#jwtToken").val();
-        console.log("access token: " + localStorage.access_token);
-        $("#jwtToken").css("background-color", "gray");
-        $("#jwtToken").attr('readonly', true);
+        localStorage.access_token = token;
+        $("#jwtToken").val(token);
+        renderTokenState();
     });
     $('#jwtTokenClear').click(function () {
         localStorage.clear();
-        $("#jwtToken").val("");
-        $("#jwtToken").css("background-color", "white");
-        $("#jwtToken").attr('readonly', false);
+        $("#jwtToken").val("").focus();
+        renderTokenState();
     });
+    $('#jwtToken').on('keydown', function (event) {
+        if (event.key === 'Enter') {
+            $('#jwtTokenSave').click();
+        }
+    }).on('input', renderTokenState);
+    $('#jwtTokenToggle').click(function () {
+        const reveal = $("#jwtToken").attr('type') === 'password';
+        $("#jwtToken").attr('type', reveal ? 'text' : 'password');
+        $(this).attr('aria-label', reveal ? 'Hide token' : 'Show token');
+    });
+    renderTokenState();
     $.get("/v3/api-docs/swagger-config", function (data, status) {
         console.log(data);
         $.each(data, function (index, group) {

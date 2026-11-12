@@ -21,6 +21,8 @@ package org.eclipse.ecsp.registry.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +40,9 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @ToString
 @Entity(name = "api_routes")
+@Table(indexes = @Index(name = "idx_api_routes_service", columnList = "service"))
 @dev.morphia.annotations.Entity("api_routes")
+@dev.morphia.annotations.Indexes(@dev.morphia.annotations.Index(fields = @dev.morphia.annotations.Field("service")))
 public class ApiRouteEntity implements IgniteEntity {
 
     /**

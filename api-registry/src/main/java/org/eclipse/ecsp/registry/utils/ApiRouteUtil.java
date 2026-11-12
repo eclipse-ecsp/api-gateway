@@ -20,6 +20,7 @@ package org.eclipse.ecsp.registry.utils;
 
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
+import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -100,6 +101,22 @@ public class ApiRouteUtil {
      */
     public static RouteDefinition convert(ApiRouteEntity entity) {
         return entity.getRoute();
+    }
+
+    /**
+     * Whether route-snapshot reconciliation intentionally retired this route (as opposed to a
+     * temporary, health-driven {@code active=false}).
+     *
+     * @param entity the route entity
+     * @return {@code true} if the route carries the retired marker
+     */
+    public static boolean isRetired(ApiRouteEntity entity) {
+        RouteDefinition route = entity.getRoute();
+        if (route == null || route.getMetadata() == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(
+                route.getMetadata().get(RegistryCommonConstants.REGISTRATION_RETIRED_METADATA_KEY));
     }
 
 }

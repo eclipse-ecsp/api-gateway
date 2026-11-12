@@ -47,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.springdoc.core.customizers.OpenApiLocaleCustomizer;
 import org.springdoc.core.customizers.SpringDocCustomizers;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.properties.SpringDocConfigProperties;
@@ -56,6 +57,7 @@ import org.springdoc.core.service.GenericResponseService;
 import org.springdoc.core.service.OpenAPIService;
 import org.springdoc.core.service.OperationService;
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
@@ -116,6 +118,8 @@ class ApiRoutesLoaderTest {
         OpenAPI openApi = getOpenApiObj();
         when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         ApplicationContext mockedApplicationContext = mock(ApplicationContext.class);
+        when(mockedApplicationContext.getBeanProvider(OpenApiLocaleCustomizer.class))
+                .thenReturn(new StaticListableBeanFactory().getBeanProvider(OpenApiLocaleCustomizer.class));
         when(openApiService.getContext()).thenReturn(mockedApplicationContext);
         when(springDocProviders.jsonMapper()).thenReturn(Json.mapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();

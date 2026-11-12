@@ -359,7 +359,7 @@ public class RouteCustomizerOpenApiCustomizer implements GlobalOpenApiCustomizer
         }
         try {
             return embeddedValueResolver.resolveStringValue(template);
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             return null;
         }
     }

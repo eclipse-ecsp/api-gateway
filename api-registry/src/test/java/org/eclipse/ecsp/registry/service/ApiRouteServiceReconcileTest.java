@@ -329,8 +329,9 @@ class ApiRouteServiceReconcileTest {
         List<ApiRouteEntity> existing = new ArrayList<>(List.of(entity("A", true), entity("B", true)));
         when(apiRouteRepo.findAllByService(SERVICE)).thenReturn(existing);
         when(apiRouteRepo.save(argThatIdEquals("A"))).thenThrow(new RuntimeException("db down"));
+        RouteSnapshotRequest request = snapshot(2, route("A"));
 
-        assertThrows(RuntimeException.class, () -> apiRouteService.reconcile(SERVICE, snapshot(2, route("A"))));
+        assertThrows(RuntimeException.class, () -> apiRouteService.reconcile(SERVICE, request));
 
         verify(apiRouteRepo, never()).save(argThatIdEquals("B"));
     }

@@ -86,7 +86,7 @@ public final class PathTemplateUtils {
         try {
             originalVariables = extractVariableNames(originalPath);
             targetVariables = extractVariableNames(normalized);
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             return TargetPathValidation.invalid(REASON_INVALID_TEMPLATE);
         }
         if (!originalVariables.equals(targetVariables)) {

@@ -25,6 +25,8 @@ import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -168,10 +170,18 @@ class RouteCustomizerOpenApiCustomizerTest {
                 .get(RouteCustomizerOpenApiCustomizer.MAPPING_INDEX_EXTENSION));
     }
 
-    @Test
-    void noMatchLeavesPathsUnchanged() {
-        OpenAPI openApi = openApiWithOperation("/v1/api/dothis", "Demo", "doThis", false);
-        properties.setMappings(List.of(mapping("Other-op", false, "/api/other")));
+    @ParameterizedTest
+    @CsvSource({
+        // no operation matches the route id
+        "/v1/api/dothis, Other-op, /api/other",
+        // target falls under a reserved, internally-owned prefix
+        "/v1/api/dothis, Demo-doThis, /actuator/health",
+        // target drops the {id} path variable of the source path
+        "/v1/api/dothis/{id}, Demo-doThis, /api/dothis"
+    })
+    void unmatchedOrRejectedMappingLeavesPathsUnchanged(String sourcePath, String routeId, String target) {
+        OpenAPI openApi = openApiWithOperation(sourcePath, "Demo", "doThis", false);
+        properties.setMappings(List.of(mapping(routeId, false, target)));
 
         customizer.customise(openApi);
 
@@ -185,26 +195,6 @@ class RouteCustomizerOpenApiCustomizerTest {
         });
         OpenAPI openApi = openApiWithOperation("/v1/api/dothis", "Demo", "doThis", false);
         properties.setMappings(List.of(mapping("Demo-doThis", false, "/${unknown.property}/v1/api/perform")));
-
-        customizer.customise(openApi);
-
-        assertEquals(1, openApi.getPaths().size());
-    }
-
-    @Test
-    void reservedPathTargetIsSkipped() {
-        OpenAPI openApi = openApiWithOperation("/v1/api/dothis", "Demo", "doThis", false);
-        properties.setMappings(List.of(mapping("Demo-doThis", false, "/actuator/health")));
-
-        customizer.customise(openApi);
-
-        assertEquals(1, openApi.getPaths().size());
-    }
-
-    @Test
-    void missingPathVariableTargetIsSkipped() {
-        OpenAPI openApi = openApiWithOperation("/v1/api/dothis/{id}", "Demo", "doThis", false);
-        properties.setMappings(List.of(mapping("Demo-doThis", false, "/api/dothis")));
 
         customizer.customise(openApi);
 

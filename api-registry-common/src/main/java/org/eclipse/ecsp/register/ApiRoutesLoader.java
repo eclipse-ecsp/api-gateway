@@ -34,6 +34,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
+import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
@@ -62,6 +63,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,7 +82,8 @@ import java.util.Set;
  * and registers them with the API registry service.
  *
  * <p>It also sets various filters and predicates for the routes, including request body filters,
- * caching filters, security filters, and header metadata.
+ * caching filters, security filters, and header metadata. Filters listed under
+ * {@code api.registry.route-customizer} are appended last, after the annotation-driven ones.
  *
  * <p>The class is annotated with @Service, @ConfigurationProperties, and @ConditionalOnProperty.
  *
@@ -108,6 +111,11 @@ public class ApiRoutesLoader extends OpenApiResource {
     private final List<GroupedOpenApi> groupedOpenApis;
     private final List<RouteDefinition> apiRoutes;
     private final ObjectMapper schemaObjectMapper;
+    private final RouteCustomizerProperties routeCustomizerProperties;
+    /**
+     * Indexes of the route customizer mappings that selected a route during the current load.
+     */
+    private final Set<Integer> appliedMappings = new HashSet<>();
 
     /**
      * API Routes configuration.
@@ -140,6 +148,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
+     * @param routeCustomizerProperties   filters configured under {@code api.registry.route-customizer}
      */
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
@@ -147,12 +156,13 @@ public class ApiRoutesLoader extends OpenApiResource {
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
                            SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
-                           ApiRoutesConfig apiRoutesConfig) {
+                           ApiRoutesConfig apiRoutesConfig, RouteCustomizerProperties routeCustomizerProperties) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
         this.apiRoutesConfig = apiRoutesConfig;
+        this.routeCustomizerProperties = routeCustomizerProperties;
         this.schemaObjectMapper = springDocConfigProperties.isOpenapi31()
             ? ObjectMapperUtil.getObjectMapper()
             : springDocProviders.jsonMapper();
@@ -191,16 +201,14 @@ public class ApiRoutesLoader extends OpenApiResource {
         LOGGER.info("Read API Routes from OpenApi (Swagger) Annotations...");
         this.serviceUrl = new URI("http://" + serviceName + ":" + port + RegistryCommonConstants.PATH_DELIMITER);
         LOGGER.info("OpenApi ---> ServiceUrl = {}", this.serviceUrl);
+        appliedMappings.clear();
         OpenAPI api = super.getOpenApi(null, Locale.getDefault());
-        if (api == null) {
-            return;
+        Paths paths = api == null ? null : api.getPaths();
+        if (paths != null && !paths.isEmpty()) {
+            components = api.getComponents();
+            paths.keySet().forEach(k -> setOperationMethod(k, paths));
         }
-        Paths paths = api.getPaths();
-        if (paths == null || paths.isEmpty()) {
-            return;
-        }
-        components = api.getComponents();
-        paths.keySet().forEach(k -> setOperationMethod(k, paths));
+        warnUnappliedMappings();
     }
 
     private void prepareStaticRoutes() {
@@ -289,6 +297,7 @@ public class ApiRoutesLoader extends OpenApiResource {
             setHeaderMetadata(operation, route);
             setRewritePathFilter(route);
             setCustomGatewayFilters(operation, route);
+            setConfiguredFilters(path, method, route);
             if (route.getFilters().isEmpty()) {
                 LOGGER.warn("API Route has no filter configured");
             }
@@ -668,5 +677,51 @@ public class ApiRoutesLoader extends OpenApiResource {
         }
         LOGGER.debug("Adding filter: {} with args: {}", filter.getName(), filter.getArgs());
         filters.add(filter);
+    }
+
+    /**
+     * Appends the filters configured under {@code api.registry.route-customizer} to the route.
+     *
+     * <p>Every mapping that selects the route contributes its filters, in list order, after the filters derived
+     * from the operation. Each route gets its own {@link FilterDefinition} instances, so routes never share state.
+     *
+     * @param path   the OpenAPI path of the operation
+     * @param method the HTTP method of the operation
+     * @param route  the RouteDefinition object
+     */
+    private void setConfiguredFilters(String path, HttpMethod method, RouteDefinition route) {
+        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getRouteCustomizer();
+        for (int index = 0; index < mappings.size(); index++) {
+            RouteCustomizerProperties.RouteMapping mapping = mappings.get(index);
+            if (!mapping.matches(route.getId(), path, method.name())) {
+                continue;
+            }
+            appliedMappings.add(index);
+            for (RouteCustomizerProperties.FilterOverride configured : mapping.getFilters()) {
+                FilterDefinition filter = new FilterDefinition();
+                filter.setName(configured.getName());
+                filter.getArgs().putAll(configured.getArgs());
+                route.getFilters().add(filter);
+                LOGGER.info("Configured filter {} applied to route {}", configured.getName(), route.getId());
+            }
+        }
+    }
+
+    /**
+     * Logs every route customizer mapping that selected no route during the current load.
+     *
+     * <p>Such a mapping is stale (for example after a controller rename) or mistyped. It changes nothing, so it only
+     * warns and never fails startup.
+     */
+    private void warnUnappliedMappings() {
+        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getRouteCustomizer();
+        for (int index = 0; index < mappings.size(); index++) {
+            if (!appliedMappings.contains(index)) {
+                RouteCustomizerProperties.RouteMapping mapping = mappings.get(index);
+                LOGGER.warn("{} | index={} | routeId={} | path={} | method={}",
+                        RegistryCommonConstants.LOG_EVENT_ROUTE_CUSTOMIZER_NO_MATCH, index,
+                        mapping.getRouteId(), mapping.getPath(), mapping.getMethod());
+            }
+        }
     }
 }

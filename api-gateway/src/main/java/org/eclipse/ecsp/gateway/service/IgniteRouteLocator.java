@@ -25,6 +25,8 @@ import lombok.Setter;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
 import org.eclipse.ecsp.gateway.customizers.RouteCustomizer;
+import org.eclipse.ecsp.gateway.events.RouteRejectionsEvent;
+import org.eclipse.ecsp.gateway.events.RouteRejectionsEvent.RejectedRoute;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.plugins.PluginLoader;
@@ -68,6 +70,13 @@ import java.util.TreeSet;
 
 /**
  * Dynamically load routes from api-registry.
+ *
+ * <p>The routing table is built in the sequence in which api-registry returns the routes. The locator neither ranks
+ * the routes nor reads any route-order configuration: api-registry puts the routes in route order and the table
+ * keeps that sequence, so the first route that matches a request is the one api-registry ranked first.
+ *
+ * <p>A route that configures a filter no installed gateway filter factory provides is excluded and reported to
+ * listeners through a {@link RouteRejectionsEvent} published once per refresh.
  */
 @Service
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -217,17 +226,25 @@ public class IgniteRouteLocator implements RouteLocator {
         // Load the ApiRoutes from api-registry
         RouteLocatorBuilder.Builder routesBuilder = routeLocatorBuilder.routes();
         Flux<IgniteRouteDefinition> apiRoutes = apiRegistryClient.getRoutes();
-        // Build api-gateway routes on the ApiRoutes received from api-registry
+        List<RejectedRoute> rejectedRoutes = new ArrayList<>();
+        // Build api-gateway routes on the ApiRoutes received from api-registry, in the sequence received
         Flux<Route> routes = apiRoutes
-                .filter(r -> validateRouteFilters(r, r.getFilters()))
+                .filter(r -> validateRouteFilters(r, r.getFilters(), rejectedRoutes))
                 .map(apiRoute -> routesBuilder.route(apiRoute.getId(),
                         predicateSpec -> setPredicateSpec(apiRoute, predicateSpec)))
-                .collectList().flatMapMany(builders -> routesBuilder.build().getRoutes());
+                .collectList()
+                .doOnNext(builders -> publishRejectedRoutes(rejectedRoutes))
+                .flatMapMany(builders -> routesBuilder.build().getRoutes());
         LOGGER.debug("Loaded Routes...!");
         return routes;
     }
 
-    private boolean validateRouteFilters(IgniteRouteDefinition route, List<FilterDefinition> filters) {
+    private void publishRejectedRoutes(List<RejectedRoute> rejectedRoutes) {
+        applicationEventPublisher.publishEvent(new RouteRejectionsEvent(rejectedRoutes));
+    }
+
+    private boolean validateRouteFilters(IgniteRouteDefinition route, List<FilterDefinition> filters,
+                                         List<RejectedRoute> rejectedRoutes) {
         String filterName =  filters.stream().map(FilterDefinition::getName)
                 .filter(f -> !gatewayFilterFactories.containsKey(f))
                 .findFirst().orElse(null);
@@ -235,6 +252,8 @@ public class IgniteRouteLocator implements RouteLocator {
         if (filterName != null) {
             LOGGER.error("Route ID: {} has an invalid filter: {}, will not be exposed via api-gateway",
                     route.getId(), filterName);
+            rejectedRoutes.add(
+                    new RejectedRoute(route.getId(), RouteRejectionsEvent.REASON_UNKNOWN_FILTER, filterName));
             return false;
         }
         return true;

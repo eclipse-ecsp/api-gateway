@@ -22,6 +22,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.registry.config.ChecksumProperties;
+import org.eclipse.ecsp.registry.config.RouteConflictProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
@@ -68,6 +69,8 @@ class ApiRouteServiceTest {
     @Mock
     private ChecksumService checksumService;
 
+    private RouteConflictValidator conflictValidator;
+
     @BeforeEach
     void beforeEach() {
         MockitoAnnotations.openMocks(this);
@@ -79,9 +82,10 @@ class ApiRouteServiceTest {
         checksumPropertiesDisabled.setEnabled(false);
         when(checksumService.compute(Mockito.any()))
                 .thenReturn(Optional.of("abc123checksum"));
+        conflictValidator = new RouteConflictValidator(apiRouteRepo, new RouteConflictProperties(), meterRegistry);
         apiRouteService = new ApiRouteService(
                 apiRouteRepo, Optional.of(routeEventPublisher),
-                checksumPropertiesEnabled, checksumService, meterRegistry);
+                checksumPropertiesEnabled, checksumService, meterRegistry, conflictValidator);
     }
 
     @Test
@@ -162,7 +166,7 @@ class ApiRouteServiceTest {
     void testCreateOrUpdateWithoutEventPublisher() {
         ApiRouteService serviceWithoutPublisher = new ApiRouteService(
                 apiRouteRepo, Optional.empty(),
-                checksumPropertiesEnabled, checksumService, meterRegistry);
+                checksumPropertiesEnabled, checksumService, meterRegistry, conflictValidator);
         ApiRouteEntity apiRouteEntity = RegistryTestUtil.getApiRouteEntity();
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         when(apiRouteRepo.save(Mockito.any())).thenReturn(apiRouteEntity);
@@ -289,6 +293,28 @@ class ApiRouteServiceTest {
     }
 
     /**
+     * Test purpose          - Verify list returns the active routes in route order.
+     * Test data             - Catch-all, parameterized and exact routes whose ids sort the other way round,
+     *                         plus an inactive route.
+     * Test expected result  - Routes ordered by path specificity; the inactive route is omitted.
+     * Test type             - Positive.
+     */
+    @Test
+    void testListReturnsActiveRoutesInRouteOrder() {
+        ApiRouteEntity inactive = routeEntity("d-inactive", "/v1/entitlements/inactive");
+        inactive.setActive(Boolean.FALSE);
+        when(apiRouteRepo.findAll()).thenReturn(List.of(
+                routeEntity("a-catch-all", "/v1/entitlements/**"),
+                routeEntity("b-parameterized", "/v1/entitlements/{productId}"),
+                routeEntity("c-exact", "/v1/entitlements/search"),
+                inactive));
+
+        List<String> ids = apiRouteService.list().stream().map(RouteDefinition::getId).toList();
+
+        Assertions.assertEquals(List.of("c-exact", "b-parameterized", "a-catch-all"), ids);
+    }
+
+    /**
      * Test purpose          - Verify delete without event publisher succeeds.
      * Test data             - Route entity without event publisher.
      * Test expected result  - Route deleted successfully.
@@ -298,7 +324,7 @@ class ApiRouteServiceTest {
     void testDeleteWithoutEventPublisher() {
         ApiRouteService serviceWithoutPublisher = new ApiRouteService(
                 apiRouteRepo, Optional.empty(),
-                checksumPropertiesEnabled, checksumService, meterRegistry);
+                checksumPropertiesEnabled, checksumService, meterRegistry, conflictValidator);
         ApiRouteEntity apiRouteEntity = new ApiRouteEntity();
         apiRouteEntity.setService("test-service");
         when(apiRouteRepo.findById(Mockito.anyString())).thenReturn(Optional.of(apiRouteEntity));
@@ -439,7 +465,7 @@ class ApiRouteServiceTest {
     void testCreateOrUpdateChangeDetectionDisabledSavesUnconditionally() {
         ApiRouteService serviceDisabled = new ApiRouteService(
                 apiRouteRepo, Optional.of(routeEventPublisher),
-                checksumPropertiesDisabled, checksumService, meterRegistry);
+                checksumPropertiesDisabled, checksumService, meterRegistry, conflictValidator);
         RouteDefinition routeDefinition = RegistryTestUtil.getRouteDefination();
         ApiRouteEntity saved = RegistryTestUtil.getApiRouteEntity();
         when(apiRouteRepo.findById(routeDefinition.getId())).thenReturn(Optional.empty());
@@ -488,5 +514,15 @@ class ApiRouteServiceTest {
         apiRouteService.createOrUpdate(routeDefinition);
 
         verify(counter, times(1)).increment();
+    }
+
+    private static ApiRouteEntity routeEntity(String id, String path) {
+        RouteDefinition route = RegistryTestUtil.getRouteDefination();
+        route.setId(id);
+        route.getPredicates().get(0).addArg("_genkey_0", path);
+        ApiRouteEntity entity = RegistryTestUtil.getApiRouteEntity();
+        entity.setId(id);
+        entity.setRoute(route);
+        return entity;
     }
 }

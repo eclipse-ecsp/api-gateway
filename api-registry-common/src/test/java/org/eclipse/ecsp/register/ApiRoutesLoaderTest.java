@@ -18,6 +18,9 @@
 
 package org.eclipse.ecsp.register;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -34,6 +37,8 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
+import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
 import org.eclipse.ecsp.utils.ObjectMapperUtil;
@@ -44,6 +49,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.slf4j.LoggerFactory;
+import org.springdoc.core.customizers.OpenApiLocaleCustomizer;
 import org.springdoc.core.customizers.SpringDocCustomizers;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.properties.SpringDocConfigProperties;
@@ -53,6 +60,7 @@ import org.springdoc.core.service.GenericResponseService;
 import org.springdoc.core.service.OpenAPIService;
 import org.springdoc.core.service.OperationService;
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
@@ -86,6 +94,7 @@ class ApiRoutesLoaderTest {
 
     ObjectFactory<OpenAPIService> openApiServiceObjectFactory = () -> openApiService;
     ScopeOverrideProperties scopeOverrideProperties = new ScopeOverrideProperties();
+    RouteCustomizerProperties routeCustomizerProperties = new RouteCustomizerProperties();
 
     @InjectMocks
     private ApiRoutesLoader apiRoutesLoader;
@@ -112,13 +121,15 @@ class ApiRoutesLoaderTest {
         OpenAPI openApi = getOpenApiObj();
         when(openApiService.build(Locale.getDefault())).thenReturn(openApi);
         ApplicationContext mockedApplicationContext = mock(ApplicationContext.class);
+        when(mockedApplicationContext.getBeanProvider(OpenApiLocaleCustomizer.class))
+                .thenReturn(new StaticListableBeanFactory().getBeanProvider(OpenApiLocaleCustomizer.class));
         when(openApiService.getContext()).thenReturn(mockedApplicationContext);
         when(springDocProviders.jsonMapper()).thenReturn(Json.mapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig);
+                springDocProviders, springDocCustomizers, apiRouteConfig, routeCustomizerProperties);
     }
 
     @Test
@@ -433,7 +444,7 @@ class ApiRoutesLoaderTest {
 
         ApiRoutesLoader openApi31Loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, new ApiRoutesConfig());
+                springDocProviders, springDocCustomizers, new ApiRoutesConfig(), routeCustomizerProperties);
 
         Assertions.assertSame(ObjectMapperUtil.getObjectMapper(),
                 ReflectionTestUtils.getField(openApi31Loader, "schemaObjectMapper"));
@@ -493,5 +504,154 @@ class ApiRoutesLoaderTest {
         // Verify the route has correct basic properties
         Assertions.assertEquals("test-controller-no-filters-route", routeDefinition.getId());
         Assertions.assertNotNull(routeDefinition.getUri());
+    }
+
+    /**
+     * Test purpose          - Verify configured filters follow the annotation-driven filters, in mapping order.
+     * Test data             - Mapping by route id with two filters; operation carrying a security requirement.
+     * Test expected result  - Route filters: the security filter first, then both configured filters with args.
+     * Test type             - Positive.
+     */
+    @Test
+    void testConfiguredFiltersAreAppendedAfterAnnotationDrivenFilters() {
+        routeCustomizerProperties.getRouteCustomizer().add(routeIdMapping("test-controller-configured",
+                configuredFilter("VehicleIdValidation", Map.of("source", "header", "name", "vehicle-id")),
+                configuredFilter("AuditFilter", Map.of())));
+
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/configured",
+                simpleOperation("configured"));
+
+        RouteDefinition route = loadedRoute("test-controller-configured");
+        Assertions.assertEquals(List.of("JwtAuthValidator", "VehicleIdValidation", "AuditFilter"),
+                filterNames(route));
+        Assertions.assertEquals(Map.of("source", "header", "name", "vehicle-id"),
+                route.getFilters().get(1).getArgs());
+    }
+
+    /**
+     * Test purpose          - Verify a path mapping with a method selects only that operation.
+     * Test data             - Mapping on "/v2/users" with a lower-case "get"; GET and POST on it, GET elsewhere.
+     * Test expected result  - Only GET "/v2/users" gets the configured filter.
+     * Test type             - Positive.
+     */
+    @Test
+    void testConfiguredFiltersAreSelectedByPathAndMethod() {
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setPath("/v2/users");
+        mapping.setMethod("get");
+        mapping.setFilters(List.of(configuredFilter("SelectedFilter", Map.of())));
+        routeCustomizerProperties.getRouteCustomizer().add(mapping);
+
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users",
+                simpleOperation("listUsers"));
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.POST, "/v2/users",
+                simpleOperation("createUser"));
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/other",
+                simpleOperation("listOther"));
+
+        Assertions.assertTrue(filterNames(loadedRoute("test-controller-listUsers")).contains("SelectedFilter"));
+        Assertions.assertFalse(filterNames(loadedRoute("test-controller-createUser")).contains("SelectedFilter"));
+        Assertions.assertFalse(filterNames(loadedRoute("test-controller-listOther")).contains("SelectedFilter"));
+    }
+
+    /**
+     * Test purpose          - Verify every selected route gets its own filter definition.
+     * Test data             - Path mapping without a method that selects GET and POST on the same path.
+     * Test expected result  - The two routes share neither the filter nor its args, nor the configuration's args.
+     * Test type             - Positive.
+     */
+    @Test
+    void testRoutesDoNotShareConfiguredFilterInstances() {
+        Map<String, String> configuredArgs = new HashMap<>(Map.of("limit", "10"));
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setPath("/v2/users");
+        mapping.setFilters(List.of(configuredFilter("SharedConfig", configuredArgs)));
+        routeCustomizerProperties.getRouteCustomizer().add(mapping);
+
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users",
+                simpleOperation("listUsers"));
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.POST, "/v2/users",
+                simpleOperation("createUser"));
+
+        FilterDefinition first = loadedRoute("test-controller-listUsers").getFilters().get(1);
+        FilterDefinition second = loadedRoute("test-controller-createUser").getFilters().get(1);
+        first.addArg("added", "1");
+
+        Assertions.assertNotSame(first, second);
+        Assertions.assertFalse(second.getArgs().containsKey("added"));
+        Assertions.assertFalse(configuredArgs.containsKey("added"));
+    }
+
+    /**
+     * Test purpose          - Verify a mapping that selects no route is reported and changes nothing.
+     * Test data             - One mapping that matches the fixture routes and one with an unknown route id.
+     * Test expected result  - One ROUTE_CUSTOMIZER_NO_MATCH warning for the unknown mapping; the other is applied.
+     * Test type             - Negative.
+     */
+    @Test
+    void testMappingThatSelectsNoRouteIsLoggedAndChangesNothing() throws Exception {
+        routeCustomizerProperties.getRouteCustomizer().add(
+                routeIdMapping("test-controller-create", configuredFilter("Matched", Map.of())));
+        routeCustomizerProperties.getRouteCustomizer().add(
+                routeIdMapping("no-such-route", configuredFilter("Orphan", Map.of())));
+        Logger loaderLogger = (Logger) LoggerFactory.getLogger(ApiRoutesLoader.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        loaderLogger.addAppender(appender);
+
+        try {
+            apiRoutesLoader.getApiRoutes();
+        } finally {
+            loaderLogger.detachAppender(appender);
+        }
+
+        List<String> noMatch = appender.list.stream().map(ILoggingEvent::getFormattedMessage)
+                .filter(message -> message.startsWith("ROUTE_CUSTOMIZER_NO_MATCH")).toList();
+        Assertions.assertEquals(1, noMatch.size(), noMatch.toString());
+        Assertions.assertTrue(noMatch.get(0).contains("index=1"), noMatch.get(0));
+        Assertions.assertTrue(noMatch.get(0).contains("routeId=no-such-route"), noMatch.get(0));
+        List<RouteDefinition> matched = loadedRoutes().stream()
+                .filter(route -> "test-controller-create".equals(route.getId())).toList();
+        Assertions.assertFalse(matched.isEmpty());
+        matched.forEach(route -> {
+            Assertions.assertTrue(filterNames(route).contains("Matched"));
+            Assertions.assertFalse(filterNames(route).contains("Orphan"));
+        });
+    }
+
+    private static RouteCustomizerProperties.FilterOverride configuredFilter(String name, Map<String, String> args) {
+        RouteCustomizerProperties.FilterOverride filter = new RouteCustomizerProperties.FilterOverride();
+        filter.setName(name);
+        filter.setArgs(args);
+        return filter;
+    }
+
+    private static RouteCustomizerProperties.RouteMapping routeIdMapping(String routeId,
+            RouteCustomizerProperties.FilterOverride... filters) {
+        RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
+        mapping.setRouteId(routeId);
+        mapping.setFilters(List.of(filters));
+        return mapping;
+    }
+
+    private static Operation simpleOperation(String operationId) {
+        Operation operation = new Operation();
+        operation.setTags(List.of("test-controller"));
+        operation.setOperationId(operationId);
+        operation.setSecurity(List.of(new SecurityRequirement().addList("JwtAuthValidator", "SelfManage")));
+        return operation;
+    }
+
+    private static List<String> filterNames(RouteDefinition route) {
+        return route.getFilters().stream().map(FilterDefinition::getName).toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<RouteDefinition> loadedRoutes() {
+        return (List<RouteDefinition>) ReflectionTestUtils.getField(apiRoutesLoader, "apiRoutes");
+    }
+
+    private RouteDefinition loadedRoute(String id) {
+        return loadedRoutes().stream().filter(route -> id.equals(route.getId())).findFirst().orElseThrow();
     }
 }

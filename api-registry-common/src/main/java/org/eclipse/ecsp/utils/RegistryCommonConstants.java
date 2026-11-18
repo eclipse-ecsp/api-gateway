@@ -188,4 +188,9 @@ public class RegistryCommonConstants {
      */
     public static final String API_REGISTRY_WEB_CLIENT_PROPAGATION_PREFIX =
             API_REGISTRY_PREFIX + ".token-propagation.web-client";
+
+    /**
+     * Log event marker used when a route customizer mapping selects no route.
+     */
+    public static final String LOG_EVENT_ROUTE_CUSTOMIZER_NO_MATCH = "ROUTE_CUSTOMIZER_NO_MATCH";
 }

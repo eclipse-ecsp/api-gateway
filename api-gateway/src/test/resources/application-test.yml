@@ -12,6 +12,11 @@ server:
 spring:
   application:
     name: api-gateway
+  servlet:
+    encoding:
+      enabled: true
+      force: true
+      charset: UTF-8
   data:
     redis:
       host: localhost

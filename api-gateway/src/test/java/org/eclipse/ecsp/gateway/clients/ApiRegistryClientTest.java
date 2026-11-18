@@ -543,6 +543,42 @@ class ApiRegistryClientTest {
     }
 
     /**
+     * Test that the sequence received from the API registry is kept, also when it is served from the cache.
+     * The registry returns the routes in route order and the gateway evaluates them as received.
+     */
+    @Test
+    void getRoutesWhenServedFromCacheThenKeepsTheSequenceReceived() {
+        String responseBody = """
+            [
+                {"id": "c-exact", "uri": "http://example.com/a",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/search"}}]},
+                {"id": "b-parameterized", "uri": "http://example.com/b",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/{id}"}}]},
+                {"id": "a-catch-all", "uri": "http://example.com/c",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/**"}}]}
+            ]
+            """;
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+        List<String> receivedSequence = List.of("c-exact", "b-parameterized", "a-catch-all");
+
+        List<String> fromRegistry = routeIds(apiRegistryClient.getRoutes());
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse().withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())));
+        List<String> fromCache = routeIds(apiRegistryClient.getRoutes());
+
+        assertEquals(receivedSequence, fromRegistry);
+        assertEquals(receivedSequence, fromCache);
+    }
+
+    private static List<String> routeIds(Flux<IgniteRouteDefinition> routes) {
+        return routes.map(IgniteRouteDefinition::getId).collectList().block();
+    }
+
+    /**
      * Test that cached routes are returned when API registry returns empty list.
      * Verifies the fallback mechanism for empty responses.
      */

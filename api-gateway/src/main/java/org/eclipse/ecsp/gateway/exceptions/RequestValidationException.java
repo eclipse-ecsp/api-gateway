@@ -23,7 +23,7 @@ import org.openapi4j.core.validation.ValidationResults;
 import org.springframework.http.HttpStatusCode;
 
 /**
- * Exception thrown when an incoming request fails structural validation, such as:
+ * Exception thrown when an incoming request fails structural validation, such as.
  * <ul>
  *   <li>A mandatory request header is missing or has an invalid value</li>
  *   <li>The request body does not conform to the configured OpenAPI schema</li>

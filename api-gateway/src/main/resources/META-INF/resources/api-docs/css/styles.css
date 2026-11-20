@@ -9,45 +9,202 @@
     font-family: 'Poppins', sans-serif;
 }
 
+html,
 body {
-    margin: 0;
-    background: var(--sides-bg-color);
-}
-
-.api-group {
-    padding: 0 10px;
-}
-
-.header {
-    padding: 20px 10px;
-    background: var(--nav-bg-color);
-    color: #f1f1f1;
+    height: 100%;
     overflow: hidden;
 }
 
-/* Float the link section to the left */
-.header-left {
-    float: left;
+/* Fixed-height layout: header stays on top, the explorer's nav and content scroll independently. */
+body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--sides-bg-color);
 }
 
-.header-middle {
-    float: left;
-    padding-left: 20px;
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--nav-bg-color);
+    color: #f1f1f1;
+    flex: 0 0 auto;
 }
 
-/* Float the link section to the right */
+.header-left,
 .header-right {
-    float: right;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
 
-@media screen and (max-width: 500px) {
+.header-right {
+    flex: 1 1 420px;
+    justify-content: flex-end;
+}
 
-    .header-left {
-        float: none;
+.group-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    opacity: .75;
+}
+
+/* API group dropdown */
+.select-wrap {
+    position: relative;
+}
+
+.select-wrap::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: translateY(-70%) rotate(45deg);
+    opacity: .8;
+    pointer-events: none;
+}
+
+.api-group {
+    height: 34px;
+    min-width: 200px;
+    max-width: 280px;
+    padding: 0 32px 0 12px;
+    font-size: 13px;
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+}
+
+.api-group:hover {
+    background: rgba(255, 255, 255, .2);
+}
+
+.api-group:focus {
+    outline: none;
+    border-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+}
+
+.api-group option {
+    color: #1d2433;
+    background: #fff;
+}
+
+/* Token box */
+.token-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    max-width: 460px;
+    height: 34px;
+    padding: 0 6px 0 11px;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 8px;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+}
+
+.token-box:hover {
+    background: rgba(255, 255, 255, .18);
+}
+
+.token-box:focus-within {
+    background: #fff;
+    border-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+    color: #1d2433;
+}
+
+.token-box.saved {
+    border-color: #4ade80;
+}
+
+.token-icon {
+    flex-shrink: 0;
+    opacity: .8;
+}
+
+.token-box.saved .token-icon {
+    color: #4ade80;
+    opacity: 1;
+}
+
+#jwtToken {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 4px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    text-overflow: ellipsis;
+}
+
+/* Hide Edge's built-in reveal/clear buttons; the custom eye button replaces them */
+#jwtToken::-ms-reveal,
+#jwtToken::-ms-clear {
+    display: none;
+}
+
+#jwtToken::placeholder {
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    color: inherit;
+    opacity: .6;
+}
+
+#jwtToken:read-only {
+    opacity: .85;
+}
+
+.token-eye {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    opacity: .75;
+    cursor: pointer;
+}
+
+.token-eye:hover {
+    background: rgba(128, 128, 128, .25);
+    opacity: 1;
+}
+
+@media screen and (max-width: 700px) {
+    .header-left,
+    .header-right {
+        flex: 1 1 100%;
     }
 
-    .header-right {
-        float: none;
+    .token-box {
+        max-width: none;
     }
 }
 
@@ -57,7 +214,15 @@ body {
 }
 
 .content {
-    padding: 10px 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
+}
+
+openapi-explorer {
+    display: flex;
+    height: 100%;
 }
 
 .sticky {
@@ -166,7 +331,40 @@ body {
 }
 
 .ibutton {
-    padding: 0 10px 0 10px;
+    height: 34px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+}
+
+.ibutton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .15);
+}
+
+.ibutton:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.ibutton:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.ibutton-primary {
+    color: var(--nav-bg-color);
+    background: #fff;
+    border-color: #fff;
+}
+
+.ibutton-primary:hover:not(:disabled) {
+    background: #e8eef3;
 }
 
 .select-picker {
@@ -177,4 +375,49 @@ body {
     --nav-bg-color: #3e6077;
     --nav-hover-bg-color: #fff;
     --sides-bg-color: #ecf0f3;
+}
+
+/* Explorer's nav filter + search button: match the header controls (exposed via ::part) */
+openapi-explorer::part(textbox-nav-filter) {
+    height: 34px;
+    padding: 0 12px !important;
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    color: #fff !important;
+    background: rgba(255, 255, 255, .12) !important;
+    border: 1px solid rgba(255, 255, 255, .25) !important;
+    border-radius: 8px;
+    outline: none;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+}
+
+openapi-explorer::part(textbox-nav-filter):hover {
+    background: rgba(255, 255, 255, .18) !important;
+}
+
+openapi-explorer::part(textbox-nav-filter):focus {
+    border-color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+}
+
+openapi-explorer::part(textbox-nav-filter)::placeholder {
+    color: #fff;
+    opacity: .6;
+}
+
+openapi-explorer::part(btn-search) {
+    height: 34px;
+    padding: 0 16px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nav-bg-color);
+    background: #fff;
+    border: 1px solid #fff;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+openapi-explorer::part(btn-search):hover {
+    background: #e8eef3;
 }

@@ -25,7 +25,8 @@ import java.util.List;
 
 /**
  * Response DTO for conflict errors (409 Conflict).
- * Contains a message and list of duplicate client IDs.
+ * Contains a message and the list of duplicates: the client IDs that already exist, or the IDs of the registered
+ * routes that already own the method and path of a route registration.
  */
 @Getter
 @Setter
@@ -41,7 +42,7 @@ public class ConflictResponseDto {
      * Constructor with all fields.
      *
      * @param message error message
-     * @param duplicates list of duplicate client IDs
+     * @param duplicates list of duplicates: client IDs, or conflicting route IDs
      */
     public ConflictResponseDto(String message, List<String> duplicates) {
         this.message = message;

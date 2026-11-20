@@ -470,8 +470,8 @@ class ApiRegistryClientTest {
                 .verifyComplete();
 
         // Verify routes are cached
-        assert apiRegistryClient.hasCachedRoutes();
-        assert apiRegistryClient.getCachedRoutesCount() == 1;
+        assertTrue(apiRegistryClient.hasCachedRoutes());
+        assertEquals(1, apiRegistryClient.getCachedRoutesCount());
     }
 
     /**
@@ -522,7 +522,7 @@ class ApiRegistryClientTest {
                 .verifyComplete();
 
         // Verify routes are cached
-        assert apiRegistryClient.getCachedRoutesCount() == EXPECTED_TWO_ROUTES;
+        assertEquals(EXPECTED_TWO_ROUTES, apiRegistryClient.getCachedRoutesCount());
 
         // Now simulate API registry being down
         wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
@@ -540,6 +540,42 @@ class ApiRegistryClientTest {
 
         // Verify getDummyRoute was NOT called
         verify(routeUtils, never()).getDummyRoute();
+    }
+
+    /**
+     * Test that the sequence received from the API registry is kept, also when it is served from the cache.
+     * The registry returns the routes in route order and the gateway evaluates them as received.
+     */
+    @Test
+    void getRoutesWhenServedFromCacheThenKeepsTheSequenceReceived() {
+        String responseBody = """
+            [
+                {"id": "c-exact", "uri": "http://example.com/a",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/search"}}]},
+                {"id": "b-parameterized", "uri": "http://example.com/b",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/{id}"}}]},
+                {"id": "a-catch-all", "uri": "http://example.com/c",
+                 "predicates": [{"name": "Path", "args": {"pattern": "/v1/items/**"}}]}
+            ]
+            """;
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse()
+                        .withStatus(HttpStatus.OK.value())
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(responseBody)));
+        List<String> receivedSequence = List.of("c-exact", "b-parameterized", "a-catch-all");
+
+        List<String> fromRegistry = routeIds(apiRegistryClient.getRoutes());
+        wireMockServer.stubFor(get(urlEqualTo(ROUTES_ENDPOINT))
+                .willReturn(aResponse().withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())));
+        List<String> fromCache = routeIds(apiRegistryClient.getRoutes());
+
+        assertEquals(receivedSequence, fromRegistry);
+        assertEquals(receivedSequence, fromCache);
+    }
+
+    private static List<String> routeIds(Flux<IgniteRouteDefinition> routes) {
+        return routes.map(IgniteRouteDefinition::getId).collectList().block();
     }
 
     /**
@@ -616,7 +652,7 @@ class ApiRegistryClientTest {
                 .expectNextCount(1)
                 .verifyComplete();
 
-        assert apiRegistryClient.getCachedRoutesCount() == 1;
+        assertEquals(1, apiRegistryClient.getCachedRoutesCount());
 
         // Now fetch with updated routes
         String updatedResponse = createTwoRoutesResponse();
@@ -636,7 +672,7 @@ class ApiRegistryClientTest {
                 .expectNextMatches(route -> "route-v3".equals(route.getId()))
                 .verifyComplete();
 
-        assert apiRegistryClient.getCachedRoutesCount() == EXPECTED_TWO_ROUTES;
+        assertEquals(EXPECTED_TWO_ROUTES, apiRegistryClient.getCachedRoutesCount());
     }
 
     /**
@@ -729,14 +765,14 @@ class ApiRegistryClientTest {
                 .expectNextCount(1)
                 .verifyComplete();
 
-        assert apiRegistryClient.hasCachedRoutes();
+        assertTrue(apiRegistryClient.hasCachedRoutes());
 
         // When
         apiRegistryClient.clearCache();
 
         // Then
-        assert !apiRegistryClient.hasCachedRoutes();
-        assert apiRegistryClient.getCachedRoutesCount() == 0;
+        assertFalse(apiRegistryClient.hasCachedRoutes());
+        assertEquals(0, apiRegistryClient.getCachedRoutesCount());
     }
 
     // ==================== Rate Limit Tests ====================
@@ -781,11 +817,11 @@ class ApiRegistryClientTest {
 
         // Then
         assertNotNull(result);
-        assert result.size() == EXPECTED_TWO_RATE_LIMITS;
-        assert "route-1".equals(result.get(0).getRouteId());
-        assert "route-2".equals(result.get(1).getRouteId());
-        assert result.get(0).getReplenishRate() == REPLENISH_RATE_10;
-        assert result.get(1).getReplenishRate() == REPLENISH_RATE_5;
+        assertEquals(EXPECTED_TWO_RATE_LIMITS, result.size());
+        assertEquals("route-1", result.get(0).getRouteId());
+        assertEquals("route-2", result.get(1).getRouteId());
+        assertEquals(REPLENISH_RATE_10, result.get(0).getReplenishRate());
+        assertEquals(REPLENISH_RATE_5, result.get(1).getReplenishRate());
 
         // Verify the correct request was made
         wireMockServer.verify(1, WireMock.getRequestedFor(urlEqualTo(RATE_LIMITS_ENDPOINT))
@@ -1023,7 +1059,7 @@ class ApiRegistryClientTest {
 
         // Then
         assertNotNull(result);
-        assert result.isEmpty();
+        assertTrue(result.isEmpty());
     }
 
     /**

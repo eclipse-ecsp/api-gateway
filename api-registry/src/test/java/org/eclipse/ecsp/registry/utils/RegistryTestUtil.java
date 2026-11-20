@@ -104,4 +104,31 @@ public class RegistryTestUtil {
         filterDefinition.setArgs(args);
         return filterDefinition;
     }
+
+    /**
+     * Builds a route that a service serves for an HTTP method and a path.
+     *
+     * @param service the service that owns the route
+     * @param routeId the route id
+     * @param method  the HTTP method, or {@code null} for a route that serves every method
+     * @param path    the path pattern
+     * @return the route
+     */
+    public static RouteDefinition getRoute(String service, String routeId, String method, String path) {
+        RouteDefinition route = new RouteDefinition();
+        route.setId(routeId);
+        route.setService(service);
+        route.setUri(URI.create("http://" + service + ":8080/"));
+        if (method != null) {
+            PredicateDefinition methodPredicate = new PredicateDefinition();
+            methodPredicate.setName("Method");
+            methodPredicate.addArg("_genkey_0", method);
+            route.getPredicates().add(methodPredicate);
+        }
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("_genkey_0", path);
+        route.getPredicates().add(pathPredicate);
+        return route;
+    }
 }

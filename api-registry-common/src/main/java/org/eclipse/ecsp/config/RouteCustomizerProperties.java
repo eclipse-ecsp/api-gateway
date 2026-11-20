@@ -16,7 +16,7 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.register.customization;
+package org.eclipse.ecsp.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.eclipse.ecsp.annotations.ValidRouteMapping;
 import org.eclipse.ecsp.utils.RegistryCommonConstants;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -39,15 +40,15 @@ import java.util.Map;
 /**
  * Route customizer configuration: gateway filters attached to auto-derived routes from configuration only.
  *
- * <p>The list is bound from {@code api.registry.route-customizer}. Each {@link RouteMapping} selects routes by
- * route id, or by path and an optional method, and lists the filters appended to the routes it selects. An absent
- * or empty list customizes nothing, so the feature needs no toggle of its own.
- *
- * <p>Like {@code ApiRoutesConfig}, it exists only when {@code api.registry.enabled} is {@code true}.
+ * <p>Bound from {@code api.registry.route-customizer} and gated behind
+ * {@code api.registry.route-customizer.enabled=true} (default {@code false}). Each {@link RouteMapping} in
+ * {@link #mappings} selects routes by route id, or by path and an optional method, and lists the filters appended to
+ * the routes it selects.
  */
 @Configuration
-@ConfigurationProperties(prefix = RegistryCommonConstants.API_REGISTRY_PREFIX)
-@ConditionalOnProperty(value = "api.registry.enabled", havingValue = "true", matchIfMissing = false)
+@ConfigurationProperties(prefix = RegistryCommonConstants.API_REGISTRY_ROUTE_CUSTOMIZER_PREFIX)
+@ConditionalOnProperty(value = RegistryCommonConstants.API_REGISTRY_ROUTE_CUSTOMIZER_ENABLED,
+        havingValue = "true", matchIfMissing = false)
 @Validated
 @Getter
 @Setter
@@ -55,11 +56,16 @@ import java.util.Map;
 public class RouteCustomizerProperties {
 
     /**
-     * Mappings bound from {@code api.registry.route-customizer}.
+     * Enables or disables configuration-driven route filter customization. Defaults to {@code false}.
+     */
+    private boolean enabled = false;
+
+    /**
+     * Mappings bound from {@code api.registry.route-customizer.mappings}.
      */
     @NotNull
     @Valid
-    private List<RouteMapping> routeCustomizer = new ArrayList<>();
+    private List<RouteMapping> mappings = new ArrayList<>();
 
     /**
      * One mapping: a route selector (route id, or path and optional method) and the filters to attach.

@@ -20,6 +20,7 @@ package org.eclipse.ecsp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.eclipse.ecsp.annotations.CustomGatewayFilter;
 import org.eclipse.ecsp.security.Security;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,5 +45,18 @@ public class RouteCustomizerTestController {
     @GetMapping("/vehicles/{vehicleId}")
     public String findVehicle(@PathVariable("vehicleId") String vehicleId) {
         return vehicleId;
+    }
+
+    /**
+     * Lists vehicles, combining an annotation-defined filter with a configuration-defined filter.
+     *
+     * @return placeholder list response
+     */
+    @Operation(summary = "GET /vehicles", description = "List vehicles")
+    @SecurityRequirement(name = Security.JWT_AUTH_VALIDATOR, scopes = {"SelfManage"})
+    @CustomGatewayFilter(name = "AnnotFilter", args = "header-name=x-annot")
+    @GetMapping("/vehicles")
+    public String listVehicles() {
+        return "vehicles";
     }
 }

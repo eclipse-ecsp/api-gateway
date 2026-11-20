@@ -16,10 +16,12 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.register.customization;
+package org.eclipse.ecsp.annotations;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
+import org.eclipse.ecsp.config.RouteCustomizerProperties;
+import org.eclipse.ecsp.validators.RouteMappingValidator;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

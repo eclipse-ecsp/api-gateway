@@ -18,8 +18,8 @@
 
 package org.eclipse.ecsp.registry.utils;
 
-import org.eclipse.ecsp.register.conflict.RouteKey;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteKey;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.util.StringUtils;

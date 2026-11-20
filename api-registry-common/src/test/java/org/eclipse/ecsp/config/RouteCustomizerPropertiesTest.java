@@ -16,7 +16,7 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.register.customization;
+package org.eclipse.ecsp.config;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -164,18 +164,19 @@ class RouteCustomizerPropertiesTest {
     @Test
     void bindsTheListFromBothSpellingsOfTheRouteIdKey() {
         contextRunner.withPropertyValues(
-                "api.registry.enabled=true",
-                "api.registry.route-customizer[0].route-id=Demo-doThis",
-                "api.registry.route-customizer[0].filters[0].name=VehicleIdValidation",
-                "api.registry.route-customizer[0].filters[0].args.source=header",
-                "api.registry.route-customizer[0].filters[0].args.name=vehicle-id",
-                "api.registry.route-customizer[1].routeId=Demo-doThat",
-                "api.registry.route-customizer[1].filters[0].name=AuditFilter",
-                "api.registry.route-customizer[2].path=/v1/api/dothis",
-                "api.registry.route-customizer[2].method=POST",
-                "api.registry.route-customizer[2].filters[0].name=AuditFilter").run(context -> {
-                    List<RouteCustomizerProperties.RouteMapping> mappings =
-                            context.getBean(RouteCustomizerProperties.class).getRouteCustomizer();
+                "api.registry.route-customizer.enabled=true",
+                "api.registry.route-customizer.mappings[0].route-id=Demo-doThis",
+                "api.registry.route-customizer.mappings[0].filters[0].name=VehicleIdValidation",
+                "api.registry.route-customizer.mappings[0].filters[0].args.source=header",
+                "api.registry.route-customizer.mappings[0].filters[0].args.name=vehicle-id",
+                "api.registry.route-customizer.mappings[1].routeId=Demo-doThat",
+                "api.registry.route-customizer.mappings[1].filters[0].name=AuditFilter",
+                "api.registry.route-customizer.mappings[2].path=/v1/api/dothis",
+                "api.registry.route-customizer.mappings[2].method=POST",
+                "api.registry.route-customizer.mappings[2].filters[0].name=AuditFilter").run(context -> {
+                    RouteCustomizerProperties props = context.getBean(RouteCustomizerProperties.class);
+                    assertTrue(props.isEnabled());
+                    List<RouteCustomizerProperties.RouteMapping> mappings = props.getMappings();
                     assertThat(mappings).extracting(RouteCustomizerProperties.RouteMapping::getRouteId)
                             .containsExactly("Demo-doThis", "Demo-doThat", null);
                     assertThat(mappings.get(0).getFilters().get(0).getArgs())
@@ -186,16 +187,19 @@ class RouteCustomizerPropertiesTest {
     }
 
     @Test
-    void noCustomizationIsConfiguredByDefault() {
-        contextRunner.withPropertyValues("api.registry.enabled=true").run(context ->
-                assertThat(context.getBean(RouteCustomizerProperties.class).getRouteCustomizer()).isEmpty());
+    void emptyMappingsListWhenEnabledWithoutMappings() {
+        contextRunner.withPropertyValues("api.registry.route-customizer.enabled=true").run(context -> {
+            RouteCustomizerProperties props = context.getBean(RouteCustomizerProperties.class);
+            assertTrue(props.isEnabled());
+            assertThat(props.getMappings()).isEmpty();
+        });
     }
 
     @Test
-    void failsStartupWhenMappingIsInvalid() {
+    void failsStartupWhenEnabledAndMappingIsInvalid() {
         contextRunner.withPropertyValues(
-                "api.registry.enabled=true",
-                "api.registry.route-customizer[0].route-id=Demo-doThis").run(context -> {
+                "api.registry.route-customizer.enabled=true",
+                "api.registry.route-customizer.mappings[0].route-id=Demo-doThis").run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(BindValidationException.class)
                             .rootCause().hasMessageContaining("mapping must configure at least one filter");
@@ -203,8 +207,12 @@ class RouteCustomizerPropertiesTest {
     }
 
     @Test
-    void isAbsentWhenTheRegistryClientIsDisabled() {
+    void isAbsentByDefaultAndWhenExplicitlyDisabledEvenWithInvalidMappings() {
         contextRunner.run(context -> assertThat(context).doesNotHaveBean(RouteCustomizerProperties.class));
+        contextRunner.withPropertyValues(
+                "api.registry.route-customizer.enabled=false",
+                "api.registry.route-customizer.mappings[0].route-id=Demo-doThis")
+                .run(context -> assertThat(context).doesNotHaveBean(RouteCustomizerProperties.class));
     }
 
     /**

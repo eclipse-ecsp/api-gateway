@@ -16,10 +16,12 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.register.customization;
+package org.eclipse.ecsp.validators;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import org.eclipse.ecsp.annotations.ValidRouteMapping;
+import org.eclipse.ecsp.config.RouteCustomizerProperties;
 import org.springframework.util.StringUtils;
 
 /**
@@ -27,6 +29,13 @@ import org.springframework.util.StringUtils;
  */
 public class RouteMappingValidator
         implements ConstraintValidator<ValidRouteMapping, RouteCustomizerProperties.RouteMapping> {
+
+    /**
+     * Default constructor.
+     */
+    public RouteMappingValidator() {
+        // Default constructor
+    }
 
     @Override
     public boolean isValid(RouteCustomizerProperties.RouteMapping mapping, ConstraintValidatorContext context) {

@@ -190,6 +190,19 @@ public class RegistryCommonConstants {
             API_REGISTRY_PREFIX + ".token-propagation.web-client";
 
     /**
+     * Configuration prefix for route customizer properties ({@code api.registry.route-customizer}).
+     */
+    public static final String API_REGISTRY_ROUTE_CUSTOMIZER_PREFIX =
+            API_REGISTRY_PREFIX + ".route-customizer";
+
+    /**
+     * Full property key for enabling or disabling the route customizer
+     * ({@code api.registry.route-customizer.enabled}).
+     */
+    public static final String API_REGISTRY_ROUTE_CUSTOMIZER_ENABLED =
+            API_REGISTRY_ROUTE_CUSTOMIZER_PREFIX + ".enabled";
+
+    /**
      * Log event marker used when a route customizer mapping selects no route.
      */
     public static final String LOG_EVENT_ROUTE_CUSTOMIZER_NO_MATCH = "ROUTE_CUSTOMIZER_NO_MATCH";

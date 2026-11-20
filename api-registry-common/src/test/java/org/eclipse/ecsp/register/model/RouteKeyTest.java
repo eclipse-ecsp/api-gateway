@@ -16,10 +16,8 @@
  * <p>SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-package org.eclipse.ecsp.register.conflict;
+package org.eclipse.ecsp.register.model;
 
-import org.eclipse.ecsp.register.model.PredicateDefinition;
-import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

@@ -37,7 +37,8 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
-import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
+import org.eclipse.ecsp.config.RouteCustomizerProperties;
+import org.eclipse.ecsp.customizers.RouteCustomizerOpenApiCustomizer;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
 import org.eclipse.ecsp.security.ScopeOverrideProperties;
@@ -127,9 +128,11 @@ class ApiRoutesLoaderTest {
         when(springDocProviders.jsonMapper()).thenReturn(Json.mapper());
         ApiRoutesConfig apiRouteConfig = new ApiRoutesConfig();
         apiRouteConfig.setRoutes(List.of());
+        routeCustomizerProperties = new RouteCustomizerProperties();
+        routeCustomizerProperties.setEnabled(true);
         apiRoutesLoader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, apiRouteConfig, routeCustomizerProperties);
+                springDocProviders, springDocCustomizers, apiRouteConfig, Optional.of(routeCustomizerProperties));
     }
 
     @Test
@@ -444,7 +447,7 @@ class ApiRoutesLoaderTest {
 
         ApiRoutesLoader openApi31Loader = new ApiRoutesLoader(List.of(groupedOpenApi), openApiServiceObjectFactory,
                 abstractRequestService, genericResponseService, operationService, springDocConfigProperties,
-                springDocProviders, springDocCustomizers, new ApiRoutesConfig(), routeCustomizerProperties);
+                springDocProviders, springDocCustomizers, new ApiRoutesConfig(), Optional.empty());
 
         Assertions.assertSame(ObjectMapperUtil.getObjectMapper(),
                 ReflectionTestUtils.getField(openApi31Loader, "schemaObjectMapper"));
@@ -514,18 +517,52 @@ class ApiRoutesLoaderTest {
      */
     @Test
     void testConfiguredFiltersAreAppendedAfterAnnotationDrivenFilters() {
-        routeCustomizerProperties.getRouteCustomizer().add(routeIdMapping("test-controller-configured",
+        routeCustomizerProperties.getMappings().add(routeIdMapping("test-controller-configured",
                 configuredFilter("VehicleIdValidation", Map.of("source", "header", "name", "vehicle-id")),
                 configuredFilter("AuditFilter", Map.of())));
 
-        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/configured",
-                simpleOperation("configured"));
+        Operation op = simpleOperation("configured");
+        op.addExtension("x-filter-AnnotFilter", Map.of("k", "v"));
+        op.addExtension("x-filter-VehicleIdValidation",
+                new RouteCustomizerOpenApiCustomizer.ConfiguredFilterArgs(
+                        Map.of("source", "header", "name", "vehicle-id")));
+        ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/configured", op);
 
         RouteDefinition route = loadedRoute("test-controller-configured");
-        Assertions.assertEquals(List.of("JwtAuthValidator", "VehicleIdValidation", "AuditFilter"),
+        Assertions.assertEquals(
+                List.of("JwtAuthValidator", "AnnotFilter", "VehicleIdValidation", "AuditFilter"),
                 filterNames(route));
         Assertions.assertEquals(Map.of("source", "header", "name", "vehicle-id"),
-                route.getFilters().get(1).getArgs());
+                route.getFilters().get(2).getArgs());
+    }
+
+    /**
+     * Test purpose          - Verify configured mappings are ignored when route-customizer is disabled.
+     * Test data             - Enabled set to false with matching and non-matching mappings.
+     * Test expected result  - No configured filter added and no ROUTE_CUSTOMIZER_NO_MATCH warning logged.
+     * Test type             - Negative.
+     */
+    @Test
+    void testConfiguredFiltersIgnoredWhenDisabled() throws Exception {
+        routeCustomizerProperties.setEnabled(false);
+        routeCustomizerProperties.getMappings().add(
+                routeIdMapping("test-controller-create", configuredFilter("Matched", Map.of())));
+        routeCustomizerProperties.getMappings().add(
+                routeIdMapping("no-such-route", configuredFilter("Orphan", Map.of())));
+        Logger loaderLogger = (Logger) LoggerFactory.getLogger(ApiRoutesLoader.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        loaderLogger.addAppender(appender);
+
+        try {
+            apiRoutesLoader.getApiRoutes();
+        } finally {
+            loaderLogger.detachAppender(appender);
+        }
+
+        Assertions.assertTrue(appender.list.stream().map(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.startsWith("ROUTE_CUSTOMIZER_NO_MATCH")));
+        Assertions.assertTrue(loadedRoutes().stream().noneMatch(route -> filterNames(route).contains("Matched")));
     }
 
     /**
@@ -540,7 +577,7 @@ class ApiRoutesLoaderTest {
         mapping.setPath("/v2/users");
         mapping.setMethod("get");
         mapping.setFilters(List.of(configuredFilter("SelectedFilter", Map.of())));
-        routeCustomizerProperties.getRouteCustomizer().add(mapping);
+        routeCustomizerProperties.getMappings().add(mapping);
 
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users",
                 simpleOperation("listUsers"));
@@ -566,7 +603,7 @@ class ApiRoutesLoaderTest {
         RouteCustomizerProperties.RouteMapping mapping = new RouteCustomizerProperties.RouteMapping();
         mapping.setPath("/v2/users");
         mapping.setFilters(List.of(configuredFilter("SharedConfig", configuredArgs)));
-        routeCustomizerProperties.getRouteCustomizer().add(mapping);
+        routeCustomizerProperties.getMappings().add(mapping);
 
         ReflectionTestUtils.invokeMethod(apiRoutesLoader, "setOperation", HttpMethod.GET, "/v2/users",
                 simpleOperation("listUsers"));
@@ -590,9 +627,9 @@ class ApiRoutesLoaderTest {
      */
     @Test
     void testMappingThatSelectsNoRouteIsLoggedAndChangesNothing() throws Exception {
-        routeCustomizerProperties.getRouteCustomizer().add(
+        routeCustomizerProperties.getMappings().add(
                 routeIdMapping("test-controller-create", configuredFilter("Matched", Map.of())));
-        routeCustomizerProperties.getRouteCustomizer().add(
+        routeCustomizerProperties.getMappings().add(
                 routeIdMapping("no-such-route", configuredFilter("Orphan", Map.of())));
         Logger loaderLogger = (Logger) LoggerFactory.getLogger(ApiRoutesLoader.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();

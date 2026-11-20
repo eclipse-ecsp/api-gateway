@@ -19,8 +19,8 @@
 package org.eclipse.ecsp.registry.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.eclipse.ecsp.register.conflict.RouteKey;
 import org.eclipse.ecsp.register.model.RouteDefinition;
+import org.eclipse.ecsp.register.model.RouteKey;
 import org.eclipse.ecsp.registry.config.RouteConflictProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.exception.RouteConflictException;

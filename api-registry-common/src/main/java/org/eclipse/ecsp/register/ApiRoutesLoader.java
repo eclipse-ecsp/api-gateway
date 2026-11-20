@@ -33,8 +33,9 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
+import org.eclipse.ecsp.config.RouteCustomizerProperties;
 import org.eclipse.ecsp.customizers.CustomGatewayFilterCustomizer;
-import org.eclipse.ecsp.register.customization.RouteCustomizerProperties;
+import org.eclipse.ecsp.customizers.RouteCustomizerOpenApiCustomizer;
 import org.eclipse.ecsp.register.model.FilterDefinition;
 import org.eclipse.ecsp.register.model.PredicateDefinition;
 import org.eclipse.ecsp.register.model.RouteDefinition;
@@ -69,6 +70,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -148,7 +150,7 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param springDocProviders          SpringDocProviders for providing SpringDoc services.
      * @param springDocCustomizers        SpringDocCustomizers for customizing SpringDoc.
      * @param apiRoutesConfig             apiRoutesConfig
-     * @param routeCustomizerProperties   filters configured under {@code api.registry.route-customizer}
+     * @param routeCustomizerProperties   optional filters configured under {@code api.registry.route-customizer}
      */
     public ApiRoutesLoader(final List<GroupedOpenApi> groupedOpenApis,
                            ObjectFactory<OpenAPIService> openApiBuilderObjectFactory,
@@ -156,13 +158,14 @@ public class ApiRoutesLoader extends OpenApiResource {
                            GenericResponseService responseBuilder, OperationService operationParser,
                            SpringDocConfigProperties springDocConfigProperties,
                            SpringDocProviders springDocProviders, SpringDocCustomizers springDocCustomizers,
-                           ApiRoutesConfig apiRoutesConfig, RouteCustomizerProperties routeCustomizerProperties) {
+                           ApiRoutesConfig apiRoutesConfig,
+                           Optional<RouteCustomizerProperties> routeCustomizerProperties) {
         super(openApiBuilderObjectFactory, requestBuilder, responseBuilder, operationParser, springDocConfigProperties,
                 springDocProviders, springDocCustomizers);
         this.apiRoutes = new LinkedList<>();
         this.groupedOpenApis = groupedOpenApis;
         this.apiRoutesConfig = apiRoutesConfig;
-        this.routeCustomizerProperties = routeCustomizerProperties;
+        this.routeCustomizerProperties = routeCustomizerProperties.orElse(null);
         this.schemaObjectMapper = springDocConfigProperties.isOpenapi31()
             ? ObjectMapperUtil.getObjectMapper()
             : springDocProviders.jsonMapper();
@@ -649,7 +652,8 @@ public class ApiRoutesLoader extends OpenApiResource {
             List<FilterDefinition> filters = new ArrayList<>();
             extensions.forEach((key, value) -> {
                 LOGGER.debug("searching for request filter: {}", key);
-                if (key.startsWith(CustomGatewayFilterCustomizer.FILTERS_EXTENSION)) {
+                if (key.startsWith(CustomGatewayFilterCustomizer.FILTERS_EXTENSION)
+                        && !(value instanceof RouteCustomizerOpenApiCustomizer.ConfiguredFilterArgs)) {
                     processCustomGatewayFilters(key, value, filters);
                 }
             });
@@ -680,7 +684,7 @@ public class ApiRoutesLoader extends OpenApiResource {
     }
 
     /**
-     * Appends the filters configured under {@code api.registry.route-customizer} to the route.
+     * Appends the filters configured under {@code api.registry.route-customizer.mappings} to the route.
      *
      * <p>Every mapping that selects the route contributes its filters, in list order, after the filters derived
      * from the operation. Each route gets its own {@link FilterDefinition} instances, so routes never share state.
@@ -690,7 +694,10 @@ public class ApiRoutesLoader extends OpenApiResource {
      * @param route  the RouteDefinition object
      */
     private void setConfiguredFilters(String path, HttpMethod method, RouteDefinition route) {
-        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getRouteCustomizer();
+        if (routeCustomizerProperties == null || !routeCustomizerProperties.isEnabled()) {
+            return;
+        }
+        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getMappings();
         for (int index = 0; index < mappings.size(); index++) {
             RouteCustomizerProperties.RouteMapping mapping = mappings.get(index);
             if (!mapping.matches(route.getId(), path, method.name())) {
@@ -714,7 +721,10 @@ public class ApiRoutesLoader extends OpenApiResource {
      * warns and never fails startup.
      */
     private void warnUnappliedMappings() {
-        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getRouteCustomizer();
+        if (routeCustomizerProperties == null || !routeCustomizerProperties.isEnabled()) {
+            return;
+        }
+        List<RouteCustomizerProperties.RouteMapping> mappings = routeCustomizerProperties.getMappings();
         for (int index = 0; index < mappings.size(); index++) {
             if (!appliedMappings.contains(index)) {
                 RouteCustomizerProperties.RouteMapping mapping = mappings.get(index);

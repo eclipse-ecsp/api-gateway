@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Health indicator for the routes api-gateway excluded from its routing table.
@@ -40,7 +41,7 @@ import java.util.TreeMap;
 @ConditionalOnProperty(value = "api.dynamic.routes.enabled", havingValue = "true")
 public class RejectedRoutesHealthIndicator implements HealthIndicator {
 
-    private volatile Map<String, String> rejectedRoutes = Map.of();
+    private final AtomicReference<Map<String, String>> rejectedRoutes = new AtomicReference<>(Map.of());
 
     /**
      * Remembers the outcome of the latest route refresh, replacing the one of the previous refresh.
@@ -52,12 +53,12 @@ public class RejectedRoutesHealthIndicator implements HealthIndicator {
         Map<String, String> latest = new TreeMap<>();
         event.getRejectedRoutes().forEach(route ->
                 latest.putIfAbsent(route.routeId(), route.reason() + ": " + route.detail()));
-        rejectedRoutes = Collections.unmodifiableMap(latest);
+        rejectedRoutes.set(Collections.unmodifiableMap(latest));
     }
 
     @Override
     public Health health() {
-        Map<String, String> current = rejectedRoutes;
+        Map<String, String> current = rejectedRoutes.get();
         if (current.isEmpty()) {
             return Health.up().build();
         }

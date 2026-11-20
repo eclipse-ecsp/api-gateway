@@ -59,7 +59,7 @@ class RejectedRoutesHealthIndicatorTest {
 
         assertThat(health.getStatus()).isEqualTo(DEGRADED);
         assertThat(health.getDetails()).containsEntry("rejectedRouteCount", 2);
-        assertThat(health.getDetails().get("rejectedRoutes")).isEqualTo(Map.of(
+        assertThat(health.getDetails()).containsEntry("rejectedRoutes", Map.of(
                 "route-a", "unknown_filter: FilterA",
                 "route-b", "unknown_filter: FilterB"));
     }

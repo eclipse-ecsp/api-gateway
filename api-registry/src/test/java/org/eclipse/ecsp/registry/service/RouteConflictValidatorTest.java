@@ -240,10 +240,10 @@ class RouteConflictValidatorTest {
         ApiRouteService withoutChangeDetection = newService(false);
         withoutChangeDetection.createOrUpdate(RegistryTestUtil.getRoute(SERVICE_A, "route-a", GET, "/v1/items/{id}"));
 
-        assertThrows(RouteConflictException.class, () -> withoutChangeDetection.createOrUpdate(
-                RegistryTestUtil.getRoute(SERVICE_B, "route-b", GET, "/v1/items/{itemId}")));
-        assertDoesNotThrow(() -> withoutChangeDetection.createOrUpdate(
-                RegistryTestUtil.getRoute(SERVICE_A, "route-a", GET, "/v1/items/{itemId}")));
+        RouteDefinition route1 = RegistryTestUtil.getRoute(SERVICE_B, "route-b", GET, "/v1/items/{itemId}");
+        assertThrows(RouteConflictException.class, () -> withoutChangeDetection.createOrUpdate(route1));
+        RouteDefinition route2 = RegistryTestUtil.getRoute(SERVICE_A, "route-a", GET, "/v1/items/{itemId}");
+        assertDoesNotThrow(() -> withoutChangeDetection.createOrUpdate(route2));
 
         assertEquals(1, repo.size());
     }

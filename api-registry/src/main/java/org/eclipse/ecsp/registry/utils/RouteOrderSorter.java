@@ -99,7 +99,7 @@ public final class RouteOrderSorter {
         }
         try {
             return PathPatternParser.defaultInstance.parse(path);
-        } catch (PatternParseException ex) {
+        } catch (PatternParseException _) {
             warnUnparseable(route, REASON_INVALID_PATTERN, path);
             return null;
         }

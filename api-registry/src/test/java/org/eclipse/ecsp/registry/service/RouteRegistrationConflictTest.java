@@ -376,10 +376,11 @@ class RouteRegistrationConflictTest {
         }
     }
 
+    @SuppressWarnings("java:S2925")
     private static void pause() {
         try {
             Thread.sleep(SLOW_SAVE_MILLIS);
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }

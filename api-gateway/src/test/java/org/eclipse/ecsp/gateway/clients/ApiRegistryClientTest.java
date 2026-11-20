@@ -471,7 +471,7 @@ class ApiRegistryClientTest {
 
         // Verify routes are cached
         assertTrue(apiRegistryClient.hasCachedRoutes());
-        assertEquals(1,apiRegistryClient.getCachedRoutesCount());
+        assertEquals(1, apiRegistryClient.getCachedRoutesCount());
     }
 
     /**
@@ -772,7 +772,7 @@ class ApiRegistryClientTest {
 
         // Then
         assertFalse(apiRegistryClient.hasCachedRoutes());
-        assertEquals(0,apiRegistryClient.getCachedRoutesCount());
+        assertEquals(0, apiRegistryClient.getCachedRoutesCount());
     }
 
     // ==================== Rate Limit Tests ====================

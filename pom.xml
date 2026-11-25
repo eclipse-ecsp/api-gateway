@@ -66,10 +66,11 @@
         <tools-jackson-bom.version>3.3.0</tools-jackson-bom.version>
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.48</lombok.version>
-        <spring-boot.version>4.1.2</spring-boot.version>
-        <spring-cloud.version>2025.1.4</spring-cloud.version>
-        <spring-cloud-resilience4j.version>5.0.3</spring-cloud-resilience4j.version>
-        <spring-cloud-starter-gateway.version>5.0.4</spring-cloud-starter-gateway.version>
+        <spring-boot.version>4.2.0</spring-boot.version>
+        <spring-framework.version>7.1.0</spring-framework.version>
+        <spring-cloud.version>2026.0.0</spring-cloud.version>
+        <spring-cloud-resilience4j.version>5.1.0</spring-cloud-resilience4j.version>
+        <spring-cloud-starter-gateway.version>5.1.0</spring-cloud-starter-gateway.version>
         <springdoc.version>3.2.0</springdoc.version>
         <!-- maven-plugin dependant versions ordered by artifactId -->
         <jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
@@ -131,7 +132,7 @@
         </sonar.exclusions>
         <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec
         </jacoco.ut.execution.data.file>
-        <spring-security.version>7.1.2</spring-security.version>
+        <spring-security.version>7.2.0</spring-security.version>
         <bouncycastle.version>1.87</bouncycastle.version>
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <openapi-schema-validator.version>1.0.7</openapi-schema-validator.version>
@@ -143,6 +144,7 @@
         <license-tool-plugin.version>1.1.0</license-tool-plugin.version>
         <skipDash>true</skipDash>
         <failWhenReviewNeeded>false</failWhenReviewNeeded>
+        <logback.version>1.5.38</logback.version>
         <logback-gelf.version>6.1.2</logback-gelf.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <skipCheckstyle>false</skipCheckstyle>
@@ -154,7 +156,7 @@
         <tomcat.version>11.0.27</tomcat.version>
         <postgresql.version>42.7.14</postgresql.version>
         <netty.version>4.2.20.Final</netty.version>
-        <reactor-test.version>3.8.8</reactor-test.version>
+        <reactor-test.version>3.9.0</reactor-test.version>
         <commons-lang3.version>3.22.0</commons-lang3.version>
         <commons-codec.version>1.23.0</commons-codec.version>
         <jsoup.version>1.24.1</jsoup.version>
@@ -187,6 +189,13 @@
     </pluginRepositories>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring-framework.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -323,6 +332,17 @@
                 <groupId>de.siegmar</groupId>
                 <artifactId>logback-gelf</artifactId>
                 <version>${logback-gelf.version}</version>
+            </dependency>
+            <!-- Keep Logback on 1.5.x until org.eclipse.ecsp:utils removes PatternLayout.defaultConverterMap -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>

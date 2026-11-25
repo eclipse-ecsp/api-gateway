@@ -18,6 +18,8 @@
 
 package org.eclipse.ecsp.utils;
 
+import org.springframework.boot.EnvironmentPostProcessor;
+
 /**
  * Constant Class to define the constants used in API registry common.
  */
@@ -164,7 +166,7 @@ public class RegistryCommonConstants {
     /**
      * Full property key for enabling/disabling JWT security
      * ({@code api.registry.security.enabled}).
-     * Used in programmatic property lookups such as {@link org.springframework.boot.env.EnvironmentPostProcessor}.
+     * Used in programmatic property lookups such as {@link EnvironmentPostProcessor}.
      */
     public static final String API_REGISTRY_SECURITY_ENABLED = API_REGISTRY_SECURITY_PREFIX + ".enabled";
 

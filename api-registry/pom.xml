@@ -23,7 +23,7 @@
         </jacoco.ut.execution.data.file>
         <sql.dao.version>1.4.0</sql.dao.version>
         <nosql.dao.version>1.3.0</nosql.dao.version>
-        <hypersistence.utils.hibernate.73.version>3.16.0</hypersistence.utils.hibernate.73.version>
+        <hypersistence.utils.hibernate.71.version>3.16.0</hypersistence.utils.hibernate.71.version>
         <mongodb-driver.version>5.14.0</mongodb-driver.version>
         <testcontainers.version>2.0.5</testcontainers.version>
     </properties>
@@ -139,8 +139,8 @@
         </dependency>
         <dependency>
             <groupId>io.hypersistence</groupId>
-            <artifactId>hypersistence-utils-hibernate-73</artifactId>
-            <version>${hypersistence.utils.hibernate.73.version}</version>
+            <artifactId>hypersistence-utils-hibernate-71</artifactId>
+            <version>${hypersistence.utils.hibernate.71.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

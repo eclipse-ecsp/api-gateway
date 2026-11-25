@@ -118,6 +118,10 @@ public class WebClientConfig {
      * defined. This method ensures that a builder is always available for the customizer to
      * apply the token filter, even in applications that do not use WebFlux.
      *
+     * @param tokenFilter the optional token filter for token propagation
+     * @param connectTimeoutMs the connection timeout in milliseconds
+     * @param readTimeoutMs the read timeout in milliseconds
+     * 
      * @return a default WebClient.Builder
      */
     @Bean

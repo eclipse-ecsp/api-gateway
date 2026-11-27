@@ -473,7 +473,6 @@ class PublicKeyServiceImplTest {
     @Test
     void removePublicKeysBySourceIdWhenNoKeysMatchSourceThenReturnsZero() {
         // Given
-        String sourceId = "non-existent-source";
         String existingSourceId = "existing-source";
 
         PublicKeyInfo keyInfo = new PublicKeyInfo();
@@ -492,6 +491,7 @@ class PublicKeyServiceImplTest {
             java.lang.reflect.Method method = PublicKeyServiceImpl.class
                     .getDeclaredMethod("removePublicKeysBySourceId", String.class);
             method.setAccessible(true);
+            String sourceId = "non-existent-source";
             int result = (int) method.invoke(publicKeyService, sourceId);
 
             // Then

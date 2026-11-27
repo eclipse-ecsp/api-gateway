@@ -94,6 +94,9 @@ public class RestTemplateConfig {
      * </ul>
      *
      * @param tokenInterceptorProvider provider for the optional token interceptor
+     * @param handleError whether to enable the error handler
+     * @param connectTimeoutMs the connection timeout in milliseconds
+     * @param readTimeoutMs the read timeout in milliseconds
      * @return the configured {@link RestTemplate}
      */
     @Bean

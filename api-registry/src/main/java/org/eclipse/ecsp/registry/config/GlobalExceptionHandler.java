@@ -26,6 +26,7 @@ import org.eclipse.ecsp.registry.dto.ErrorResponseDto;
 import org.eclipse.ecsp.registry.dto.GenericResponseDto;
 import org.eclipse.ecsp.registry.dto.ValidationErrorResponseDto;
 import org.eclipse.ecsp.registry.exception.DuplicateClientException;
+import org.eclipse.ecsp.registry.exception.RouteConflictException;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -83,6 +84,19 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 ex.getDuplicateClientIds()
         );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Handles RouteConflictException (409 Conflict).
+     * Returns response with message and the ids of the routes that already own the method and path.
+     *
+     * @param ex the RouteConflictException thrown
+     * @return ResponseEntity with 409 Conflict status
+     */
+    @ExceptionHandler(RouteConflictException.class)
+    public ResponseEntity<ConflictResponseDto> handleRouteConflictException(RouteConflictException ex) {
+        ConflictResponseDto errorResponse = new ConflictResponseDto(ex.getMessage(), ex.getConflictingRouteIds());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 

@@ -24,9 +24,11 @@ import org.eclipse.ecsp.registry.config.ChecksumProperties;
 import org.eclipse.ecsp.registry.entity.ApiRouteEntity;
 import org.eclipse.ecsp.registry.events.EventPublisherContext;
 import org.eclipse.ecsp.registry.events.data.RouteChangeEventData;
+import org.eclipse.ecsp.registry.exception.RouteConflictException;
 import org.eclipse.ecsp.registry.repo.ApiRouteRepo;
 import org.eclipse.ecsp.registry.utils.ApiRouteUtil;
 import org.eclipse.ecsp.registry.utils.RegistryConstants;
+import org.eclipse.ecsp.registry.utils.RouteOrderSorter;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Service to create, read, update, and delete routes.
@@ -47,6 +50,11 @@ import java.util.UUID;
  *
  * <p>When {@code change-detection.enabled=false}, the service behaves identically to the
  * pre-feature implementation: every registration triggers an unconditional save (FR-08).
+ *
+ * <p>A registration that would persist a route is first checked by the {@link RouteConflictValidator}: a route
+ * with the same HTTP method and path as another registered route is rejected unless it is the same API registered
+ * again by its own service. Checking and saving are serialized, so two registrations of the same method and path
+ * that arrive together cannot both succeed. A route that is unchanged is not persisted and is not checked.
  */
 @Service
 public class ApiRouteService {
@@ -61,6 +69,8 @@ public class ApiRouteService {
     private final ChecksumProperties checksumProperties;
     private final ChecksumService checksumService;
     private final MeterRegistry meterRegistry;
+    private final RouteConflictValidator conflictValidator;
+    private final ReentrantLock registrationLock = new ReentrantLock();
 
     @Value("${api.gatewayUrls:}")
     private String apiGatewayUrl;
@@ -73,17 +83,20 @@ public class ApiRouteService {
      * @param checksumProperties change-detection configuration
      * @param checksumService    checksum computation strategy
      * @param meterRegistry      Micrometer registry for change-type counters
+     * @param conflictValidator  checks a registration against the registered routes
      */
     public ApiRouteService(ApiRouteRepo apiRouteRepo,
                            Optional<EventPublisherContext> eventPublisher,
                            ChecksumProperties checksumProperties,
                            ChecksumService checksumService,
-                           MeterRegistry meterRegistry) {
+                           MeterRegistry meterRegistry,
+                           RouteConflictValidator conflictValidator) {
         this.apiRouteRepo = apiRouteRepo;
         this.eventPublisher = eventPublisher.orElse(null);
         this.checksumProperties = checksumProperties;
         this.checksumService = checksumService;
         this.meterRegistry = meterRegistry;
+        this.conflictValidator = conflictValidator;
     }
 
     /**
@@ -91,11 +104,12 @@ public class ApiRouteService {
      *
      * <p>When change-detection is enabled, the incoming route is compared against the stored
      * checksum. Unchanged routes exit early without a DB write (FR-03). New or updated routes
-     * are persisted, logged, metered, and published.
+     * are checked for conflicts, persisted, logged, metered, and published.
      *
      * @param model route definition to register; must not be {@code null} and must have an {@code id}
      * @return the persisted route definition
      * @throws IllegalArgumentException if {@code model} is {@code null} or has no {@code id}
+     * @throws RouteConflictException   if another route already has the same HTTP method and path
      */
     public RouteDefinition createOrUpdate(RouteDefinition model) {
         if (model == null || model.getId() == null) {
@@ -109,12 +123,15 @@ public class ApiRouteService {
     }
 
     /**
-     * Lists all active route definitions.
+     * Lists all active route definitions in route order.
      *
-     * @return list of active routes; never {@code null}
+     * <p>Routes are ordered by path specificity, then by route id, so that api-gateway, which serves a request
+     * with the first route that matches, evaluates a specific path before a broader one that also matches it.
+     *
+     * @return list of active routes in route order; never {@code null}
      */
     public List<RouteDefinition> list() {
-        return ApiRouteUtil.convertActive(apiRouteRepo.findAll());
+        return RouteOrderSorter.sort(ApiRouteUtil.convertActive(apiRouteRepo.findAll()));
     }
 
     /**
@@ -185,6 +202,17 @@ public class ApiRouteService {
      */
     private RouteDefinition saveUnconditionally(RouteDefinition model,
                                                 Optional<ApiRouteEntity> existing) {
+        registrationLock.lock();
+        try {
+            conflictValidator.validate(model, existing);
+            return persistUnconditionally(model, existing);
+        } finally {
+            registrationLock.unlock();
+        }
+    }
+
+    private RouteDefinition persistUnconditionally(RouteDefinition model,
+                                                   Optional<ApiRouteEntity> existing) {
         ApiRouteEntity entity = existing.orElseGet(ApiRouteEntity::new);
         if (entity.getId() == null) {
             entity.setId(model.getId());
@@ -214,6 +242,19 @@ public class ApiRouteService {
             return ApiRouteUtil.convert(existing.get());
         }
 
+        registrationLock.lock();
+        try {
+            conflictValidator.validate(model, existing);
+            return persistChange(model, existing, newChecksumOpt, changeType);
+        } finally {
+            registrationLock.unlock();
+        }
+    }
+
+    private RouteDefinition persistChange(RouteDefinition model,
+                                          Optional<ApiRouteEntity> existing,
+                                          Optional<String> newChecksumOpt,
+                                          RouteChangeType changeType) {
         ApiRouteEntity entity = existing.orElseGet(ApiRouteEntity::new);
         if (entity.getId() == null) {
             entity.setId(model.getId());

@@ -19,13 +19,13 @@
 package org.eclipse.ecsp.gateway.metrics;
 
 import io.micrometer.common.KeyValues;
+import jakarta.annotation.Nonnull;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.ecsp.gateway.utils.GatewayConstants;
 import org.eclipse.ecsp.gateway.utils.GatewayUtils;
 import org.eclipse.ecsp.utils.logger.IgniteLogger;
 import org.eclipse.ecsp.utils.logger.IgniteLoggerFactory;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.cloud.gateway.filter.headers.observation.DefaultGatewayObservationConvention;
 import org.springframework.cloud.gateway.filter.headers.observation.GatewayContext;
 import org.springframework.cloud.gateway.route.Route;
@@ -55,7 +55,7 @@ public class ApiGatewayObservationConvention extends DefaultGatewayObservationCo
         }
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public KeyValues getLowCardinalityKeyValues(GatewayContext context) {
         KeyValues keyValues = INSTANCE.getLowCardinalityKeyValues(context);
@@ -76,7 +76,7 @@ public class ApiGatewayObservationConvention extends DefaultGatewayObservationCo
         return keyValues;
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public String getName() {
         return this.metricsName;

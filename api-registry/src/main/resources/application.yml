@@ -54,6 +54,10 @@ api:
       checksum:
         algorithm: ${api_registry_change_detection_algorithm:SHA-256}
         include-fields: []
+    conflict-detection:
+      # reject: refuse a route with the HTTP method and path of another registered route (409 Conflict)
+      # warn: accept it and log it, off: do not look for conflicts
+      mode: ${api_registry_conflict_detection_mode:reject}
 
 api-registry:
   database:

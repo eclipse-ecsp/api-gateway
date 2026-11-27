@@ -84,4 +84,24 @@ public class RegistryConstants {
      * Log event marker used when checksum computation fails.
      */
     public static final String LOG_EVENT_CHECKSUM_FAILURE = "API_ROUTE_CHECKSUM_FAILURE";
+
+    /**
+     * Log event marker used when a route has no usable path while the routes are put in route order.
+     */
+    public static final String LOG_EVENT_ROUTE_ORDER_PATH_UNPARSEABLE = "ROUTE_ORDER_PATH_UNPARSEABLE";
+
+    /**
+     * Log event marker used when a registration is rejected because its method and path are already registered.
+     */
+    public static final String LOG_EVENT_ROUTE_CONFLICT_REJECTED = "ROUTE_CONFLICT_REJECTED";
+
+    /**
+     * Log event marker used when a conflicting registration is accepted because conflict detection only warns.
+     */
+    public static final String LOG_EVENT_ROUTE_CONFLICT_ACCEPTED = "ROUTE_CONFLICT_ACCEPTED";
+
+    /**
+     * Log event marker used when a registration takes over a route id that another service registered.
+     */
+    public static final String LOG_EVENT_ROUTE_OWNER_CHANGED = "ROUTE_OWNER_CHANGED";
 }

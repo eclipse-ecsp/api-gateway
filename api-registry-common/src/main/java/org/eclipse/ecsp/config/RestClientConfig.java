@@ -86,6 +86,8 @@ public class RestClientConfig {
      * (the default when the property is absent).
      *
      * @param tokenInterceptor the interceptor that adds the propagated token to outgoing requests
+     * @param connectTimeoutMs the connection timeout in milliseconds
+     * @param readTimeoutMs the read timeout in milliseconds
      * @return the configured builder
      */
     @Bean

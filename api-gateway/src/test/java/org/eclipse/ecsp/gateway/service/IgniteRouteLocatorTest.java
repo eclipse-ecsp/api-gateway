@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.ecsp.gateway.clients.ApiRegistryClient;
 import org.eclipse.ecsp.gateway.config.SpringCloudGatewayConfig;
 import org.eclipse.ecsp.gateway.customizers.RouteCustomizer;
+import org.eclipse.ecsp.gateway.events.RouteRejectionsEvent;
+import org.eclipse.ecsp.gateway.events.RouteRejectionsEvent.RejectedRoute;
 import org.eclipse.ecsp.gateway.model.ApiService;
 import org.eclipse.ecsp.gateway.model.IgniteRouteDefinition;
 import org.eclipse.ecsp.gateway.plugins.PluginLoader;
@@ -29,6 +31,7 @@ import org.eclipse.ecsp.gateway.utils.ObjectMapperUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openapi4j.schema.validator.ValidationData;
@@ -57,7 +60,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1191,5 +1196,79 @@ class IgniteRouteLocatorTest {
         StepVerifier.create(routes)
                 .expectNextCount(1)
                 .verifyComplete();
+    }
+
+    @Test
+    void getRoutesPublishesTheRoutesRejectedForAnUnknownFilter() {
+        igniteRouteLocator = newRouteLocator();
+        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(
+                routeWithFilter("accepted-route", "TestFilter"),
+                routeWithFilter("rejected-route", "NonExistentFilter")));
+        RouteLocatorBuilder.Builder builder = mockRouteBuilder();
+
+        StepVerifier.create(igniteRouteLocator.getRoutes())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        assertEquals(List.of(new RejectedRoute("rejected-route",
+                        RouteRejectionsEvent.REASON_UNKNOWN_FILTER, "NonExistentFilter")),
+                publishedEvent().getRejectedRoutes());
+        verify(builder).route(eq("accepted-route"), any());
+        verify(builder, never()).route(eq("rejected-route"), any());
+    }
+
+    @Test
+    void getRoutesPublishesAnEmptyEventWhenEveryRouteIsAccepted() {
+        igniteRouteLocator = newRouteLocator();
+        when(apiRegistryClient.getRoutes()).thenReturn(Flux.just(routeWithFilter("accepted-route", "TestFilter")));
+        mockRouteBuilder();
+
+        StepVerifier.create(igniteRouteLocator.getRoutes())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        assertTrue(publishedEvent().getRejectedRoutes().isEmpty());
+    }
+
+    private IgniteRouteLocator newRouteLocator() {
+        return new IgniteRouteLocator(configurationService, gatewayFilterFactories, gatewayProperties, false,
+                pluginLoader, apiRegistryClient, routeLocatorBuilder, applicationEventPublisher,
+                springCloudGatewayConfig, new ArrayList<>());
+    }
+
+    private static IgniteRouteDefinition routeWithFilter(String id, String filterName) {
+        IgniteRouteDefinition route = new IgniteRouteDefinition();
+        route.setId(id);
+        route.setUri(URI.create("http://localhost:8080"));
+        route.setService("test-service");
+        FilterDefinition filter = new FilterDefinition();
+        filter.setName(filterName);
+        route.setFilters(List.of(filter));
+        PredicateDefinition pathPredicate = new PredicateDefinition();
+        pathPredicate.setName("Path");
+        pathPredicate.addArg("pattern", "/" + id + "/**");
+        route.setPredicates(List.of(pathPredicate));
+        return route;
+    }
+
+    private RouteLocatorBuilder.Builder mockRouteBuilder() {
+        RouteLocatorBuilder.Builder builder = mock(RouteLocatorBuilder.Builder.class);
+        when(routeLocatorBuilder.routes()).thenReturn(builder);
+        when(builder.route(any(String.class), any())).thenReturn(builder);
+        RouteLocator builtLocator = mock(RouteLocator.class);
+        Route builtRoute = Route.async()
+                .id("built-route")
+                .uri("http://localhost:8080")
+                .predicate(exchange -> true)
+                .build();
+        when(builtLocator.getRoutes()).thenReturn(Flux.just(builtRoute));
+        when(builder.build()).thenReturn(builtLocator);
+        return builder;
+    }
+
+    private RouteRejectionsEvent publishedEvent() {
+        ArgumentCaptor<RouteRejectionsEvent> captor = ArgumentCaptor.forClass(RouteRejectionsEvent.class);
+        verify(applicationEventPublisher).publishEvent(captor.capture());
+        return captor.getValue();
     }
 }

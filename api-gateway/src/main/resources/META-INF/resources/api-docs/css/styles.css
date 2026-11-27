@@ -153,11 +153,24 @@ body {
     padding: 0 4px;
     border: 0;
     outline: 0;
-    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: transparent !important;
     color: inherit;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12.5px;
     text-overflow: ellipsis;
+}
+
+#jwtToken.masked:not(:placeholder-shown) {
+    -webkit-text-security: disc;
+}
+
+#jwtToken:-webkit-autofill,
+#jwtToken:-webkit-autofill:hover,
+#jwtToken:-webkit-autofill:focus {
+    -webkit-text-fill-color: currentColor;
+    transition: background-color 9999s ease-out 0s;
 }
 
 /* Hide Edge's built-in reveal/clear buttons; the custom eye button replaces them */

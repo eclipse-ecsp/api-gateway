@@ -71,9 +71,10 @@ $(document).ready(function () {
         }
     }).on('input', renderTokenState);
     $('#jwtTokenToggle').click(function () {
-        const reveal = $("#jwtToken").attr('type') === 'password';
-        $("#jwtToken").attr('type', reveal ? 'text' : 'password');
+        const reveal = $("#jwtToken").hasClass('masked');
+        $("#jwtToken").toggleClass('masked', !reveal);
         $(this).attr('aria-label', reveal ? 'Hide token' : 'Show token');
+        $(this).attr('aria-pressed', String(reveal));
     });
     renderTokenState();
     $.get("/v3/api-docs/swagger-config", function (data, status) {
